@@ -1,0 +1,7 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+httpx==0.28.1
+huggingface-hub==0.36.0
+safetensors==0.7.0
+transformers==5.2.0
+optimum-quanto==0.2.7

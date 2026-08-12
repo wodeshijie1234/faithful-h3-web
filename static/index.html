@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>liusheng Faithful H3</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="liusheng Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.0.0</span></div>
+    <div class="top-actions">
+      <span id="model-status" class="status status-neutral">Model not downloaded</span>
+      <button class="help" data-help="model" type="button" aria-label="Model help">?</button>
+      <button id="download-model" class="button button-secondary" type="button">Download model</button>
+      <label class="language-label" for="language" data-i18n="language">Language</label>
+      <select id="language" class="language-select" aria-label="Language">
+        <option value="en">English</option>
+        <option value="zh-CN">&#31616;&#20307;&#20013;&#25991;</option>
+        <option value="zh-TW">&#32321;&#39636;&#20013;&#25991;</option>
+      </select>
+    </div>
+  </header>
+  <main class="workspace">
+    <section class="mode-row" aria-labelledby="mode-label">
+      <span id="mode-label" class="mode-label" data-i18n="mode">Mode</span>
+      <div class="segmented" role="tablist" aria-label="H3 mode"><button class="segment active" data-mode="fl2va" type="button" role="tab" aria-selected="true">FL2VA</button><button class="segment" data-mode="ref2va" type="button" role="tab" aria-selected="false">Ref2VA</button></div>
+      <button class="help" data-help="mode" type="button" aria-label="Mode help">?</button>
+    </section>
+    <section class="work-section">
+      <div class="section-heading"><span class="step">1</span><h2 data-i18n="enrichTitle">Prompt enrichment</h2><button class="help" data-help="enrich" type="button" aria-label="Prompt enrichment help">?</button></div>
+      <div class="two-col">
+        <div class="panel-input"><label for="enrich-input" data-i18n="simplePrompt">Simple prompt</label><textarea id="enrich-input" rows="5" data-i18n-placeholder="simplePlaceholder" placeholder="Enter a short prompt in any language."></textarea><div class="slider-row"><label for="strength" data-i18n="creativeStrength">Creative strength</label><output id="strength-value">40</output></div><input id="strength" type="range" min="0" max="100" step="5" value="40"><div class="range-labels"><span data-i18n="conservative">Conservative</span><span data-i18n="creative">Creative</span></div><button id="enrich" class="button button-primary" type="button" data-i18n="enrichButton">Enrich prompt</button></div>
+        <div class="panel-output"><div class="output-head"><label for="enrich-output" data-i18n="enrichedOutput">Enriched prompt</label><div><button class="copy output-copy" data-target="enrich-output" type="button" data-i18n="copy">Copy</button><button class="icon-button download" data-target="enrich-output" type="button" data-i18n="save">Save</button></div></div><textarea id="enrich-output" rows="9" readonly></textarea><div id="enrich-status" class="feedback" aria-live="polite"></div></div>
+      </div>
+    </section>
+    <section class="work-section">
+      <div class="section-heading"><span class="step">2</span><h2 data-i18n="convertTitle">Faithful H3 conversion</h2><button class="help" data-help="convert" type="button" aria-label="Faithful conversion help">?</button></div>
+      <div class="two-col">
+        <div class="panel-input"><label for="source-input" data-i18n="sourcePrompt">Source prompt</label><textarea id="source-input" rows="10" data-i18n-placeholder="sourcePlaceholder" placeholder="Enter the facts, shots, positions, and dialogue to preserve."></textarea><button id="convert" class="button button-primary" type="button" data-i18n="convertButton">Convert to H3</button></div>
+        <div class="panel-output"><div class="output-head"><label for="h3-output" data-i18n="h3Output">H3 output</label><div><button class="copy output-copy" data-target="h3-output" type="button" data-i18n="copy">Copy</button><button class="icon-button download" data-target="h3-output" type="button" data-i18n="save">Save</button></div></div><textarea id="h3-output" rows="10" readonly></textarea><div id="convert-status" class="feedback" aria-live="polite"></div></div>
+      </div>
+    </section>
+    <section class="work-section">
+      <div class="section-heading"><span class="step">3</span><h2 data-i18n="microTitle">H3 micro edit</h2><button class="help" data-help="micro" type="button" aria-label="H3 micro edit help">?</button></div>
+      <div class="two-col">
+        <div class="panel-input"><label for="micro-input" data-i18n="microInput">Editable H3 prompt (Chinese)</label><textarea id="micro-input" rows="12" data-i18n-placeholder="microPlaceholder" placeholder="After conversion, the Chinese editing copy appears here. You can also paste a complete H3 prompt or a plain prompt."></textarea><button id="micro" class="button button-primary" type="button" data-i18n="microButton">Micro edit and convert to H3</button></div>
+        <div class="panel-output"><div class="output-head"><label for="micro-output" data-i18n="h3Output">H3 output</label><div><button class="copy output-copy" data-target="micro-output" type="button" data-i18n="copy">Copy</button><button class="icon-button download" data-target="micro-output" type="button" data-i18n="save">Save</button></div></div><textarea id="micro-output" rows="12" readonly></textarea><div id="micro-status" class="feedback" aria-live="polite"></div></div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><span>liusheng Faithful H3 v1.0.0</span><span>@liusheng | 1661204908@qq.com</span></footer>
+  <dialog id="help-dialog"><div class="dialog-head"><h3 id="help-title"></h3><button id="help-close" class="icon-button" type="button" aria-label="Close">Close</button></div><p id="help-body"></p></dialog>
+  <script src="/static/app.js"></script>
+</body>
+</html>
