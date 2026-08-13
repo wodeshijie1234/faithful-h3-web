@@ -2,6 +2,12 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.1.3 - 2026-08-13
+
+### Fixed
+
+- Constructed the Quanto model skeleton in BF16 before materializing the BF16 checkpoint scales and non-quantized weights, preventing a Float/BFloat16 mismatch during real inference.
+
 ## 1.1.2 - 2026-08-13
 
 ### Fixed

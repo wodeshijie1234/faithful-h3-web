@@ -65,6 +65,10 @@ class ModelMappingTests(unittest.TestCase):
         mapped = mapped_quantization_map(metadata)
         self.assertIn("model.layers.0.linear_attn.in_proj_qkv", mapped)
 
+    def test_runtime_materializes_the_bf16_checkpoint_with_bf16_skeleton(self):
+        runtime_source = (Path(__file__).parents[1] / "app" / "model_runtime.py").read_text(encoding="utf-8")
+        self.assertIn("model = model.to(dtype=torch.bfloat16)", runtime_source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -100,6 +100,8 @@ class ModelRuntime:
             config = Qwen3_5TextConfig(**config_data.get("text_config", config_data))
             with torch.device("meta"):
                 model = Qwen3_5ForCausalLM(config)
+            # The Quanto checkpoint stores scales and non-quantized weights in BF16.
+            model = model.to(dtype=torch.bfloat16)
             state, quant_map = mapped_state_dict(self.model_dir / MODEL_FILE)
             requantize(model, state, quant_map, device=torch.device("cuda"))
             model.eval()

@@ -54,7 +54,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("FL2VA", readme)
         self.assertIn("Ref2VA", readme)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("## 1.1.2 - 2026-08-13", changelog)
+        self.assertIn("## 1.1.3 - 2026-08-13", changelog)
         self.assertIn("Release memory", changelog)
 
     def test_public_distribution_uses_liuliu_brand(self):

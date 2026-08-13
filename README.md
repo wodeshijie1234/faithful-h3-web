@@ -73,6 +73,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.1.2`<br>
+Version `1.1.3`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title liuliu Faithful H3 v1.1.2
+title liuliu Faithful H3 v1.1.3
 set "PYTHONNOUSERSITE=1"
 
 if not defined FAITHFUL_H3_MODEL_DIR (
