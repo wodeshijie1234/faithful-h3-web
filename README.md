@@ -2,21 +2,6 @@
 
 `liuliu Faithful H3` is a standalone local Web tool for faithful `FL2VA` and `Ref2VA` prompt formatting, controlled prompt enrichment, and module-based H3 editing.
 
-## What's new in v1.3.0
-
-- Choose between Qwen3.5 4B and 9B local model profiles.
-- Run GGUF models through the official `llama.cpp` backend with automatic startup, health checks, model residency, clean shutdown, and no-thinking requests.
-- Automatically select an NVIDIA CUDA runtime when supported, with Vulkan as a compatibility fallback.
-- See the active model, backend, and measured request duration after each operation.
-- Install a lightweight GGUF runtime without PyTorch, Transformers, Quanto, Triton, or FLA dependencies by default.
-- Use the recommended 4B model below 16 GiB VRAM or the 9B model at 16 GiB VRAM and above, while retaining manual model selection.
-- Reject invented visual details during literal conversion, including unsupported settings, appearance, clothing, lighting, mood, relationships, intentions, and camera details.
-- Keep inferred audio isolated to the soundscape and music fields.
-- Continue using an existing Quanto installation through the optional `requirements-quanto.txt` compatibility path.
-- Reject failed or unreadable GGUF output instead of writing it into an H3 prompt.
-
-Full version history remains available in [CHANGELOG.md](CHANGELOG.md).
-
 ## Features
 
 - Faithful FL2VA and Ref2VA conversion without image recognition
@@ -34,6 +19,21 @@ Full version history remains available in [CHANGELOG.md](CHANGELOG.md).
 - Active backend and measured request duration shown after each operation
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
+
+## What's new in v1.3.0 (2026-08-13)
+
+- Choose between Qwen3.5 4B and 9B local model profiles.
+- Run GGUF models through the official `llama.cpp` backend with automatic startup, health checks, model residency, clean shutdown, and no-thinking requests.
+- Automatically select an NVIDIA CUDA runtime when supported, with Vulkan as a compatibility fallback.
+- See the active model, backend, and measured request duration after each operation.
+- Install a lightweight GGUF runtime without PyTorch, Transformers, Quanto, Triton, or FLA dependencies by default.
+- Use the recommended 4B model below 16 GiB VRAM or the 9B model at 16 GiB VRAM and above, while retaining manual model selection.
+- Reject invented visual details during literal conversion, including unsupported settings, appearance, clothing, lighting, mood, relationships, intentions, and camera details.
+- Keep inferred audio isolated to the soundscape and music fields.
+- Continue using an existing Quanto installation through the optional `requirements-quanto.txt` compatibility path.
+- Reject failed or unreadable GGUF output instead of writing it into an H3 prompt.
+
+Full version history remains available in [CHANGELOG.md](CHANGELOG.md).
 
 ## One-click Windows setup
 
