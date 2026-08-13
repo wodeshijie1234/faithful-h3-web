@@ -1,0 +1,46 @@
+@media (max-width: 520px) {
+  .top-actions {
+    display: grid;
+    grid-template-columns: 28px minmax(118px, 1fr) minmax(118px, 1fr);
+    gap: 10px;
+    width: 100%;
+  }
+
+  .status {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .top-actions .help[data-help="model"] {
+    grid-column: 1;
+  }
+
+  .top-actions #download-model {
+    grid-column: 2;
+  }
+
+  .top-actions #release-memory {
+    grid-column: 3;
+  }
+
+  .top-actions .button-secondary {
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 10px;
+    white-space: normal;
+  }
+
+  .release-help {
+    grid-column: 1;
+  }
+
+  .language-label {
+    grid-column: 2;
+    align-self: center;
+  }
+
+  .language-select {
+    grid-column: 3;
+    width: 100%;
+  }
+}

@@ -1,14 +1,42 @@
 import base64
+import gc
 import json
+import sys
 import tempfile
+import types
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from app.model_files import MODEL_SHA256, MODEL_SIZE, verify_model_file
-from app.model_runtime import map_checkpoint_name, mapped_quantization_map
+from app.model_runtime import ModelRuntime, map_checkpoint_name, mapped_quantization_map
 
 
 class ModelMappingTests(unittest.TestCase):
+    def test_release_unloads_model_and_clears_cuda_cache(self):
+        runtime = ModelRuntime(Path("models"))
+        runtime._model = object()
+        runtime._tokenizer = object()
+        fake_cuda = types.SimpleNamespace(is_available=lambda: True, empty_cache=lambda: None, ipc_collect=lambda: None)
+        fake_torch = types.SimpleNamespace(cuda=fake_cuda)
+        with patch.dict(sys.modules, {"torch": fake_torch}), \
+             patch.object(fake_cuda, "empty_cache") as empty_cache, \
+             patch.object(fake_cuda, "ipc_collect") as ipc_collect, \
+             patch.object(gc, "collect") as collect:
+            result = runtime.release()
+
+        self.assertTrue(result["released"])
+        self.assertFalse(runtime.loaded)
+        collect.assert_called_once()
+        empty_cache.assert_called_once()
+        ipc_collect.assert_called_once()
+
+    def test_release_is_safe_when_model_is_not_loaded(self):
+        runtime = ModelRuntime(Path("models"))
+        result = runtime.release()
+        self.assertFalse(result["released"])
+        self.assertFalse(result["loaded"])
+
     def test_expected_checkpoint_identity_is_v2(self):
         self.assertEqual(8957488932, MODEL_SIZE)
         self.assertEqual("eb03df5ccba4536eb64cf096c08b068eb84cfd2d2aa798cd45f31a0f67e339e6", MODEL_SHA256)

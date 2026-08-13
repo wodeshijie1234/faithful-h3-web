@@ -27,9 +27,12 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("Prompt enrichment", combined)
         self.assertNotIn("Wan2" + "GP", combined)
         self.assertNotIn("返回生成页", combined)
-        self.assertEqual(5, html.count('class="help"'))
+        self.assertEqual(6, html.count('class="help'))
         self.assertEqual(3, html.count('class="copy output-copy"'))
         self.assertNotIn('class="copy output-copy" data-target="source-input"', html)
+        self.assertIn('id="release-memory"', html)
+        self.assertIn('fetch("/api/release"', script)
+        self.assertIn("releaseMemory", script)
 
     def test_one_click_entrypoints_and_readme_exist(self):
         self.assertTrue((ROOT / "install-and-run.bat").is_file())
@@ -38,6 +41,9 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("install-and-run.bat", readme)
         self.assertIn("FL2VA", readme)
         self.assertIn("Ref2VA", readme)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("## 1.1.0 - 2026-08-13", changelog)
+        self.assertIn("Release memory", changelog)
 
 
 if __name__ == "__main__":

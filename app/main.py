@@ -19,7 +19,7 @@ runtime = ModelRuntime(MODEL_DIR)
 service = PromptService(runtime)
 download_state = {"running": False, "error": ""}
 
-app = FastAPI(title="liusheng Faithful H3", version="1.0.0")
+app = FastAPI(title="liusheng Faithful H3", version="1.1.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -67,6 +67,11 @@ def begin_download():
     if not download_state["running"]:
         threading.Thread(target=_download_worker, daemon=True).start()
     return {"started": True, "ready": False}
+
+
+@app.post("/api/release")
+def release_memory():
+    return runtime.release()
 
 
 @app.post("/api/generate")

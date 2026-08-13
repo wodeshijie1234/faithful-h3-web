@@ -1,4 +1,5 @@
 import base64
+import gc
 import json
 import threading
 from pathlib import Path
@@ -107,6 +108,22 @@ class ModelRuntime:
             if chat_template.is_file():
                 tokenizer.chat_template = chat_template.read_text(encoding="utf-8")
             self._model, self._tokenizer = model, tokenizer
+
+    def release(self) -> dict:
+        with self._lock:
+            released = self.loaded or self._tokenizer is not None
+            self._model = None
+            self._tokenizer = None
+            gc.collect()
+            try:
+                import torch
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
+            except (ImportError, OSError):
+                pass
+            return {"released": released, "loaded": False}
 
     def generate(self, user_text: str, system_text: str, *, temperature: float, top_p: float, max_new_tokens: int = 1400) -> str:
         with self._lock:

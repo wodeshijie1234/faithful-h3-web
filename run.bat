@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title liusheng Faithful H3 v1.0.0
+title liusheng Faithful H3 v1.1.0
 
 if not exist ".venv\Scripts\python.exe" (
   echo [ERROR] The application is not installed yet. Run install-and-run.bat first.
