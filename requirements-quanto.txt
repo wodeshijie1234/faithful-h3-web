@@ -1,0 +1,5 @@
+-r requirements.txt
+torch
+safetensors==0.7.0
+transformers==5.2.0
+optimum-quanto==0.2.7

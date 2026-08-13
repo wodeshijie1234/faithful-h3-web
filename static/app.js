@@ -12,6 +12,7 @@ const I18N = {
     download: "Download model", releaseMemory: "Release memory", releasingMemory: "Releasing...",
     memoryReleased: "Memory and VRAM released", memoryAlreadyFree: "No loaded model to release", downloading: "Downloading model...",
     modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", working: "Working...",
+    runtimeDone: "{backend} · {seconds}s",
     importDone: "Modules filled. Review them before conversion.", enrichDone: "Enrichment complete", convertDone: "H3 and editing modules updated",
     enterPrompt: "Enter a prompt first.", noModuleContent: "Fill or import at least one visual module first.", requestFailed: "Request failed", copied: "Copied",
     help: {
@@ -86,6 +87,11 @@ function setStatus(id, message, type = "") {
   const el = $(id);
   el.textContent = message;
   el.className = `feedback ${type}`;
+}
+
+function runtimeMessage(data, fallback) {
+  if (!data.runtime) return fallback;
+  return `${fallback} · ${data.runtime.model.toUpperCase()} ${data.runtime.backend.toUpperCase()} · ${data.runtime.elapsed_seconds}s`;
 }
 
 function setWorking(button, working) {
@@ -213,7 +219,7 @@ async function importToModules(text, statusId, button) {
   try {
     const data = await api("decompose", text);
     fillModules(data.modules);
-    setStatus(statusId, t("importDone"));
+    setStatus(statusId, runtimeMessage(data, t("importDone")));
     $("module-heading").scrollIntoView({behavior: "smooth", block: "start"});
   } catch (error) {
     setStatus(statusId, error.message, "error");
@@ -261,8 +267,9 @@ $("enrich").addEventListener("click", async () => {
   setStatus("enrich-status", t("working"), "loading");
   setWorking($("enrich"), true);
   try {
-    $("enrich-output").value = (await api("enrich", text)).output;
-    setStatus("enrich-status", t("enrichDone"));
+    const data = await api("enrich", text);
+    $("enrich-output").value = data.output;
+    setStatus("enrich-status", runtimeMessage(data, t("enrichDone")));
   } catch (error) {
     setStatus("enrich-status", error.message, "error");
   } finally {
@@ -279,7 +286,7 @@ $("convert-modules").addEventListener("click", async () => {
     const data = await api("convert_modules", "modules", {modules});
     $("h3-output").value = data.output;
     fillModules(data.modules);
-    setStatus("convert-status", t("convertDone"));
+    setStatus("convert-status", runtimeMessage(data, t("convertDone")));
   } catch (error) {
     setStatus("convert-status", error.message, "error");
   } finally {
@@ -312,7 +319,9 @@ async function updateModelStatus() {
   try {
     const data = await fetch("/api/status").then(response => response.json());
     const el = $("model-status");
-    el.textContent = data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing");
+    $("model-select").value = data.selected_model;
+    const backend = data.backend ? ` · ${data.backend.toUpperCase()}` : "";
+    el.textContent = (data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing")) + backend;
     el.className = `status ${data.error ? "status-error" : data.ready ? "status-ready" : "status-neutral"}`;
     if (data.error) el.textContent = data.error;
     $("download-model").disabled = data.downloading || data.ready;
@@ -326,6 +335,22 @@ async function updateModelStatus() {
     $("model-status").className = "status status-error";
   }
 }
+
+$("model-select").addEventListener("change", async event => {
+  try {
+    const response = await fetch("/api/model", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({model_id: event.target.value}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Model selection failed");
+    await updateModelStatus();
+  } catch (error) {
+    $("model-status").textContent = error.message;
+    $("model-status").className = "status status-error";
+  }
+});
 
 $("download-model").addEventListener("click", async () => {
   await fetch("/api/download", {method: "POST"});

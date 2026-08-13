@@ -5,16 +5,17 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from app.model_files import MODEL_FILE, download_model, verify_model_file
+from app.model_files import MODEL_SPECS, download_gguf
 
 
 def main() -> None:
-    destination = ROOT / "models" / "qwen35-9b-abliterated-v2"
-    print(f"Downloading model to: {destination}", flush=True)
-    download_model(destination)
-    print(f"Verifying {MODEL_FILE}...", flush=True)
-    verify_model_file(destination / MODEL_FILE)
-    print("Model download and SHA256 verification completed.", flush=True)
+    model_id = sys.argv[1].lower() if len(sys.argv) > 1 else "4b"
+    if model_id not in MODEL_SPECS:
+        raise SystemExit("Model must be 4b or 9b.")
+    destination = ROOT / "models"
+    print(f"Downloading {model_id.upper()} GGUF to: {destination}", flush=True)
+    checkpoint = download_gguf(destination, MODEL_SPECS[model_id])
+    print(f"Model download and verification completed: {checkpoint.name}", flush=True)
 
 
 if __name__ == "__main__":

@@ -8,8 +8,15 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from app.model_files import MODEL_SHA256, MODEL_SIZE, verify_model_file
-from app.model_runtime import JsonObjectStoppingCriteria, ModelRuntime, map_checkpoint_name, mapped_quantization_map, resolve_stop_token_ids
+from app.model_files import MODEL_SPECS, verify_model_file
+from app.model_runtime import (
+    JsonObjectStoppingCriteria,
+    ModelRuntime,
+    map_checkpoint_name,
+    mapped_quantization_map,
+    normalize_checkpoint_state,
+    resolve_stop_token_ids,
+)
 
 
 class ModelMappingTests(unittest.TestCase):
@@ -37,16 +44,29 @@ class ModelMappingTests(unittest.TestCase):
         self.assertFalse(result["released"])
         self.assertFalse(result["loaded"])
 
+    def test_switching_model_releases_the_loaded_runtime(self):
+        runtime = ModelRuntime({"4b": Path("models/4b"), "9b": Path("models/9b")})
+        runtime._model = object()
+        runtime._tokenizer = object()
+        with patch.object(runtime, "release", wraps=runtime.release) as release:
+            runtime.select("4b")
+        release.assert_called_once()
+        self.assertEqual("4b", runtime.selected_model)
+
     def test_expected_checkpoint_identity_is_v2(self):
-        self.assertEqual(8957488932, MODEL_SIZE)
-        self.assertEqual("eb03df5ccba4536eb64cf096c08b068eb84cfd2d2aa798cd45f31a0f67e339e6", MODEL_SHA256)
+        self.assertEqual(8957488932, MODEL_SPECS["9b"].size)
+        self.assertEqual("eb03df5ccba4536eb64cf096c08b068eb84cfd2d2aa798cd45f31a0f67e339e6", MODEL_SPECS["9b"].sha256)
+
+    def test_expected_4b_checkpoint_identity(self):
+        self.assertEqual(4844829456, MODEL_SPECS["4b"].size)
+        self.assertEqual("3563d71540c755b3004dd4d514a2478c96d5f5e7ff29b4162a391b2d79a0071a", MODEL_SPECS["4b"].sha256)
 
     def test_checkpoint_verifier_rejects_wrong_size_before_hashing(self):
         with tempfile.TemporaryDirectory() as directory:
             checkpoint = Path(directory) / "checkpoint.safetensors"
             checkpoint.write_bytes(b"not the model")
             with self.assertRaisesRegex(RuntimeError, "size"):
-                verify_model_file(checkpoint)
+                verify_model_file(checkpoint, MODEL_SPECS["9b"])
 
     def test_maps_root_modules(self):
         self.assertEqual("model.embed_tokens.weight._data", map_checkpoint_name("token_embd.weight._data"))
@@ -64,6 +84,21 @@ class ModelMappingTests(unittest.TestCase):
         metadata = {"quantization_map_base64": base64.b64encode(json.dumps(raw).encode()).decode()}
         mapped = mapped_quantization_map(metadata)
         self.assertIn("model.layers.0.linear_attn.in_proj_qkv", mapped)
+
+    def test_4b_linear_attention_a_is_converted_to_transformers_log_form(self):
+        import torch
+
+        state = {"model.layers.0.linear_attn.A_log": torch.tensor([-1.0, -4.0])}
+        converted = normalize_checkpoint_state(state, MODEL_SPECS["4b"])
+        torch.testing.assert_close(converted["model.layers.0.linear_attn.A_log"], torch.tensor([0.0, 1.3862944]))
+
+    def test_9b_v2_linear_attention_a_is_already_log_form(self):
+        import torch
+
+        original = torch.tensor([0.5, 1.5])
+        state = {"model.layers.0.linear_attn.A_log": original}
+        converted = normalize_checkpoint_state(state, MODEL_SPECS["9b"])
+        self.assertIs(original, converted["model.layers.0.linear_attn.A_log"])
 
     def test_runtime_materializes_the_bf16_checkpoint_with_bf16_skeleton(self):
         runtime_source = (Path(__file__).parents[1] / "app" / "model_runtime.py").read_text(encoding="utf-8")
@@ -92,6 +127,16 @@ class ModelMappingTests(unittest.TestCase):
         self.assertFalse(criterion(incomplete, None))
         self.assertTrue(criterion(complete, None))
         self.assertTrue(criterion(quoted_brace, None))
+
+    def test_runtime_prefers_available_gguf_backend(self):
+        with tempfile.TemporaryDirectory() as directory:
+            model = Path(directory) / "model.gguf"
+            model.write_bytes(b"gguf")
+            runtime = ModelRuntime({"4b": Path(directory), "9b": Path(directory)}, gguf_paths={"4b": model})
+            runtime.select("4b")
+            self.assertEqual("gguf", runtime.backend)
+            runtime.select("9b")
+            self.assertEqual("quanto", runtime.backend)
 
 
 if __name__ == "__main__":

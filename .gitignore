@@ -20,3 +20,4 @@ output/
 Thumbs.db
 .codegraph/
 .research/
+docs/handoff_*.md

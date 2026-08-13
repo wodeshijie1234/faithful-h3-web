@@ -2,9 +2,11 @@ import base64
 import gc
 import json
 import threading
+import time
 from pathlib import Path
 
-from .model_files import MODEL_FILE
+from .model_files import MODEL_SPECS, ModelSpec
+from .gguf_runtime import GgufRuntime
 
 
 def map_checkpoint_name(name: str) -> str | None:
@@ -61,7 +63,20 @@ def mapped_quantization_map(metadata: dict) -> dict:
     return {mapped: value for key, value in raw.items() if (mapped := map_checkpoint_name(key))}
 
 
-def mapped_state_dict(checkpoint: Path) -> tuple[dict, dict]:
+def normalize_checkpoint_state(state: dict, spec: ModelSpec) -> dict:
+    if spec.ssm_a_is_log:
+        return state
+    import torch
+
+    for name, tensor in list(state.items()):
+        if name.endswith(".linear_attn.A_log"):
+            if torch.any(tensor >= 0):
+                raise ValueError(f"Invalid non-log SSM A tensor in {spec.id}: expected negative values.")
+            state[name] = torch.log(-tensor.float()).to(dtype=tensor.dtype)
+    return state
+
+
+def mapped_state_dict(checkpoint: Path, spec: ModelSpec = MODEL_SPECS["9b"]) -> tuple[dict, dict]:
     from safetensors import safe_open
 
     state = {}
@@ -71,7 +86,7 @@ def mapped_state_dict(checkpoint: Path) -> tuple[dict, dict]:
             mapped = map_checkpoint_name(key)
             if mapped:
                 state[mapped] = reader.get_tensor(key)
-    return state, quant_map
+    return normalize_checkpoint_state(state, spec), quant_map
 
 
 def resolve_stop_token_ids(tokenizer, model) -> list[int]:
@@ -123,15 +138,46 @@ class JsonObjectStoppingCriteria:
 
 
 class ModelRuntime:
-    def __init__(self, model_dir: Path):
-        self.model_dir = Path(model_dir)
+    def __init__(self, model_dirs: Path | dict[str, Path], selected_model: str = "9b", gguf_paths: dict[str, Path] | None = None,
+                 gguf_binary: Path | None = None):
+        if isinstance(model_dirs, dict):
+            self.model_dirs = {key: Path(value) for key, value in model_dirs.items()}
+        else:
+            self.model_dirs = {"9b": Path(model_dirs)}
+        self.selected_model = selected_model
         self._model = None
         self._tokenizer = None
+        self.gguf_paths = {key: Path(value) for key, value in (gguf_paths or {}).items()}
+        self.gguf_binary = Path(gguf_binary) if gguf_binary else None
+        self._gguf = None
         self._lock = threading.RLock()
 
     @property
     def loaded(self) -> bool:
-        return self._model is not None
+        return self._model is not None or bool(self._gguf and self._gguf.loaded)
+
+    @property
+    def backend(self) -> str:
+        return "gguf" if self.selected_model in self.gguf_paths and self.gguf_paths[self.selected_model].is_file() else "quanto"
+
+    @property
+    def model_dir(self) -> Path:
+        return self.model_dirs[self.selected_model]
+
+    @property
+    def spec(self) -> ModelSpec:
+        return MODEL_SPECS[self.selected_model]
+
+    def select(self, model_id: str) -> None:
+        if model_id not in self.model_dirs or model_id not in MODEL_SPECS:
+            raise ValueError(f"Unknown model: {model_id}")
+        with self._lock:
+            if model_id != self.selected_model:
+                self.release()
+                self.selected_model = model_id
+
+    def _use_gguf(self) -> bool:
+        return self.backend == "gguf"
 
     def load(self):
         with self._lock:
@@ -142,7 +188,7 @@ class ModelRuntime:
             from transformers import AutoTokenizer, Qwen3_5ForCausalLM, Qwen3_5TextConfig
 
             if not torch.cuda.is_available():
-                raise RuntimeError("A CUDA-capable NVIDIA GPU is required for the 9B INT8 model.")
+                raise RuntimeError("A CUDA-capable NVIDIA GPU is required for the local INT8 model.")
             with open(self.model_dir / "config.json", encoding="utf-8") as handle:
                 config_data = json.load(handle)
             config = Qwen3_5TextConfig(**config_data.get("text_config", config_data))
@@ -150,7 +196,7 @@ class ModelRuntime:
                 model = Qwen3_5ForCausalLM(config)
             # The Quanto checkpoint stores scales and non-quantized weights in BF16.
             model = model.to(dtype=torch.bfloat16)
-            state, quant_map = mapped_state_dict(self.model_dir / MODEL_FILE)
+            state, quant_map = mapped_state_dict(self.model_dir / self.spec.filename, self.spec)
             requantize(model, state, quant_map, device=torch.device("cuda"))
             if config.tie_word_embeddings:
                 model.tie_weights()
@@ -166,6 +212,9 @@ class ModelRuntime:
             released = self.loaded or self._tokenizer is not None
             self._model = None
             self._tokenizer = None
+            if self._gguf:
+                self._gguf.stop()
+                self._gguf = None
             gc.collect()
             try:
                 import torch
@@ -179,6 +228,15 @@ class ModelRuntime:
 
     def generate(self, user_text: str, system_text: str, *, temperature: float, top_p: float, max_new_tokens: int = 1400, stop_on_json: bool = False) -> str:
         with self._lock:
+            started = time.monotonic()
+            if self._use_gguf():
+                if not self._gguf:
+                    self._gguf = GgufRuntime(self.gguf_paths[self.selected_model], binary=self.gguf_binary)
+                result = self._gguf.generate(user_text, system_text, temperature=temperature, top_p=top_p,
+                                              max_new_tokens=max_new_tokens, stop_on_json=stop_on_json)
+                if not result or "�" in result or (result.count("?") > 3 and any("\u3400" <= c <= "\u9fff" for c in user_text)):
+                    raise RuntimeError("The selected GGUF backend returned unreadable text; no H3 output was returned.")
+                return result
             self.load()
             import torch
 

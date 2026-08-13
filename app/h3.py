@@ -55,6 +55,7 @@ def normalize_output(text: str, mode: str) -> str:
 def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A") -> str:
     """Place a translated prompt in the H3 template without generating visual facts."""
     value = str(text or "").strip()
+    value = re.sub(r"(?im)(?<!\[)\bshot\s+(\d+)\s*:\s*", r"[Shot \1] ", value)
     if not value:
         raise ValueError("Source prompt cannot be empty.")
     mode = normalize_mode(mode)
@@ -223,13 +224,13 @@ def parse_audio_output(text: str) -> tuple[str, str]:
 
 def visual_review_system(mode: str) -> str:
     normalize_mode(mode)
-    return """You are a strict visual-translation faithfulness reviewer. Compare the original source with the proposed English translation. Return exactly PASS only if every explicit person, count, left/right position, action, shot, camera direction, continuity fact, and dialogue is translated without omission or reinterpretation. Return exactly FAIL if the translation adds or embellishes any appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body detail, or any other visual fact. Audio is out of scope. Return only PASS or FAIL."""
+    return """You are a strict visual-translation faithfulness reviewer. Compare the original source with the proposed English translation sentence by sentence. Return exactly PASS only when the translation preserves every explicit person, count, left/right position, action, shot, camera direction, continuity fact, and dialogue, and contains no visual proposition unsupported by the source. Return exactly FAIL for any omission, reinterpretation, or added appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, prop, lighting, mood, pose, camera movement, body detail, relationship, intention, or other visual fact. Generic filler such as 'indoor setting', 'young', 'wearing', 'dim light', and 'cinematic' is an addition unless explicitly present. Audio is out of scope. When uncertain, return FAIL. Return only PASS or FAIL."""
 
 
 def conversion_system(mode: str) -> str:
     mode = normalize_mode(mode)
     if mode == "fl2va":
-        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit person, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue in the original order. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
+        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate each source clause exactly once and in the original order. Preserve every explicit person, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, resolve ambiguity, or continue anything. Never infer appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, props, lighting, mood, camera movement, body details, relationships, intentions, or transitions. If the source does not specify a fact, omit it. Return only the English translation."""
     return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
 
 

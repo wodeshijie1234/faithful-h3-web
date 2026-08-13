@@ -12,6 +12,8 @@ class DistributionContractTests(unittest.TestCase):
         for path in ROOT.rglob("*"):
             if not path.is_file() or path.suffix.lower() not in text_extensions:
                 continue
+            if path.parent == ROOT / "docs" and path.name.startswith("handoff_"):
+                continue
             content = path.read_text(encoding="utf-8", errors="ignore").casefold()
             for marker in forbidden:
                 self.assertNotIn(marker, content, str(path.relative_to(ROOT)))
@@ -28,6 +30,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertNotIn("Wan2" + "GP", combined)
         self.assertEqual(7, html.count('data-help='))
         self.assertIn('id="release-memory"', html)
+        self.assertIn('id="model-select"', html)
         self.assertIn('id="import-source"', html)
         self.assertIn('id="import-enriched"', html)
         self.assertIn('id="shots-list"', html)
@@ -43,6 +46,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn('type="number"', script)
         self.assertIn('step="0.5"', script)
         self.assertIn("convert_modules", script)
+        self.assertIn('fetch("/api/model"', script)
         self.assertIn("scrollIntoView", script)
 
     def test_one_click_entrypoints_and_readme_exist(self):
@@ -50,12 +54,14 @@ class DistributionContractTests(unittest.TestCase):
         self.assertTrue((ROOT / "run.bat").is_file())
         launcher = (ROOT / "run.bat").read_text(encoding="utf-8")
         self.assertIn("PYTHONNOUSERSITE=1", launcher)
-        self.assertIn('reg query "HKCU\\Environment" /v "FAITHFUL_H3_MODEL_DIR"', launcher)
-        self.assertIn("import torch", launcher)
-        self.assertIn("torch.cuda.is_available", launcher)
+        self.assertIn("FAITHFUL_H3_LLAMA_BIN", launcher)
+        self.assertNotIn("import torch", launcher)
         requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
-        self.assertIn("transformers==5.2.0", requirements)
         self.assertIn("huggingface-hub==1.3.7", requirements)
+        self.assertNotIn("torch", requirements)
+        installer = (ROOT / "install-and-run.bat").read_text(encoding="utf-8")
+        self.assertIn("scripts\\install_runtime.py", installer)
+        self.assertIn("FH3_MODEL", installer)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("install-and-run.bat", readme)
         self.assertIn("FL2VA", readme)

@@ -2,6 +2,27 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.0 - 2026-08-13
+
+### Added
+
+- Added selectable Qwen3.5 4B and 9B model profiles.
+- Added the official `llama.cpp` GGUF backend with automatic server startup, health checks, model residency, clean shutdown, and no-thinking chat requests.
+- Added automatic NVIDIA/CUDA detection with a Vulkan compatibility fallback in the one-click installer.
+- Added the active model, backend, and measured request duration to operation feedback.
+
+### Changed
+
+- Clean installations now use the lightweight GGUF runtime and no longer install PyTorch, Transformers, Quanto, Triton, or FLA by default.
+- The 4B model is recommended below 16 GiB VRAM; the 9B model is recommended at 16 GiB VRAM or above. Users can still download and switch either model from the interface.
+- Literal conversion and its visual review now explicitly reject unsupported indoor/outdoor settings, appearance, clothing, lighting, mood, relationships, intentions, and camera details.
+- Audio inference remains isolated and may only fill soundscape and music fields from supported actions and dialogue.
+
+### Compatibility
+
+- Existing Quanto installations remain supported as a manual fallback through `requirements-quanto.txt`.
+- Failed or unreadable GGUF output is rejected instead of being written into an H3 prompt.
+
 ## 1.2.0 - 2026-08-13
 
 ### Added

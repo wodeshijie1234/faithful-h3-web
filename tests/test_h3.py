@@ -18,6 +18,11 @@ class H3ContractTests(unittest.TestCase):
         source = "图片是男生女生合照。女生在左边，男生在右边。镜头1：女生抬腿。"
         output = h3.strict_wrap(source, "fl2va")
         self.assertIn(f"integrated_multimodal_description: {source}", output)
+
+    def test_strict_wrap_normalizes_plain_shot_labels(self):
+        output = h3.strict_wrap("Shot 1: A person runs.\nShot 2: The person stops.", "fl2va")
+        self.assertIn("[Shot 1] A person runs.", output)
+        self.assertIn("[Shot 2] The person stops.", output)
         self.assertNotIn("clothing", output.lower())
         self.assertEqual([], h3.audit(output, "fl2va")["missing"])
 
