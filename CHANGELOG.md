@@ -2,6 +2,12 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.1.2 - 2026-08-13
+
+### Fixed
+
+- Made the Windows launcher read a configured model directory from the current user environment when it was not inherited by the launcher process, preserving an isolated runtime without embedding machine-specific paths in the project.
+
 ## 1.1.1 - 2026-08-13
 
 ### Added
