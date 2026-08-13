@@ -125,8 +125,11 @@ def generate(request: GenerateRequest):
             result = service.micro_edit(request.text, request.mode, request.original)
         else:
             raise ValueError("Unknown action.")
+        stages = result.pop("_stages", None)
         result["runtime"] = {"backend": runtime.backend, "model": runtime.selected_model,
                              "elapsed_seconds": round(time.monotonic() - started, 3)}
+        if stages is not None:
+            result["runtime"]["stages"] = stages
         return result
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -1,5 +1,6 @@
 import re
 import json
+import time
 
 from . import h3
 
@@ -15,10 +16,11 @@ class PromptService:
         return self.runtime.generate(text, h3.enrichment_system(strength), temperature=temperature, top_p=top_p)
 
     def convert(self, text: str, mode: str) -> dict:
-        translation = self.runtime.generate(
+        stages = []
+        translation = self._timed_generate(stages, "translate",
             text, h3.conversion_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700
         )
-        review = self.runtime.generate(
+        review = self._timed_generate(stages, "visual_review",
             f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
             h3.visual_review_system(mode),
             temperature=0.01,
@@ -28,14 +30,22 @@ class PromptService:
         if review != "PASS":
             raise RuntimeError("The visual translation failed the strict no-invention review; no H3 output was returned.")
         soundscape, music = h3.parse_audio_output(
-            self.runtime.generate(text, h3.audio_system(), temperature=0.01, top_p=0.1, max_new_tokens=160)
+            self._timed_generate(stages, "audio", text, h3.audio_system(), temperature=0.01, top_p=0.1,
+                                 max_new_tokens=160)
         )
         output = h3.strict_wrap(translation, mode, soundscape, music)
         check = h3.audit(output, mode)
-        chinese = self.runtime.generate(
+        chinese = self._timed_generate(stages, "chinese_preview",
             output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=900
         )
-        return {"output": output, "chinese": chinese, "audit": check}
+        return {"output": output, "chinese": chinese, "audit": check, "_stages": stages}
+
+    def _timed_generate(self, stages: list[dict], name: str, text: str, system: str, **settings) -> str:
+        started = time.monotonic()
+        try:
+            return self.runtime.generate(text, system, **settings)
+        finally:
+            stages.append({"name": name, "elapsed_seconds": round(time.monotonic() - started, 3)})
 
     def decompose(self, text: str, mode: str) -> dict:
         output = self.runtime.generate(

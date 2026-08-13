@@ -68,6 +68,11 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(700, runtime.calls[0][2]["max_new_tokens"])
         self.assertEqual(8, runtime.calls[1][2]["max_new_tokens"])
         self.assertEqual(160, runtime.calls[2][2]["max_new_tokens"])
+        self.assertEqual(
+            ["translate", "visual_review", "audio", "chinese_preview"],
+            [stage["name"] for stage in result["_stages"]],
+        )
+        self.assertTrue(all(stage["elapsed_seconds"] >= 0 for stage in result["_stages"]))
 
     def test_conversion_rejects_visual_invention(self):
         runtime = FakeRuntime([
