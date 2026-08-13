@@ -1,18 +1,21 @@
 # liuliu Faithful H3
 
-`liuliu Faithful H3` is a standalone local Web tool for faithful `FL2VA` and `Ref2VA` prompt formatting, controlled prompt enrichment, and structure-preserving H3 micro edits.
+`liuliu Faithful H3` is a standalone local Web tool for faithful `FL2VA` and `Ref2VA` prompt formatting, controlled prompt enrichment, and module-based H3 editing.
 
 ## Features
 
 - Faithful FL2VA and Ref2VA conversion without image recognition
 - Prompt enrichment with an independent creative-strength control
-- Automatic Chinese editing copy after H3 conversion
-- Micro edits translated back to English while preserving H3 fields, tags, references, timestamps, dialogue, and unrelated content
+- Semantic import from either an original prompt or an enriched result into editable H3 modules
+- Dynamic shot count based on explicit numbering or semantic cuts in the imported prompt
+- Per-shot duration controls with 0.5-second steps, automatic cut timestamps, and a live total duration
+- One shared module editor before and after conversion, so users can adjust individual fields and regenerate H3
+- Literal English visual translation with a fail-closed no-invention review
+- Separate audio inference that cannot modify visual modules
 - English default interface with Simplified Chinese and Traditional Chinese
 - Contextual `?` help for the model, mode, and every editing workflow
 - Local inference with Qwen3.5 9B Abliterated v2
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
-- One-click transfer from enriched output to the H3 conversion input
 - No API key, cloud inference, or host application required
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
@@ -73,6 +76,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.1.3`<br>
+Version `1.2.0`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

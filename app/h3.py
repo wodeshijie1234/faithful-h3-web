@@ -1,4 +1,5 @@
 import re
+import json
 
 
 FIELDS = {
@@ -7,6 +8,8 @@ FIELDS = {
 }
 
 FL2VA_HEADER = "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced."
+MODULE_KEYS = ["scene", "shots", "overall_soundscape", "non_diegetic_music"]
+REF_MODULE_KEYS = ["subject_definitions", "summary", "retention_analysis"] + MODULE_KEYS
 
 
 def normalize_mode(mode: str) -> str:
@@ -49,16 +52,185 @@ def normalize_output(text: str, mode: str) -> str:
     return f"{FL2VA_HEADER}\n\n{value}"
 
 
+def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A") -> str:
+    """Place a translated prompt in the H3 template without generating visual facts."""
+    value = str(text or "").strip()
+    if not value:
+        raise ValueError("Source prompt cannot be empty.")
+    mode = normalize_mode(mode)
+    soundscape = str(soundscape or "N/A").strip() or "N/A"
+    music = str(music or "N/A").strip() or "N/A"
+    if mode == "fl2va":
+        return (
+            f"{FL2VA_HEADER}\n\n"
+            f"integrated_multimodal_description: {value}\n"
+            f"overall_soundscape: {soundscape}\n"
+            f"non_diegetic_music: {music}"
+        )
+    return (
+        "subject_definitions: N/A\n"
+        "summary: N/A\n"
+        "retention_analysis: N/A\n"
+        f"detailed_description: {value}\n"
+        f"overall_soundscape: {soundscape}\n"
+        f"non_diegetic_music: {music}"
+    )
+
+
+def empty_modules(mode: str, shot_count: int = 3) -> dict:
+    mode = normalize_mode(mode)
+    modules = {
+        "scene": "",
+        "shots": [
+            {"duration_seconds": 3.0, "action": "", "camera": ""}
+            for index in range(max(1, shot_count))
+        ],
+        "overall_soundscape": "",
+        "non_diegetic_music": "",
+    }
+    if mode == "ref2va":
+        modules = {
+            "subject_definitions": "",
+            "summary": "",
+            "retention_analysis": "",
+            **modules,
+        }
+    return modules
+
+
+def normalize_modules(raw: dict, mode: str) -> dict:
+    if not isinstance(raw, dict):
+        raise ValueError("H3 modules must be an object.")
+    mode = normalize_mode(mode)
+    modules = empty_modules(mode, 1)
+    for key in MODULE_KEYS:
+        if key != "shots":
+            modules[key] = str(raw.get(key, "") or "").strip()
+    if mode == "ref2va":
+        for key in ("subject_definitions", "summary", "retention_analysis"):
+            modules[key] = str(raw.get(key, "") or "").strip()
+    shots = raw.get("shots", [])
+    if not isinstance(shots, list):
+        raise ValueError("shots must be a list.")
+    modules["shots"] = []
+    for item in shots[:20]:
+        if not isinstance(item, dict):
+            continue
+        duration = float(item.get("duration_seconds", 3.0) or 3.0)
+        duration = round(max(0.5, min(30.0, duration)) * 2) / 2
+        modules["shots"].append({
+            "duration_seconds": duration,
+            "action": str(item.get("action", "") or "").strip(),
+            "camera": str(item.get("camera", "") or "").strip(),
+        })
+    if not modules["shots"]:
+        modules["shots"] = empty_modules(mode, 1)["shots"]
+    return modules
+
+
+def parse_modules_json(text: str, mode: str) -> dict:
+    value = str(text or "").strip()
+    value = re.sub(r"^```(?:json)?\s*|\s*```$", "", value, flags=re.I)
+    return normalize_modules(json.loads(value), mode)
+
+
+def module_source_text(modules: dict, mode: str, include_audio: bool = False) -> str:
+    modules = normalize_modules(modules, mode)
+    parts = []
+    if normalize_mode(mode) == "ref2va":
+        parts.extend(modules[key] for key in ("subject_definitions", "summary", "retention_analysis") if modules[key])
+    if modules["scene"]:
+        parts.append(modules["scene"])
+    for shot in modules["shots"]:
+        parts.extend(value for value in (shot["action"], shot["camera"]) if value)
+    if include_audio:
+        parts.extend(value for value in (modules["overall_soundscape"], modules["non_diegetic_music"]) if value)
+    return "\n".join(parts).strip()
+
+
+def build_h3(modules: dict, mode: str) -> str:
+    mode = normalize_mode(mode)
+    modules = normalize_modules(modules, mode)
+    shot_parts = []
+    elapsed = 0.0
+    for index, shot in enumerate(modules["shots"], start=1):
+        content = " ".join(value for value in (shot["action"], shot["camera"]) if value).strip()
+        if not content:
+            elapsed += shot["duration_seconds"]
+            continue
+        marker = f"[Shot {index}]"
+        if index > 1:
+            marker += f" At {format_timestamp(elapsed)},"
+        shot_parts.append(f"{marker} {content}")
+        elapsed += shot["duration_seconds"]
+    detailed = " ".join(value for value in (modules["scene"], " ".join(shot_parts)) if value).strip() or "N/A"
+    sound = modules["overall_soundscape"] or "N/A"
+    music = modules["non_diegetic_music"] or "N/A"
+    if mode == "fl2va":
+        return (
+            f"{FL2VA_HEADER}\n\n"
+            f"integrated_multimodal_description: {detailed}\n"
+            f"overall_soundscape: {sound}\n"
+            f"non_diegetic_music: {music}"
+        )
+    return (
+        f"subject_definitions: {modules['subject_definitions'] or 'N/A'}\n"
+        f"summary: {modules['summary'] or 'N/A'}\n"
+        f"retention_analysis: {modules['retention_analysis'] or 'N/A'}\n"
+        f"detailed_description: {detailed}\n"
+        f"overall_soundscape: {sound}\n"
+        f"non_diegetic_music: {music}"
+    )
+
+
+def format_timestamp(seconds: float) -> str:
+    total_ms = round(float(seconds) * 1000)
+    minutes, remainder = divmod(total_ms, 60_000)
+    whole_seconds, milliseconds = divmod(remainder, 1000)
+    return f"{minutes:02d}:{whole_seconds:02d}.{milliseconds:03d}"
+
+
+def decompose_system(mode: str) -> str:
+    keys = REF_MODULE_KEYS if normalize_mode(mode) == "ref2va" else MODULE_KEYS
+    return f"""Split the source prompt into this JSON module schema: {json.dumps(keys)}. shots is an array of objects with duration_seconds (number), action, and camera. Copy source-language facts into the most relevant module without translating, rewriting, summarizing, or adding anything. Preserve every explicit fact. Determine shot count from the source: when it explicitly numbers or states a shot count, return exactly that many shot objects; otherwise use semantic action stages and explicit cuts or camera changes to create only the shots supported by the text. Do not pad the result to three shots and do not invent extra shots. Use explicit shot timing to derive durations when supplied; otherwise use 3.0 seconds per shot. Put ambience, physical sounds, and non-verbal human sounds in overall_soundscape; put audience-only score in non_diegetic_music. For Ref2VA, use subject_definitions, summary, and retention_analysis only when the source explicitly supplies those concepts; otherwise use empty strings. Return JSON only."""
+
+
+def translate_modules_system(mode: str) -> str:
+    keys = REF_MODULE_KEYS if normalize_mode(mode) == "ref2va" else MODULE_KEYS
+    return f"""Translate every non-empty string value in the supplied JSON into faithful English. Preserve the exact JSON schema and key order {json.dumps(keys)}, shot count, duration_seconds values, labels, tags, reference IDs, explicit facts, positions, actions, camera directions, and dialogue. This is literal translation only. Never add appearance, clothing, setting, props, lighting, mood, motion, camera, or any other fact. Keep dialogue text in its original language inside existing <d> tags. Return JSON only."""
+
+
 def audit(text: str, mode: str) -> dict:
     missing = [field for field in required_fields(mode) if field not in str(text or "")]
     return {"valid": not missing and has_complete_structure(text, mode), "missing": missing}
 
 
+def audio_system() -> str:
+    return """You are the audio-only assistant for a strict H3 formatter. Infer only audible details directly supported by explicit actions, objects, environment, or dialogue in the source. Return exactly two lines: overall_soundscape: <brief sound description or N/A> and non_diegetic_music: <music description or N/A>. Do not describe or infer appearance, clothing, location, lighting, camera, choreography, or any visual detail. Do not invent specific sounds when the source gives no reasonable audio cue. Never output any other field, explanation, or markdown."""
+
+
+def parse_audio_output(text: str) -> tuple[str, str]:
+    values = {"overall_soundscape": "N/A", "non_diegetic_music": "N/A"}
+    for line in str(text or "").splitlines():
+        key, separator, value = line.partition(":")
+        key = key.strip().lower()
+        if key in values and separator:
+            cleaned = value.strip()
+            if cleaned and len(cleaned) <= 500:
+                values[key] = cleaned
+    return values["overall_soundscape"], values["non_diegetic_music"]
+
+
+def visual_review_system(mode: str) -> str:
+    normalize_mode(mode)
+    return """You are a strict visual-translation faithfulness reviewer. Compare the original source with the proposed English translation. Return exactly PASS only if every explicit person, count, left/right position, action, shot, camera direction, continuity fact, and dialogue is translated without omission or reinterpretation. Return exactly FAIL if the translation adds or embellishes any appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body detail, or any other visual fact. Audio is out of scope. Return only PASS or FAIL."""
+
+
 def conversion_system(mode: str) -> str:
     mode = normalize_mode(mode)
     if mode == "fl2va":
-        return f"""You are a deterministic MiniMax H3 FL2VA formatter. Translate only explicit user facts into English. Output exactly this first line:\n{FL2VA_HEADER}\nThen output exactly these fields in order: integrated_multimodal_description, overall_soundscape, non_diegetic_music. Preserve shot order, positions, actions, camera angles, continuity, and exact dialogue. Keep dialogue in its original language inside <d>[Language] ...</d>. Never infer image content. Never add, remove, embellish, intensify, explain, or continue content. Use N/A when sound or music is not supplied. Output only the H3 prompt."""
-    return """You are a deterministic MiniMax H3 Ref2VA formatter. Translate only explicit user facts into English. Output exactly these fields in order: subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music. Use stable <Subject N> and <Picture N> labels. Preserve shot order, positions, actions, camera angles, continuity, and exact dialogue. Keep dialogue in its original language inside <d>[Language] ...</d>. Never infer reference content. Never add, remove, embellish, intensify, explain, or continue content. Use N/A when sound or music is not supplied. Output only the H3 prompt."""
+        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit person, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue in the original order. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
+    return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
 
 
 def enrichment_system(strength: int) -> str:
@@ -75,4 +247,3 @@ def micro_edit_system(mode: str, original_h3: str = "") -> str:
     fields = " -> ".join(required_fields(mode))
     reference = f"\nOriginal English H3 for unchanged-content reference:\n{original_h3}" if original_h3.strip() else ""
     return f"Translate every Chinese descriptive value into English. Keep Chinese only inside explicit <d>[Chinese] ...</d> dialogue. Preserve exact structure and order ({fields}), tags, references, timestamps, facts, and N/A. Do not add, remove, summarize, embellish, or change unrelated content.{reference}\nReturn only the complete English H3 prompt."
-

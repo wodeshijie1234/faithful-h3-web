@@ -9,7 +9,7 @@ from unittest.mock import patch
 from pathlib import Path
 
 from app.model_files import MODEL_SHA256, MODEL_SIZE, verify_model_file
-from app.model_runtime import ModelRuntime, map_checkpoint_name, mapped_quantization_map
+from app.model_runtime import JsonObjectStoppingCriteria, ModelRuntime, map_checkpoint_name, mapped_quantization_map, resolve_stop_token_ids
 
 
 class ModelMappingTests(unittest.TestCase):
@@ -68,6 +68,30 @@ class ModelMappingTests(unittest.TestCase):
     def test_runtime_materializes_the_bf16_checkpoint_with_bf16_skeleton(self):
         runtime_source = (Path(__file__).parents[1] / "app" / "model_runtime.py").read_text(encoding="utf-8")
         self.assertIn("model = model.to(dtype=torch.bfloat16)", runtime_source)
+        self.assertIn("if config.tie_word_embeddings", runtime_source)
+        self.assertIn("model.tie_weights()", runtime_source)
+
+    def test_runtime_stops_on_chat_and_model_end_tokens(self):
+        tokenizer = types.SimpleNamespace(
+            eos_token_id=248046,
+            convert_tokens_to_ids=lambda token: {"<|im_end|>": 248046, "<|endoftext|>": 248044}[token],
+        )
+        model = types.SimpleNamespace(config=types.SimpleNamespace(eos_token_id=248044))
+        self.assertEqual([248044, 248046], resolve_stop_token_ids(tokenizer, model))
+
+    def test_json_stopping_criteria_stops_after_complete_root_object(self):
+        class Tokenizer:
+            @staticmethod
+            def decode(token_ids, skip_special_tokens=False):
+                return "".join(chr(token_id) for token_id in token_ids)
+
+        criterion = JsonObjectStoppingCriteria(Tokenizer(), prompt_length=2)
+        incomplete = [[1, 2] + [ord(char) for char in '{"shots":[{']]
+        complete = [[1, 2] + [ord(char) for char in '{"shots":[]}']]
+        quoted_brace = [[1, 2] + [ord(char) for char in '{"scene":"}"}']]
+        self.assertFalse(criterion(incomplete, None))
+        self.assertTrue(criterion(complete, None))
+        self.assertTrue(criterion(quoted_brace, None))
 
 
 if __name__ == "__main__":

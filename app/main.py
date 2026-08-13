@@ -19,7 +19,7 @@ runtime = ModelRuntime(MODEL_DIR)
 service = PromptService(runtime)
 download_state = {"running": False, "error": ""}
 
-app = FastAPI(title="liuliu Faithful H3", version="1.1.3")
+app = FastAPI(title="liuliu Faithful H3", version="1.2.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -29,6 +29,7 @@ class GenerateRequest(BaseModel):
     text: str = Field(min_length=1)
     strength: int = Field(default=40, ge=0, le=100)
     original: str = ""
+    modules: dict | None = None
 
 
 @app.get("/")
@@ -81,6 +82,10 @@ def generate(request: GenerateRequest):
             return {"output": service.enrich(request.text, request.strength)}
         if request.action == "convert":
             return service.convert(request.text, request.mode)
+        if request.action == "decompose":
+            return service.decompose(request.text, request.mode)
+        if request.action == "convert_modules":
+            return service.convert_modules(request.modules or {}, request.mode)
         if request.action == "micro":
             return service.micro_edit(request.text, request.mode, request.original)
         raise ValueError("Unknown action.")

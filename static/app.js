@@ -1,18 +1,361 @@
-const C = (value) => JSON.parse(`"${value}"`);
 const I18N = {
-  en: {language:"Language",mode:"Mode",enrichTitle:"Prompt enrichment",simplePrompt:"Simple prompt",simplePlaceholder:"Enter a short prompt in any language.",creativeStrength:"Creative strength",conservative:"Conservative",creative:"Creative",enrichButton:"Enrich prompt",enrichedOutput:"Enriched prompt",convertTitle:"Faithful H3 conversion",sourcePrompt:"Source prompt",sourcePlaceholder:"Enter the facts, shots, positions, and dialogue to preserve.",convertButton:"Convert to H3",h3Output:"H3 output",microTitle:"H3 micro edit",microInput:"Editable H3 prompt (Chinese)",microPlaceholder:"After conversion, the Chinese editing copy appears here. You can also paste a complete H3 prompt or a plain prompt.",microButton:"Micro edit and convert to H3",download:"Download model",releaseMemory:"Release memory",releasingMemory:"Releasing...",memoryReleased:"Memory and VRAM released",memoryAlreadyFree:"No loaded model to release",downloading:"Downloading model...",modelMissing:"Model not downloaded",modelReady:"Model ready",modelLoading:"Model loaded",working:"Working...",downloadStarting:"Model download started. Keep this window open.",enrichDone:"Enrichment complete",convertDone:"Conversion complete",microDone:"Micro edit complete",enterPrompt:"Enter a prompt first.",enterSource:"Enter a source prompt first.",requestFailed:"Request failed",copy:"Copy",copied:"Copied",save:"Save",help:{model:["Local model","The first download is about 8.4 GiB. Files are stored locally and verified against the official v2 SHA256 before use. Generation runs on your NVIDIA GPU."],release:["Release memory","Unloads this tool's model and tokenizer, then clears its Python and CUDA caches. It waits for active generation to finish and does not stop other applications or free memory owned by other processes."],mode:["H3 mode","FL2VA formats a first-frame image-to-video prompt. Ref2VA formats prompts for reference-material video generation. The formatter never inspects images."],enrich:["Prompt enrichment","Enter a short prompt. The strength slider controls how much filmable detail is added while preserving the original language, facts, and intent. It does not affect H3 conversion."],convert:["Faithful H3 conversion","Converts only explicit facts into the selected MiniMax H3 structure. It preserves shot order, positions, actions, camera directions, and dialogue without identifying images or inventing missing facts."],micro:["H3 micro edit","A faithful conversion automatically creates a Chinese editing copy here. Change only the wording you need, then convert it back to English H3 without altering fields, tags, references, timestamps, or unrelated content. This function also accepts plain text on its own."]}},
-  "zh-CN": {language:C("\\u8bed\\u8a00"),mode:C("\\u6a21\\u5f0f"),enrichTitle:C("\\u63d0\\u793a\\u8bcd\\u4e30\\u5bcc"),simplePrompt:C("\\u7b80\\u5355\\u63d0\\u793a\\u8bcd"),simplePlaceholder:C("\\u8f93\\u5165\\u4efb\\u610f\\u8bed\\u8a00\\u7684\\u7b80\\u77ed\\u63d0\\u793a\\u8bcd\\u3002"),creativeStrength:C("\\u521b\\u4f5c\\u5f3a\\u5ea6"),conservative:C("\\u4fdd\\u5b88"),creative:C("\\u521b\\u610f"),enrichButton:C("\\u4e30\\u5bcc\\u63d0\\u793a\\u8bcd"),enrichedOutput:C("\\u4e30\\u5bcc\\u7ed3\\u679c"),convertTitle:C("\\u5fe0\\u5b9e H3 \\u8f6c\\u6362"),sourcePrompt:C("\\u539f\\u59cb\\u63d0\\u793a\\u8bcd"),sourcePlaceholder:C("\\u8f93\\u5165\\u9700\\u8981\\u4fdd\\u7559\\u7684\\u4eba\\u7269\\u3001\\u955c\\u5934\\u3001\\u7ad9\\u4f4d\\u3001\\u52a8\\u4f5c\\u548c\\u5bf9\\u767d\\u3002"),convertButton:C("\\u8f6c\\u6362\\u4e3a H3"),h3Output:C("H3 \\u8f93\\u51fa"),microTitle:C("H3 \\u5fae\\u8c03"),microInput:C("\\u5f85\\u5fae\\u8c03 H3 \\u63d0\\u793a\\u8bcd\\uff08\\u4e2d\\u6587\\uff09"),microPlaceholder:C("\\u5fe0\\u5b9e\\u8f6c\\u6362\\u540e\\uff0c\\u4e2d\\u6587\\u5fae\\u8c03\\u7a3f\\u4f1a\\u81ea\\u52a8\\u586b\\u5165\\u8fd9\\u91cc\\u3002\\u4e5f\\u53ef\\u5355\\u72ec\\u7c98\\u8d34\\u5b8c\\u6574 H3 \\u6216\\u666e\\u901a\\u63d0\\u793a\\u8bcd\\u3002"),microButton:C("\\u5fae\\u8c03\\u5e76\\u8f6c\\u4e3a H3 \\u683c\\u5f0f"),download:C("\\u4e0b\\u8f7d\\u6a21\\u578b"),downloading:C("\\u6b63\\u5728\\u4e0b\\u8f7d\\u6a21\\u578b..."),modelMissing:C("\\u6a21\\u578b\\u672a\\u4e0b\\u8f7d"),modelReady:C("\\u6a21\\u578b\\u5df2\\u5c31\\u7eea"),modelLoading:C("\\u6a21\\u578b\\u5df2\\u52a0\\u8f7d"),working:C("\\u5904\\u7406\\u4e2d..."),downloadStarting:C("\\u6a21\\u578b\\u5df2\\u5f00\\u59cb\\u4e0b\\u8f7d\\uff0c\\u8bf7\\u4fdd\\u6301\\u7a97\\u53e3\\u5f00\\u542f\\u3002"),enrichDone:C("\\u63d0\\u793a\\u8bcd\\u4e30\\u5bcc\\u5b8c\\u6210"),convertDone:C("\\u8f6c\\u6362\\u5b8c\\u6210\\uff0c\\u4e2d\\u6587\\u5fae\\u8c03\\u7a3f\\u5df2\\u540c\\u6b65"),microDone:C("\\u5fae\\u8c03\\u5b8c\\u6210"),enterPrompt:C("\\u8bf7\\u5148\\u8f93\\u5165\\u63d0\\u793a\\u8bcd\\u3002"),enterSource:C("\\u8bf7\\u5148\\u8f93\\u5165\\u539f\\u59cb\\u63d0\\u793a\\u8bcd\\u3002"),requestFailed:C("\\u8bf7\\u6c42\\u5931\\u8d25"),copy:C("\\u590d\\u5236"),copied:C("\\u5df2\\u590d\\u5236"),save:C("\\u4fdd\\u5b58"),help:{model:[C("\\u672c\\u5730\\u6a21\\u578b"),C("\\u9996\\u6b21\\u4e0b\\u8f7d\\u7ea6 8.4 GiB\\u3002\\u6a21\\u578b\\u4fdd\\u5b58\\u5728\\u672c\\u673a\\uff0c\\u4f7f\\u7528\\u524d\\u4f1a\\u6309\\u5b98\\u65b9 v2 SHA256 \\u6821\\u9a8c\\uff1b\\u751f\\u6210\\u8fc7\\u7a0b\\u5728 NVIDIA GPU \\u4e0a\\u8fd0\\u884c\\u3002")],mode:[C("H3 \\u6a21\\u5f0f"),C("FL2VA \\u7528\\u4e8e\\u9996\\u5e27\\u56fe\\u751f\\u89c6\\u9891\\u63d0\\u793a\\u8bcd\\uff1bRef2VA \\u7528\\u4e8e\\u53c2\\u8003\\u7d20\\u6750\\u751f\\u89c6\\u9891\\u63d0\\u793a\\u8bcd\\u3002\\u5de5\\u5177\\u4e0d\\u4f1a\\u8bc6\\u522b\\u56fe\\u7247\\u5185\\u5bb9\\u3002")],enrich:[C("\\u63d0\\u793a\\u8bcd\\u4e30\\u5bcc"),C("\\u8f93\\u5165\\u7b80\\u77ed\\u63d0\\u793a\\u8bcd\\uff0c\\u6ed1\\u5757\\u53ea\\u63a7\\u5236\\u8865\\u5145\\u591a\\u5c11\\u53ef\\u62cd\\u6444\\u7ec6\\u8282\\uff0c\\u5e76\\u4fdd\\u6301\\u539f\\u8bed\\u8a00\\u3001\\u4e8b\\u5b9e\\u548c\\u610f\\u56fe\\u3002\\u8be5\\u5f3a\\u5ea6\\u4e0d\\u4f1a\\u5f71\\u54cd H3 \\u683c\\u5f0f\\u8f6c\\u6362\\u3002")],convert:[C("\\u5fe0\\u5b9e H3 \\u8f6c\\u6362"),C("\\u4ec5\\u5c06\\u660e\\u786e\\u4e8b\\u5b9e\\u8f6c\\u6362\\u4e3a\\u6240\\u9009 MiniMax H3 \\u7ed3\\u6784\\uff0c\\u4e25\\u683c\\u4fdd\\u7559\\u955c\\u5934\\u987a\\u5e8f\\u3001\\u4eba\\u7269\\u7ad9\\u4f4d\\u3001\\u52a8\\u4f5c\\u3001\\u673a\\u4f4d\\u548c\\u5bf9\\u767d\\uff0c\\u4e0d\\u8bc6\\u522b\\u56fe\\u7247\\uff0c\\u4e5f\\u4e0d\\u7f16\\u9020\\u7f3a\\u5931\\u4fe1\\u606f\\u3002")],micro:[C("H3 \\u5fae\\u8c03"),C("\\u5fe0\\u5b9e\\u8f6c\\u6362\\u540e\\u4f1a\\u81ea\\u52a8\\u751f\\u6210\\u4e2d\\u6587\\u5fae\\u8c03\\u7a3f\\u3002\\u53ea\\u4fee\\u6539\\u9700\\u8981\\u8c03\\u6574\\u7684\\u6587\\u5b57\\uff0c\\u518d\\u8f6c\\u56de\\u82f1\\u6587 H3\\uff1b\\u5b57\\u6bb5\\u3001\\u6807\\u7b7e\\u3001\\u5f15\\u7528\\u3001\\u65f6\\u95f4\\u6233\\u548c\\u65e0\\u5173\\u5185\\u5bb9\\u4fdd\\u6301\\u4e0d\\u53d8\\u3002\\u6b64\\u529f\\u80fd\\u4e5f\\u53ef\\u76f4\\u63a5\\u8f93\\u5165\\u666e\\u901a\\u63d0\\u793a\\u8bcd\\u5355\\u72ec\\u4f7f\\u7528\\u3002")]}}};
-I18N["zh-TW"] = Object.assign({}, I18N["zh-CN"], {language:C("\\u8a9e\\u8a00"),enrichTitle:C("\\u63d0\\u793a\\u8a5e\\u8c50\\u5bcc"),simplePrompt:C("\\u7c21\\u55ae\\u63d0\\u793a\\u8a5e"),simplePlaceholder:C("\\u8f38\\u5165\\u4efb\\u610f\\u8a9e\\u8a00\\u7684\\u7c21\\u77ed\\u63d0\\u793a\\u8a5e\\u3002"),creativeStrength:C("\\u5275\\u4f5c\\u5f37\\u5ea6"),conservative:C("\\u4fdd\\u5b88"),creative:C("\\u5275\\u610f"),enrichButton:C("\\u8c50\\u5bcc\\u63d0\\u793a\\u8a5e"),enrichedOutput:C("\\u8c50\\u5bcc\\u7d50\\u679c"),convertTitle:C("\\u5fe0\\u5be6 H3 \\u8f49\\u63db"),sourcePrompt:C("\\u539f\\u59cb\\u63d0\\u793a\\u8a5e"),sourcePlaceholder:C("\\u8f38\\u5165\\u9700\\u8981\\u4fdd\\u7559\\u7684\\u4eba\\u7269\\u3001\\u93e1\\u982d\\u3001\\u7ad9\\u4f4d\\u3001\\u52d5\\u4f5c\\u548c\\u5c0d\\u767d\\u3002"),convertButton:C("\\u8f49\\u63db\\u70ba H3"),h3Output:C("H3 \\u8f38\\u51fa"),microTitle:C("H3 \\u5fae\\u8abf"),microInput:C("\\u5f85\\u5fae\\u8abf H3 \\u63d0\\u793a\\u8a5e\\uff08\\u4e2d\\u6587\\uff09"),microPlaceholder:C("\\u5fe0\\u5be6\\u8f49\\u63db\\u5f8c\\uff0c\\u4e2d\\u6587\\u5fae\\u8abf\\u7a3f\\u6703\\u81ea\\u52d5\\u586b\\u5165\\u9019\\u88e1\\u3002\\u4e5f\\u53ef\\u55ae\\u7368\\u8cbc\\u4e0a\\u5b8c\\u6574 H3 \\u6216\\u666e\\u901a\\u63d0\\u793a\\u8a5e\\u3002"),microButton:C("\\u5fae\\u8abf\\u4e26\\u8f49\\u70ba H3 \\u683c\\u5f0f"),download:C("\\u4e0b\\u8f09\\u6a21\\u578b"),downloading:C("\\u6b63\\u5728\\u4e0b\\u8f09\\u6a21\\u578b..."),modelMissing:C("\\u6a21\\u578b\\u672a\\u4e0b\\u8f09"),modelReady:C("\\u6a21\\u578b\\u5df2\\u5c31\\u7dd2"),modelLoading:C("\\u6a21\\u578b\\u5df2\\u8f09\\u5165"),working:C("\\u8655\\u7406\\u4e2d..."),downloadStarting:C("\\u6a21\\u578b\\u5df2\\u958b\\u59cb\\u4e0b\\u8f09\\uff0c\\u8acb\\u4fdd\\u6301\\u8996\\u7a97\\u958b\\u555f\\u3002"),enrichDone:C("\\u63d0\\u793a\\u8a5e\\u8c50\\u5bcc\\u5b8c\\u6210"),convertDone:C("\\u8f49\\u63db\\u5b8c\\u6210\\uff0c\\u4e2d\\u6587\\u5fae\\u8abf\\u7a3f\\u5df2\\u540c\\u6b65"),microDone:C("\\u5fae\\u8abf\\u5b8c\\u6210"),enterPrompt:C("\\u8acb\\u5148\\u8f38\\u5165\\u63d0\\u793a\\u8a5e\\u3002"),enterSource:C("\\u8acb\\u5148\\u8f38\\u5165\\u539f\\u59cb\\u63d0\\u793a\\u8a5e\\u3002"),requestFailed:C("\\u8acb\\u6c42\\u5931\\u6557"),copy:C("\\u8907\\u88fd"),copied:C("\\u5df2\\u8907\\u88fd"),save:C("\\u5132\\u5b58"),help:{model:[C("\\u672c\\u6a5f\\u6a21\\u578b"),C("\\u9996\\u6b21\\u4e0b\\u8f09\\u7d04 8.4 GiB\\u3002\\u6a21\\u578b\\u5132\\u5b58\\u5728\\u672c\\u6a5f\\uff0c\\u4f7f\\u7528\\u524d\\u6703\\u4f9d\\u5b98\\u65b9 v2 SHA256 \\u6821\\u9a57\\uff1b\\u751f\\u6210\\u904e\\u7a0b\\u5728 NVIDIA GPU \\u4e0a\\u57f7\\u884c\\u3002")],mode:[C("H3 \\u6a21\\u5f0f"),C("FL2VA \\u7528\\u65bc\\u9996\\u5e40\\u5716\\u751f\\u5f71\\u7247\\u63d0\\u793a\\u8a5e\\uff1bRef2VA \\u7528\\u65bc\\u53c3\\u8003\\u7d20\\u6750\\u751f\\u5f71\\u7247\\u63d0\\u793a\\u8a5e\\u3002\\u5de5\\u5177\\u4e0d\\u6703\\u8b58\\u5225\\u5716\\u7247\\u5167\\u5bb9\\u3002")],enrich:[C("\\u63d0\\u793a\\u8a5e\\u8c50\\u5bcc"),C("\\u8f38\\u5165\\u7c21\\u77ed\\u63d0\\u793a\\u8a5e\\uff0c\\u6ed1\\u687f\\u53ea\\u63a7\\u5236\\u88dc\\u5145\\u591a\\u5c11\\u53ef\\u62cd\\u651d\\u7d30\\u7bc0\\uff0c\\u4e26\\u4fdd\\u6301\\u539f\\u8a9e\\u8a00\\u3001\\u4e8b\\u5be6\\u548c\\u610f\\u5716\\u3002\\u6b64\\u5f37\\u5ea6\\u4e0d\\u6703\\u5f71\\u97ff H3 \\u683c\\u5f0f\\u8f49\\u63db\\u3002")],convert:[C("\\u5fe0\\u5be6 H3 \\u8f49\\u63db"),C("\\u50c5\\u5c07\\u660e\\u78ba\\u4e8b\\u5be6\\u8f49\\u63db\\u70ba\\u6240\\u9078 MiniMax H3 \\u7d50\\u69cb\\uff0c\\u56b4\\u683c\\u4fdd\\u7559\\u93e1\\u982d\\u9806\\u5e8f\\u3001\\u4eba\\u7269\\u7ad9\\u4f4d\\u3001\\u52d5\\u4f5c\\u3001\\u6a5f\\u4f4d\\u548c\\u5c0d\\u767d\\uff0c\\u4e0d\\u8b58\\u5225\\u5716\\u7247\\uff0c\\u4e5f\\u4e0d\\u7de8\\u9020\\u7f3a\\u5931\\u8cc7\\u8a0a\\u3002")],micro:[C("H3 \\u5fae\\u8abf"),C("\\u5fe0\\u5be6\\u8f49\\u63db\\u5f8c\\u6703\\u81ea\\u52d5\\u7522\\u751f\\u4e2d\\u6587\\u5fae\\u8abf\\u7a3f\\u3002\\u53ea\\u4fee\\u6539\\u9700\\u8981\\u8abf\\u6574\\u7684\\u6587\\u5b57\\uff0c\\u518d\\u8f49\\u56de\\u82f1\\u6587 H3\\uff1b\\u6b04\\u4f4d\\u3001\\u6a19\\u7c64\\u3001\\u5f15\\u7528\\u3001\\u6642\\u9593\\u6233\\u548c\\u7121\\u95dc\\u5167\\u5bb9\\u4fdd\\u6301\\u4e0d\\u8b8a\\u3002\\u6b64\\u529f\\u80fd\\u4e5f\\u53ef\\u76f4\\u63a5\\u8f38\\u5165\\u666e\\u901a\\u63d0\\u793a\\u8a5e\\u55ae\\u7368\\u4f7f\\u7528\\u3002")]}});
-I18N["zh-CN"].releaseMemory=C("\\u91ca\\u653e\\u5185\\u5b58\\u663e\\u5b58");I18N["zh-CN"].releasingMemory=C("\\u6b63\\u5728\\u91ca\\u653e...");I18N["zh-CN"].memoryReleased=C("\\u5df2\\u91ca\\u653e\\u5185\\u5b58\\u548c\\u663e\\u5b58");I18N["zh-CN"].memoryAlreadyFree=C("\\u5f53\\u524d\\u6ca1\\u6709\\u5df2\\u52a0\\u8f7d\\u6a21\\u578b");
-I18N["zh-TW"].releaseMemory=C("\\u91cb\\u653e\\u8a18\\u61b6\\u9ad4\\u986f\\u5b58");I18N["zh-TW"].releasingMemory=C("\\u6b63\\u5728\\u91cb\\u653e...");I18N["zh-TW"].memoryReleased=C("\\u5df2\\u91cb\\u653e\\u8a18\\u61b6\\u9ad4\\u548c\\u986f\\u5b58");I18N["zh-TW"].memoryAlreadyFree=C("\\u76ee\\u524d\\u6c92\\u6709\\u5df2\\u8f09\\u5165\\u6a21\\u578b");
-I18N["zh-CN"].help.release=[C("\\u91ca\\u653e\\u5185\\u5b58\\u663e\\u5b58"),C("\\u5378\\u8f7d\\u672c\\u5de5\\u5177\\u7684\\u6a21\\u578b\\u548c\\u5206\\u8bcd\\u5668\\uff0c\\u5e76\\u6e05\\u7406 Python \\u4e0e CUDA \\u7f13\\u5b58\\u3002\\u5982\\u6b63\\u5728\\u751f\\u6210\\uff0c\\u4f1a\\u7b49\\u5f85\\u4efb\\u52a1\\u5b8c\\u6210\\uff1b\\u4e0d\\u4f1a\\u7ed3\\u675f\\u5176\\u4ed6\\u7a0b\\u5e8f\\uff0c\\u4e5f\\u4e0d\\u4f1a\\u91ca\\u653e\\u5176\\u4ed6\\u8fdb\\u7a0b\\u5360\\u7528\\u7684\\u663e\\u5b58\\u3002")];
-I18N["zh-TW"].help.release=[C("\\u91cb\\u653e\\u8a18\\u61b6\\u9ad4\\u986f\\u5b58"),C("\\u5378\\u8f09\\u672c\\u5de5\\u5177\\u7684\\u6a21\\u578b\\u548c\\u5206\\u8a5e\\u5668\\uff0c\\u4e26\\u6e05\\u7406 Python \\u8207 CUDA \\u5feb\\u53d6\\u3002\\u82e5\\u6b63\\u5728\\u7522\\u751f\\uff0c\\u6703\\u7b49\\u5f85\\u4efb\\u52d9\\u5b8c\\u6210\\uff1b\\u4e0d\\u6703\\u7d50\\u675f\\u5176\\u4ed6\\u7a0b\\u5f0f\\uff0c\\u4e5f\\u4e0d\\u6703\\u91cb\\u653e\\u5176\\u4ed6\\u9032\\u7a0b\\u4f54\\u7528\\u7684\\u986f\\u5b58\\u3002")];
-I18N.en.sendToConvert="Send to H3 conversion";I18N.en.sentToConvert="Sent to H3 input";I18N.en.noEnrichedPrompt="Create an enriched prompt first.";
-I18N["zh-CN"].sendToConvert=C("\\u586b\\u5165 H3 \\u8f6c\\u6362");I18N["zh-CN"].sentToConvert=C("\\u5df2\\u586b\\u5165 H3 \\u8f93\\u5165\\u6846");I18N["zh-CN"].noEnrichedPrompt=C("\\u8bf7\\u5148\\u751f\\u6210\\u4e30\\u5bcc\\u7ed3\\u679c\\u3002");
-I18N["zh-TW"].sendToConvert=C("\\u586b\\u5165 H3 \\u8f49\\u63db");I18N["zh-TW"].sentToConvert=C("\\u5df2\\u586b\\u5165 H3 \\u8f38\\u5165\\u6846");I18N["zh-TW"].noEnrichedPrompt=C("\\u8acb\\u5148\\u7522\\u751f\\u8c50\\u5bcc\\u7d50\\u679c\\u3002");
-let language=localStorage.getItem("faithful-h3-language")||"en",mode="fl2va",statusTimer=null,busyCount=0;const $=id=>document.getElementById(id),t=key=>I18N[language][key]||I18N.en[key]||key;
-function applyLanguage(){document.documentElement.lang=language;document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=t(el.dataset.i18n));document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>el.placeholder=t(el.dataset.i18nPlaceholder));$("download-model").textContent=t("download");$("release-memory").textContent=t("releaseMemory");$("send-to-convert").title=t("sendToConvert");$("send-to-convert").setAttribute("aria-label",t("sendToConvert"));$("language").value=language;updateModelStatus();}function setStatus(id,message,type=""){const el=$(id);el.textContent=message;el.className=`feedback ${type}`;}function setWorking(button,working){button.disabled=working;button.setAttribute("aria-busy",String(working));busyCount+=working?1:-1;busyCount=Math.max(0,busyCount);$("release-memory").disabled=busyCount>0;}
-async function api(action,text,strength=40,original=""){const response=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,mode,text,strength:Number(strength),original})});const data=await response.json();if(!response.ok)throw new Error(data.detail||t("requestFailed"));return data;}async function updateModelStatus(){try{const data=await fetch("/api/status").then(r=>r.json()),el=$("model-status"),release=$("release-memory");el.textContent=data.downloading?t("downloading"):data.loaded?t("modelLoading"):data.ready?t("modelReady"):t("modelMissing");el.className=`status ${data.error?"status-error":data.ready?"status-ready":"status-neutral"}`;if(data.error)el.textContent=data.error;$("download-model").disabled=data.downloading||data.ready;release.dataset.loaded=String(data.loaded);release.disabled=busyCount>0;if(data.downloading&&!statusTimer)statusTimer=setInterval(updateModelStatus,2000);if(!data.downloading&&statusTimer){clearInterval(statusTimer);statusTimer=null;}}catch(error){$("model-status").textContent=error.message;$("model-status").className="status status-error";}}
-document.querySelectorAll(".segment").forEach(button=>button.addEventListener("click",()=>{mode=button.dataset.mode;document.querySelectorAll(".segment").forEach(item=>{const active=item===button;item.classList.toggle("active",active);item.setAttribute("aria-selected",String(active));});}));$("strength").addEventListener("input",event=>$("strength-value").value=event.target.value);
-$("enrich").addEventListener("click",async()=>{const text=$("enrich-input").value.trim();if(!text)return setStatus("enrich-status",t("enterPrompt"),"error");setStatus("enrich-status",t("working"),"loading");setWorking($("enrich"),true);try{$("enrich-output").value=(await api("enrich",text,$("strength").value)).output;setStatus("enrich-status",t("enrichDone"));}catch(error){setStatus("enrich-status",error.message,"error");}finally{setWorking($("enrich"),false);}});$("convert").addEventListener("click",async()=>{const text=$("source-input").value.trim();if(!text)return setStatus("convert-status",t("enterSource"),"error");setStatus("convert-status",t("working"),"loading");setWorking($("convert"),true);try{const data=await api("convert",text);$("h3-output").value=data.output;$("micro-output").value=data.output;$("micro-input").value=data.chinese;setStatus("convert-status",t("convertDone"));}catch(error){setStatus("convert-status",error.message,"error");}finally{setWorking($("convert"),false);}});$("micro").addEventListener("click",async()=>{const text=$("micro-input").value.trim();if(!text)return setStatus("micro-status",t("enterPrompt"),"error");setStatus("micro-status",t("working"),"loading");setWorking($("micro"),true);try{const data=await api("micro",text,40,$("h3-output").value);$("micro-output").value=data.output;$("h3-output").value=data.output;setStatus("micro-status",t("microDone"));}catch(error){setStatus("micro-status",error.message,"error");}finally{setWorking($("micro"),false);}});
-$("send-to-convert").addEventListener("click",()=>{const value=$("enrich-output").value.trim();if(!value)return setStatus("enrich-status",t("noEnrichedPrompt"),"error");const target=$("send-to-convert").dataset.target;$(target).value=value;$(target).scrollIntoView({behavior:"smooth",block:"center"});$(target).focus({preventScroll:true});setStatus("enrich-status",t("sentToConvert"));});document.querySelectorAll(".copy").forEach(button=>button.addEventListener("click",async()=>{await navigator.clipboard.writeText($(button.dataset.target).value);const original=button.textContent;button.textContent=t("copied");setTimeout(()=>button.textContent=original,1200);}));document.querySelectorAll(".download").forEach(button=>button.addEventListener("click",()=>{const blob=new Blob([$(button.dataset.target).value],{type:"text/plain;charset=utf-8"}),anchor=document.createElement("a");anchor.href=URL.createObjectURL(blob);anchor.download="faithful-h3-prompt.txt";anchor.click();URL.revokeObjectURL(anchor.href);}));$("language").addEventListener("change",event=>{language=event.target.value;localStorage.setItem("faithful-h3-language",language);applyLanguage();});$("download-model").addEventListener("click",async()=>{setStatus("convert-status",t("downloadStarting"),"loading");try{await fetch("/api/download",{method:"POST"});await updateModelStatus();}catch(error){setStatus("convert-status",error.message,"error");}});$("release-memory").addEventListener("click",async()=>{const button=$("release-memory"),original=t("releaseMemory");button.disabled=true;button.textContent=t("releasingMemory");try{const response=await fetch("/api/release",{method:"POST"}),data=await response.json();if(!response.ok)throw new Error(data.detail||t("requestFailed"));button.dataset.loaded="false";$("model-status").textContent=data.released?t("memoryReleased"):t("memoryAlreadyFree");$("model-status").className="status status-neutral";}catch(error){$("model-status").textContent=error.message;$("model-status").className="status status-error";}finally{button.textContent=original;button.disabled=busyCount>0;}});document.querySelectorAll(".help").forEach(button=>button.addEventListener("click",()=>{const item=I18N[language].help[button.dataset.help];$("help-title").textContent=item[0];$("help-body").textContent=item[1];$("help-dialog").showModal();}));$("help-close").addEventListener("click",()=>$("help-dialog").close());$("help-dialog").addEventListener("click",event=>{if(event.target===$("help-dialog"))$("help-dialog").close();});applyLanguage();
+  en: {
+    language: "Language", mode: "Mode", sourceArea: "Prompt sources", sourcePrompt: "Source prompt",
+    sourcePlaceholder: "Enter the original facts, shots, positions, actions, and dialogue to preserve.",
+    simplePrompt: "Simple prompt", simplePlaceholder: "Enter a short prompt in any language.", creativeStrength: "Creative strength",
+    enrichButton: "Enrich prompt", enrichedOutput: "Enriched prompt", moduleEditor: "H3 module editor",
+    subjects: "Subject definitions", summary: "Summary", retention: "Retention analysis", scene: "Scene & continuity",
+    scenePlaceholder: "Only facts that apply across shots.", shots: "Shot", duration: "Duration", startsAt: "Starts at",
+    totalDuration: "Total duration", action: "Action & dialogue", camera: "Camera", soundscape: "Overall soundscape",
+    soundPlaceholder: "Leave empty to infer supported sounds from actions and dialogue.", music: "Non-diegetic music",
+    musicPlaceholder: "Leave empty for N/A or supported inference.", h3Output: "H3 output", convertButton: "Convert / update H3",
+    download: "Download model", releaseMemory: "Release memory", releasingMemory: "Releasing...",
+    memoryReleased: "Memory and VRAM released", memoryAlreadyFree: "No loaded model to release", downloading: "Downloading model...",
+    modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", working: "Working...",
+    importDone: "Modules filled. Review them before conversion.", enrichDone: "Enrichment complete", convertDone: "H3 and editing modules updated",
+    enterPrompt: "Enter a prompt first.", noModuleContent: "Fill or import at least one visual module first.", requestFailed: "Request failed", copied: "Copied",
+    help: {
+      model: ["Local model", "The model runs locally on the NVIDIA GPU."],
+      release: ["Release memory", "Unloads this tool's model and clears its Python and CUDA caches."],
+      mode: ["H3 mode", "FL2VA and Ref2VA expose their official module structures. The tool never inspects images."],
+      sources: ["Prompt sources", "Import either the original prompt or the enriched result. Importing only distributes existing content into modules; it does not translate or expand it."],
+      enrich: ["Prompt enrichment", "This is the only creative workflow. Its strength never affects faithful H3 conversion."],
+      modules: ["H3 module editor", "This is the shared editing surface before and after conversion. Each shot defaults to 3 seconds. Change duration in 0.5-second steps; start times and total duration are calculated automatically."],
+      output: ["Faithful English H3", "Visual values are translated literally and reviewed for invented details. Empty audio fields may be inferred from supported actions and dialogue."]
+    }
+  },
+  "zh-CN": {
+    language: "语言", mode: "模式", sourceArea: "提示词来源", sourcePrompt: "原始提示词",
+    sourcePlaceholder: "输入必须保留的人物、镜头、站位、动作和对白。", simplePrompt: "简单提示词",
+    simplePlaceholder: "输入任意语言的简短提示词。", creativeStrength: "创作强度", enrichButton: "丰富提示词",
+    enrichedOutput: "丰富结果", moduleEditor: "H3 模块编辑器", subjects: "主体定义", summary: "摘要", retention: "保留分析",
+    scene: "场景与连续性", scenePlaceholder: "只填写跨镜头持续成立的事实。", shots: "镜头", duration: "持续时长",
+    startsAt: "起始时间", totalDuration: "总时长", action: "动作与对白", camera: "镜头机位", soundscape: "整体声音环境",
+    soundPlaceholder: "留空时可根据动作和对白推断合理声音。", music: "非叙事音乐", musicPlaceholder: "留空时默认为 N/A 或根据原意推断。",
+    h3Output: "H3 输出", convertButton: "转换 / 更新 H3", download: "下载模型", releaseMemory: "释放内存显存",
+    releasingMemory: "正在释放...", memoryReleased: "已释放内存和显存", memoryAlreadyFree: "当前没有已加载模型",
+    downloading: "正在下载模型...", modelMissing: "模型未下载", modelReady: "模型已就绪", modelLoading: "模型已加载",
+    working: "处理中...", importDone: "模块已填充，请检查后再转换。", enrichDone: "提示词丰富完成",
+    convertDone: "H3 与微调模块均已更新", enterPrompt: "请先输入提示词。", noModuleContent: "请先填写或导入至少一个视觉模块。",
+    requestFailed: "请求失败", copied: "已复制",
+    help: {
+      model: ["本地模型", "模型在本机 NVIDIA GPU 上运行。"],
+      release: ["释放内存显存", "卸载本工具模型并清理 Python 与 CUDA 缓存。"],
+      mode: ["H3 模式", "FL2VA 与 Ref2VA 分别显示对应官方模块；工具不识别图片。"],
+      sources: ["提示词来源", "原始提示词和丰富结果都可导入。导入只把现有文字分配到模块，不翻译、不扩写。"],
+      enrich: ["提示词丰富", "这是唯一允许创作扩写的功能，创作强度不会影响忠实转换。"],
+      modules: ["H3 模块编辑器", "转换前后共用这一套微调模块。每个镜头默认 3 秒，以 0.5 秒为步长调整；起始时间和总时长会自动计算。"],
+      output: ["忠实英文 H3", "视觉内容只忠实翻译，并审查是否新增细节；空声音字段允许根据动作与对白推断。"]
+    }
+  },
+  "zh-TW": {
+    language: "語言", mode: "模式", sourceArea: "提示詞來源", sourcePrompt: "原始提示詞",
+    sourcePlaceholder: "輸入必須保留的人物、鏡頭、站位、動作和對白。", simplePrompt: "簡單提示詞",
+    simplePlaceholder: "輸入任意語言的簡短提示詞。", creativeStrength: "創作強度", enrichButton: "豐富提示詞",
+    enrichedOutput: "豐富結果", moduleEditor: "H3 模組編輯器", subjects: "主體定義", summary: "摘要", retention: "保留分析",
+    scene: "場景與連續性", scenePlaceholder: "只填寫跨鏡頭持續成立的事實。", shots: "鏡頭", duration: "持續時長",
+    startsAt: "起始時間", totalDuration: "總時長", action: "動作與對白", camera: "鏡頭機位", soundscape: "整體聲音環境",
+    soundPlaceholder: "留空時可根據動作和對白推斷合理聲音。", music: "非敘事音樂", musicPlaceholder: "留空時預設為 N/A 或根據原意推斷。",
+    h3Output: "H3 輸出", convertButton: "轉換 / 更新 H3", download: "下載模型", releaseMemory: "釋放記憶體顯存",
+    releasingMemory: "正在釋放...", memoryReleased: "已釋放記憶體和顯存", memoryAlreadyFree: "目前沒有已載入模型",
+    downloading: "正在下載模型...", modelMissing: "模型未下載", modelReady: "模型已就緒", modelLoading: "模型已載入",
+    working: "處理中...", importDone: "模組已填入，請檢查後再轉換。", enrichDone: "提示詞豐富完成",
+    convertDone: "H3 與微調模組均已更新", enterPrompt: "請先輸入提示詞。", noModuleContent: "請先填寫或匯入至少一個視覺模組。",
+    requestFailed: "請求失敗", copied: "已複製",
+    help: {
+      model: ["本機模型", "模型在本機 NVIDIA GPU 上執行。"],
+      release: ["釋放記憶體顯存", "卸載本工具模型並清理 Python 與 CUDA 快取。"],
+      mode: ["H3 模式", "FL2VA 與 Ref2VA 分別顯示對應官方模組；工具不辨識圖片。"],
+      sources: ["提示詞來源", "原始提示詞和豐富結果都可匯入。匯入只把現有文字分配到模組，不翻譯、不擴寫。"],
+      enrich: ["提示詞豐富", "這是唯一允許創作擴寫的功能，創作強度不會影響忠實轉換。"],
+      modules: ["H3 模組編輯器", "轉換前後共用這套微調模組。每個鏡頭預設 3 秒，以 0.5 秒為步長調整；起始時間和總時長會自動計算。"],
+      output: ["忠實英文 H3", "視覺內容只忠實翻譯，並審查是否新增細節；空聲音欄位允許根據動作與對白推斷。"]
+    }
+  }
+};
+
+let language = localStorage.getItem("faithful-h3-language") || "en";
+let mode = "fl2va";
+let shotCount = 3;
+let busyCount = 0;
+let statusTimer = null;
+const $ = id => document.getElementById(id);
+const t = key => I18N[language][key] || I18N.en[key] || key;
+
+function setStatus(id, message, type = "") {
+  const el = $(id);
+  el.textContent = message;
+  el.className = `feedback ${type}`;
+}
+
+function setWorking(button, working) {
+  button.disabled = working;
+  button.setAttribute("aria-busy", String(working));
+  busyCount = Math.max(0, busyCount + (working ? 1 : -1));
+  $("release-memory").disabled = busyCount > 0;
+}
+
+async function api(action, text = "", extra = {}) {
+  const response = await fetch("/api/generate", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({action, mode, text, strength: Number($("strength").value), ...extra})
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+  return data;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[char]));
+}
+
+function normalizeDuration(value) {
+  const numeric = Number.parseFloat(value);
+  const safe = Number.isFinite(numeric) ? numeric : 3;
+  return Math.round(Math.min(30, Math.max(0.5, safe)) * 2) / 2;
+}
+
+function formatTime(seconds) {
+  const totalMs = Math.round(seconds * 1000);
+  const minutes = Math.floor(totalMs / 60000);
+  const remainder = totalMs % 60000;
+  const wholeSeconds = Math.floor(remainder / 1000);
+  const milliseconds = remainder % 1000;
+  return `${String(minutes).padStart(2, "0")}:${String(wholeSeconds).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
+}
+
+function shotTemplate(index, data = {}) {
+  const duration = normalizeDuration(data.duration_seconds ?? 3);
+  return `<article class="shot-module" data-shot="${index}">
+    <div class="shot-heading">
+      <strong>${t("shots")} ${index + 1}</strong>
+      <div class="shot-timing">
+        <span class="shot-start"><span>${t("startsAt")}</span><output class="shot-start-value">00:00.000</output></span>
+        <label class="duration-control"><span>${t("duration")}</span><span class="duration-input"><input class="shot-duration" type="number" min="0.5" max="30" step="0.5" value="${duration.toFixed(1)}"><span>s</span></span></label>
+      </div>
+    </div>
+    <div class="shot-fields">
+      <label><span>${t("action")}</span><textarea class="shot-action" rows="3">${escapeHtml(data.action || "")}</textarea></label>
+      <label><span>${t("camera")}</span><textarea class="shot-camera" rows="3">${escapeHtml(data.camera || "")}</textarea></label>
+    </div>
+  </article>`;
+}
+
+function recalculateTimeline() {
+  let elapsed = 0;
+  document.querySelectorAll(".shot-module").forEach(shot => {
+    shot.querySelector(".shot-start-value").textContent = formatTime(elapsed);
+    elapsed += normalizeDuration(shot.querySelector(".shot-duration").value);
+  });
+  $("total-duration").textContent = `${elapsed.toFixed(1)}s`;
+}
+
+function renderShots(data = []) {
+  shotCount = Math.max(1, data.length || shotCount);
+  $("shots-list").innerHTML = Array.from({length: shotCount}, (_, index) => shotTemplate(index, data[index] || {})).join("");
+  $("shot-count").textContent = String(shotCount);
+  $("remove-shot").disabled = shotCount <= 1;
+  recalculateTimeline();
+}
+
+function collectModules() {
+  const modules = {
+    scene: $("scene").value.trim(),
+    shots: [...document.querySelectorAll(".shot-module")].map(el => ({
+      duration_seconds: normalizeDuration(el.querySelector(".shot-duration").value),
+      action: el.querySelector(".shot-action").value.trim(),
+      camera: el.querySelector(".shot-camera").value.trim()
+    })),
+    overall_soundscape: $("overall-soundscape").value.trim(),
+    non_diegetic_music: $("non-diegetic-music").value.trim()
+  };
+  if (mode === "ref2va") Object.assign(modules, {
+    subject_definitions: $("subject-definitions").value.trim(),
+    summary: $("summary").value.trim(),
+    retention_analysis: $("retention-analysis").value.trim()
+  });
+  return modules;
+}
+
+function fillModules(modules) {
+  $("scene").value = modules.scene || "";
+  $("overall-soundscape").value = modules.overall_soundscape || "";
+  $("non-diegetic-music").value = modules.non_diegetic_music || "";
+  if (mode === "ref2va") {
+    $("subject-definitions").value = modules.subject_definitions || "";
+    $("summary").value = modules.summary || "";
+    $("retention-analysis").value = modules.retention_analysis || "";
+  }
+  renderShots(modules.shots?.length ? modules.shots : [{}, {}, {}]);
+}
+
+function hasVisualContent(modules) {
+  return Boolean(modules.scene || modules.subject_definitions || modules.summary || modules.retention_analysis || modules.shots.some(shot => shot.action || shot.camera));
+}
+
+function applyLanguage() {
+  const currentShots = collectModules().shots;
+  document.documentElement.lang = language;
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
+  $("download-model").textContent = t("download");
+  $("release-memory").textContent = t("releaseMemory");
+  $("language").value = language;
+  renderShots(currentShots);
+  updateModelStatus();
+}
+
+async function importToModules(text, statusId, button) {
+  if (!text.trim()) return setStatus(statusId, t("enterPrompt"), "error");
+  setStatus(statusId, t("working"), "loading");
+  setWorking(button, true);
+  try {
+    const data = await api("decompose", text);
+    fillModules(data.modules);
+    setStatus(statusId, t("importDone"));
+    $("module-heading").scrollIntoView({behavior: "smooth", block: "start"});
+  } catch (error) {
+    setStatus(statusId, error.message, "error");
+  } finally {
+    setWorking(button, false);
+  }
+}
+
+document.querySelectorAll(".segment").forEach(button => button.addEventListener("click", () => {
+  mode = button.dataset.mode;
+  document.querySelectorAll(".segment").forEach(item => {
+    const active = item === button;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+  });
+  $("ref-modules").hidden = mode !== "ref2va";
+}));
+
+$("strength").addEventListener("input", event => $("strength-value").value = event.target.value);
+$("shots-list").addEventListener("input", event => {
+  if (event.target.classList.contains("shot-duration")) recalculateTimeline();
+});
+$("shots-list").addEventListener("change", event => {
+  if (!event.target.classList.contains("shot-duration")) return;
+  event.target.value = normalizeDuration(event.target.value).toFixed(1);
+  recalculateTimeline();
+});
+$("add-shot").addEventListener("click", () => {
+  const data = collectModules().shots;
+  data.push({duration_seconds: 3});
+  renderShots(data);
+});
+$("remove-shot").addEventListener("click", () => {
+  if (shotCount <= 1) return;
+  const data = collectModules().shots;
+  data.pop();
+  renderShots(data);
+});
+$("import-source").addEventListener("click", () => importToModules($("source-input").value, "source-status", $("import-source")));
+$("import-enriched").addEventListener("click", () => importToModules($("enrich-output").value, "enrich-status", $("import-enriched")));
+
+$("enrich").addEventListener("click", async () => {
+  const text = $("enrich-input").value.trim();
+  if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
+  setStatus("enrich-status", t("working"), "loading");
+  setWorking($("enrich"), true);
+  try {
+    $("enrich-output").value = (await api("enrich", text)).output;
+    setStatus("enrich-status", t("enrichDone"));
+  } catch (error) {
+    setStatus("enrich-status", error.message, "error");
+  } finally {
+    setWorking($("enrich"), false);
+  }
+});
+
+$("convert-modules").addEventListener("click", async () => {
+  const modules = collectModules();
+  if (!hasVisualContent(modules)) return setStatus("convert-status", t("noModuleContent"), "error");
+  setStatus("convert-status", t("working"), "loading");
+  setWorking($("convert-modules"), true);
+  try {
+    const data = await api("convert_modules", "modules", {modules});
+    $("h3-output").value = data.output;
+    fillModules(data.modules);
+    setStatus("convert-status", t("convertDone"));
+  } catch (error) {
+    setStatus("convert-status", error.message, "error");
+  } finally {
+    setWorking($("convert-modules"), false);
+  }
+});
+
+document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {
+  await navigator.clipboard.writeText($(button.dataset.target).value);
+  const old = button.title;
+  button.title = t("copied");
+  setTimeout(() => button.title = old, 1200);
+}));
+document.querySelectorAll(".download").forEach(button => button.addEventListener("click", () => {
+  const blob = new Blob([$(button.dataset.target).value], {type: "text/plain;charset=utf-8"});
+  const anchor = document.createElement("a");
+  anchor.href = URL.createObjectURL(blob);
+  anchor.download = "faithful-h3-prompt.txt";
+  anchor.click();
+  URL.revokeObjectURL(anchor.href);
+}));
+
+$("language").addEventListener("change", event => {
+  language = event.target.value;
+  localStorage.setItem("faithful-h3-language", language);
+  applyLanguage();
+});
+
+async function updateModelStatus() {
+  try {
+    const data = await fetch("/api/status").then(response => response.json());
+    const el = $("model-status");
+    el.textContent = data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing");
+    el.className = `status ${data.error ? "status-error" : data.ready ? "status-ready" : "status-neutral"}`;
+    if (data.error) el.textContent = data.error;
+    $("download-model").disabled = data.downloading || data.ready;
+    if (data.downloading && !statusTimer) statusTimer = setInterval(updateModelStatus, 2000);
+    if (!data.downloading && statusTimer) {
+      clearInterval(statusTimer);
+      statusTimer = null;
+    }
+  } catch (error) {
+    $("model-status").textContent = error.message;
+    $("model-status").className = "status status-error";
+  }
+}
+
+$("download-model").addEventListener("click", async () => {
+  await fetch("/api/download", {method: "POST"});
+  updateModelStatus();
+});
+$("release-memory").addEventListener("click", async () => {
+  const button = $("release-memory");
+  const old = t("releaseMemory");
+  button.disabled = true;
+  button.textContent = t("releasingMemory");
+  try {
+    const response = await fetch("/api/release", {method: "POST"});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+    $("model-status").textContent = data.released ? t("memoryReleased") : t("memoryAlreadyFree");
+  } catch (error) {
+    $("model-status").textContent = error.message;
+  } finally {
+    button.textContent = old;
+    button.disabled = busyCount > 0;
+  }
+});
+
+document.querySelectorAll(".help").forEach(button => button.addEventListener("click", () => {
+  const item = I18N[language].help[button.dataset.help];
+  $("help-title").textContent = item[0];
+  $("help-body").textContent = item[1];
+  $("help-dialog").showModal();
+}));
+$("help-close").addEventListener("click", () => $("help-dialog").close());
+
+renderShots([{duration_seconds: 3}, {duration_seconds: 3}, {duration_seconds: 3}]);
+applyLanguage();

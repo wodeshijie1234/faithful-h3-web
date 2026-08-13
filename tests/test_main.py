@@ -36,6 +36,22 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"released": True, "loaded": False}, response.json())
 
+    def test_convert_modules_requires_no_plain_text_contract_change(self):
+        from app.main import service
+
+        original = service.convert_modules
+        service.convert_modules = lambda modules, mode: {"output": "ok", "modules": modules, "mode": mode}
+        try:
+            response = self.client.post(
+                "/api/generate",
+                json={"action": "convert_modules", "text": "modules", "mode": "ref2va", "modules": {"scene": "x"}},
+            )
+        finally:
+            service.convert_modules = original
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("x", response.json()["modules"]["scene"])
+        self.assertEqual("ref2va", response.json()["mode"])
+
 
 if __name__ == "__main__":
     unittest.main()

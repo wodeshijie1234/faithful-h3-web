@@ -1,3 +1,6 @@
+import re
+import json
+
 from . import h3
 
 
@@ -12,13 +15,68 @@ class PromptService:
         return self.runtime.generate(text, h3.enrichment_system(strength), temperature=temperature, top_p=top_p)
 
     def convert(self, text: str, mode: str) -> dict:
-        output = self.runtime.generate(text, h3.conversion_system(mode), temperature=0.01, top_p=0.1)
-        output = h3.normalize_output(output, mode)
+        translation = self.runtime.generate(
+            text, h3.conversion_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700
+        )
+        review = self.runtime.generate(
+            f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+            h3.visual_review_system(mode),
+            temperature=0.01,
+            top_p=0.1,
+            max_new_tokens=8,
+        ).strip().upper()
+        if review != "PASS":
+            raise RuntimeError("The visual translation failed the strict no-invention review; no H3 output was returned.")
+        soundscape, music = h3.parse_audio_output(
+            self.runtime.generate(text, h3.audio_system(), temperature=0.01, top_p=0.1, max_new_tokens=160)
+        )
+        output = h3.strict_wrap(translation, mode, soundscape, music)
         check = h3.audit(output, mode)
-        if not check["valid"]:
-            raise RuntimeError(f"The model returned an invalid H3 structure. Missing: {', '.join(check['missing'])}")
-        chinese = self.runtime.generate(output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1)
+        chinese = self.runtime.generate(
+            output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=900
+        )
         return {"output": output, "chinese": chinese, "audit": check}
+
+    def decompose(self, text: str, mode: str) -> dict:
+        output = self.runtime.generate(
+            text, h3.decompose_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=384, stop_on_json=True
+        )
+        return {"modules": h3.parse_modules_json(output, mode)}
+
+    def convert_modules(self, modules: dict, mode: str) -> dict:
+        source_modules = h3.normalize_modules(modules, mode)
+        translated_raw = self.runtime.generate(
+            json.dumps(source_modules, ensure_ascii=False),
+            h3.translate_modules_system(mode),
+            temperature=0.01,
+            top_p=0.05,
+            max_new_tokens=1200,
+            stop_on_json=True,
+        )
+        translated = h3.parse_modules_json(translated_raw, mode)
+        original_visual = h3.module_source_text(source_modules, mode)
+        translated_visual = h3.module_source_text(translated, mode)
+        review = self.runtime.generate(
+            f"ORIGINAL SOURCE:\n{original_visual}\n\nPROPOSED ENGLISH TRANSLATION:\n{translated_visual}",
+            h3.visual_review_system(mode),
+            temperature=0.01,
+            top_p=0.1,
+            max_new_tokens=8,
+        ).strip().upper()
+        if review != "PASS":
+            raise RuntimeError("The visual translation failed the strict no-invention review; no H3 output was returned.")
+        if not translated["overall_soundscape"] and not translated["non_diegetic_music"]:
+            soundscape, music = h3.parse_audio_output(
+                self.runtime.generate(
+                    original_visual, h3.audio_system(), temperature=0.01, top_p=0.1, max_new_tokens=160
+                )
+            )
+            translated["overall_soundscape"] = soundscape
+            translated["non_diegetic_music"] = music
+        output = h3.build_h3(translated, mode)
+        check = h3.audit(output, mode)
+        chinese = h3.build_h3(source_modules, mode)
+        return {"output": output, "chinese": chinese, "audit": check, "modules": translated}
 
     def micro_edit(self, edited: str, mode: str, original: str = "") -> dict:
         if not h3.has_complete_structure(edited, mode):
@@ -37,3 +95,8 @@ class PromptService:
             raise RuntimeError("The output changed the H3 structure, shot markers, tags, or timestamps.")
         return {"output": output, "audit": h3.audit(output, mode)}
 
+
+def _replace_audio_fields(output: str, soundscape: str, music: str) -> str:
+    output = re.sub(r"(?m)^overall_soundscape:.*$", f"overall_soundscape: {soundscape}", output, count=1)
+    output = re.sub(r"(?m)^non_diegetic_music:.*$", f"non_diegetic_music: {music}", output, count=1)
+    return output

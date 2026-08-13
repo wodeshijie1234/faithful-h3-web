@@ -74,6 +74,54 @@ def mapped_state_dict(checkpoint: Path) -> tuple[dict, dict]:
     return state, quant_map
 
 
+def resolve_stop_token_ids(tokenizer, model) -> list[int]:
+    candidates = [
+        getattr(getattr(model, "config", None), "eos_token_id", None),
+        getattr(tokenizer, "eos_token_id", None),
+    ]
+    for token in ("<|im_end|>", "<|endoftext|>"):
+        try:
+            candidates.append(tokenizer.convert_tokens_to_ids(token))
+        except (AttributeError, KeyError, TypeError, ValueError):
+            pass
+    return sorted({int(token_id) for token_id in candidates if token_id is not None and int(token_id) >= 0})
+
+
+class JsonObjectStoppingCriteria:
+    def __init__(self, tokenizer, prompt_length: int):
+        self.tokenizer = tokenizer
+        self.prompt_length = int(prompt_length)
+
+    def __call__(self, input_ids, scores, **kwargs) -> bool:
+        token_ids = input_ids[0][self.prompt_length:]
+        if hasattr(token_ids, "tolist"):
+            token_ids = token_ids.tolist()
+        text = self.tokenizer.decode(token_ids, skip_special_tokens=False)
+        depth = 0
+        started = False
+        in_string = False
+        escaped = False
+        for char in text:
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                started = True
+                depth += 1
+            elif char == "}" and started:
+                depth -= 1
+                if depth == 0:
+                    return True
+        return False
+
+
 class ModelRuntime:
     def __init__(self, model_dir: Path):
         self.model_dir = Path(model_dir)
@@ -104,6 +152,8 @@ class ModelRuntime:
             model = model.to(dtype=torch.bfloat16)
             state, quant_map = mapped_state_dict(self.model_dir / MODEL_FILE)
             requantize(model, state, quant_map, device=torch.device("cuda"))
+            if config.tie_word_embeddings:
+                model.tie_weights()
             model.eval()
             tokenizer = AutoTokenizer.from_pretrained(self.model_dir, trust_remote_code=False)
             chat_template = self.model_dir / "chat_template.jinja"
@@ -127,7 +177,7 @@ class ModelRuntime:
                 pass
             return {"released": released, "loaded": False}
 
-    def generate(self, user_text: str, system_text: str, *, temperature: float, top_p: float, max_new_tokens: int = 1400) -> str:
+    def generate(self, user_text: str, system_text: str, *, temperature: float, top_p: float, max_new_tokens: int = 1400, stop_on_json: bool = False) -> str:
         with self._lock:
             self.load()
             import torch
@@ -136,6 +186,14 @@ class ModelRuntime:
             prompt = self._tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)
             inputs = self._tokenizer(prompt, return_tensors="pt").to("cuda")
             do_sample = temperature > 0.05
+            stop_token_ids = resolve_stop_token_ids(self._tokenizer, self._model)
+            stopping_criteria = None
+            if stop_on_json:
+                from transformers import StoppingCriteriaList
+
+                stopping_criteria = StoppingCriteriaList([
+                    JsonObjectStoppingCriteria(self._tokenizer, inputs.input_ids.shape[1])
+                ])
             with torch.inference_mode():
                 output = self._model.generate(
                     **inputs,
@@ -143,7 +201,9 @@ class ModelRuntime:
                     do_sample=do_sample,
                     temperature=max(temperature, 0.01),
                     top_p=top_p,
-                    pad_token_id=self._tokenizer.eos_token_id,
+                    eos_token_id=stop_token_ids,
+                    pad_token_id=self._tokenizer.pad_token_id,
+                    stopping_criteria=stopping_criteria,
                 )
             generated = output[0, inputs.input_ids.shape[1]:]
             return self._tokenizer.decode(generated, skip_special_tokens=True).strip()

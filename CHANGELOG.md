@@ -2,6 +2,23 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.2.0 - 2026-08-13
+
+### Added
+
+- Added a modular H3 editor for scene continuity, shots, overall soundscape, non-diegetic music, and the additional Ref2VA sections.
+- Added semantic import from both the original prompt and enriched result without translation, rewriting, or creative expansion.
+- Added dynamic shot counts based on explicit shot numbering or semantic cuts in the imported prompt.
+- Added per-shot duration controls from 0.5 to 30 seconds in 0.5-second steps, automatic cumulative cut timestamps, and a live total duration.
+- Added default three-shot editing for a blank workspace with compact add and remove controls.
+
+### Changed
+
+- Replaced the separate micro-edit workflow with one shared module editor used before and after H3 conversion.
+- Literal visual translation now passes a strict no-invention review before any H3 result is returned.
+- Audio inference runs separately and can only fill the soundscape and music fields.
+- Reorganized the interface into prompt sources, a modular editing workspace, and a single H3 result area.
+
 ## 1.1.3 - 2026-08-13
 
 ### Fixed

@@ -1,46 +1,36 @@
-@media (max-width: 520px) {
-  .top-actions {
-    display: grid;
-    grid-template-columns: 28px minmax(118px, 1fr) minmax(118px, 1fr);
-    gap: 10px;
-    width: 100%;
-  }
+@media (max-width: 900px) {
+  .topbar { align-items: flex-start; flex-direction: column; padding: 16px 20px; }
+  .top-actions { width: 100%; justify-content: flex-start; }
+  .workspace { padding: 20px 20px 52px; }
+  .source-grid { grid-template-columns: 1fr; gap: 22px; }
+  .ref-modules { grid-template-columns: 1fr; }
+}
 
-  .status {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .top-actions .help[data-help="model"] {
-    grid-column: 1;
-  }
-
-  .top-actions #download-model {
-    grid-column: 2;
-  }
-
-  .top-actions #release-memory {
-    grid-column: 3;
-  }
-
-  .top-actions .button-secondary {
-    width: 100%;
-    min-height: 44px;
-    padding: 9px 10px;
-    white-space: normal;
-  }
-
-  .release-help {
-    grid-column: 1;
-  }
-
-  .language-label {
-    grid-column: 2;
-    align-self: center;
-  }
-
-  .language-select {
-    grid-column: 3;
-    width: 100%;
-  }
+@media (max-width: 620px) {
+  .brand { font-size: 19px; }
+  .top-actions { display: grid; grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .status { grid-column: 1 / -1; width: 100%; }
+  .top-actions .help[data-help="model"] { grid-column: 1; align-self: center; }
+  #download-model { grid-column: 2; }
+  #release-memory { grid-column: 3; }
+  .release-help { grid-column: 1; align-self: center; }
+  .language-label { grid-column: 2; margin-left: 0; align-self: center; }
+  .language-select { grid-column: 3; width: 100%; min-width: 0; }
+  .top-actions .button-secondary { width: 100%; min-height: 44px; padding: 8px; white-space: normal; }
+  .workspace { padding: 18px 14px 44px; }
+  .mode-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; }
+  .segmented { width: 100%; min-width: 0; }
+  .segment { padding: 9px 6px; }
+  .section-heading h2 { font-size: 17px; }
+  textarea { font-size: 16px; }
+  .module-title-row { align-items: flex-start; }
+  .module-title-group { gap: 7px; }
+  .total-duration { flex-basis: 100%; margin-left: 0; }
+  .shot-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .shot-timing { width: 100%; justify-content: space-between; gap: 8px; }
+  .shot-start, .duration-control { flex-wrap: wrap; }
+  .shot-fields, .audio-grid { grid-template-columns: 1fr; }
+  .result-toolbar { flex-wrap: wrap; }
+  .result-toolbar .button-primary { flex: 1 1 calc(100% - 90px); }
+  .footer { padding: 17px 14px; align-items: flex-start; flex-direction: column; }
 }
