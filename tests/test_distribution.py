@@ -31,19 +31,44 @@ class DistributionContractTests(unittest.TestCase):
         self.assertEqual(3, html.count('class="copy output-copy"'))
         self.assertNotIn('class="copy output-copy" data-target="source-input"', html)
         self.assertIn('id="release-memory"', html)
+        self.assertIn('id="send-to-convert"', html)
+        self.assertIn('data-target="source-input"', html)
         self.assertIn('fetch("/api/release"', script)
         self.assertIn("releaseMemory", script)
+        self.assertIn("enrich-output", script)
+        self.assertIn("scrollIntoView", script)
 
     def test_one_click_entrypoints_and_readme_exist(self):
         self.assertTrue((ROOT / "install-and-run.bat").is_file())
         self.assertTrue((ROOT / "run.bat").is_file())
+        launcher = (ROOT / "run.bat").read_text(encoding="utf-8")
+        self.assertIn("PYTHONNOUSERSITE=1", launcher)
+        self.assertIn("import torch", launcher)
+        self.assertIn("torch.cuda.is_available", launcher)
+        requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+        self.assertIn("transformers==5.2.0", requirements)
+        self.assertIn("huggingface-hub==1.3.7", requirements)
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("install-and-run.bat", readme)
         self.assertIn("FL2VA", readme)
         self.assertIn("Ref2VA", readme)
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertIn("## 1.1.0 - 2026-08-13", changelog)
+        self.assertIn("## 1.1.1 - 2026-08-13", changelog)
         self.assertIn("Release memory", changelog)
+
+    def test_public_distribution_uses_liuliu_brand(self):
+        public_files = [
+            ROOT / "LICENSE",
+            ROOT / "README.md",
+            ROOT / "CHANGELOG.md",
+            ROOT / "install-and-run.bat",
+            ROOT / "run.bat",
+            ROOT / "app" / "main.py",
+            ROOT / "static" / "index.html",
+        ]
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in public_files)
+        self.assertIn("liuliu", combined)
+        self.assertNotIn("liusheng", combined.lower())
 
 
 if __name__ == "__main__":

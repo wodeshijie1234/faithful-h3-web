@@ -19,7 +19,7 @@ runtime = ModelRuntime(MODEL_DIR)
 service = PromptService(runtime)
 download_state = {"running": False, "error": ""}
 
-app = FastAPI(title="liusheng Faithful H3", version="1.1.0")
+app = FastAPI(title="liuliu Faithful H3", version="1.1.1")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

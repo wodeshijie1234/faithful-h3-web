@@ -1,7 +1,8 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title liusheng Faithful H3 - Setup
+title liuliu Faithful H3 - Setup
+set "PYTHONNOUSERSITE=1"
 
 where nvidia-smi >nul 2>nul
 if errorlevel 1 (

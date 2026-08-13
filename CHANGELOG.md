@@ -2,6 +2,21 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.1.1 - 2026-08-13
+
+### Added
+
+- Added a compact down-arrow action that copies the enriched prompt directly into the H3 conversion input, scrolls to it, and focuses the field.
+- Added localized labels and empty-output feedback for the transfer action.
+
+### Fixed
+
+- Isolated the launcher from user and system site packages with `PYTHONNOUSERSITE=1`.
+- Added a PyTorch and CUDA startup self-check so a broken runtime is reported before the user starts prompt processing.
+- Updated `huggingface-hub` to `1.3.7` to satisfy the declared Transformers 5.2 dependency and make clean installation reproducible with current pip.
+- Corrected the mobile header layout so the download and memory-release controls remain readable at 390 px width.
+- Replaced the remaining legacy brand labels with the public `liuliu` brand across the UI, launchers, API metadata, and license.
+
 ## 1.1.0 - 2026-08-13
 
 ### Added
