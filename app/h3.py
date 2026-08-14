@@ -304,15 +304,17 @@ def fl2va_timeline_wrap(
     if not value:
         raise ValueError("Source prompt cannot be empty.")
 
-    subjects, start_picture = _ref2va_reference_metadata(source_text or translation)
-    reference_picture = start_picture or "1"
+    reference_source = canonicalize_picture_references(source_text)
+    subjects, start_picture = _ref2va_reference_metadata(reference_source)
+    explicit_pictures = re.findall(r"<Picture\s+(\d+)>", reference_source, flags=re.I)
+    reference_picture = start_picture or (explicit_pictures[0] if explicit_pictures else None)
     shot_actions = _ref2va_action_sentences(value) or [value]
     subject_facts = " ".join(
         f"<Picture {picture_id}> is {gender}." for picture_id, gender in subjects
     )
     first_action = " ".join(
         item for item in (
-            f"Continue directly from <Picture {reference_picture}>.",
+            f"Continue directly from <Picture {reference_picture}>." if reference_picture else "",
             subject_facts,
             shot_actions[0],
         ) if item
@@ -329,8 +331,9 @@ def fl2va_timeline_wrap(
 
     sound = str(soundscape or "N/A").strip() or "N/A"
     score = str(music or "N/A").strip() or "N/A"
+    header = f"{_fl2va_header(reference_picture)}\n\n" if reference_picture else ""
     return (
-        f"{_fl2va_header(reference_picture)}\n\n"
+        header +
         f"integrated_multimodal_description: {' '.join(shot_parts)}\n"
         f"overall_soundscape: {sound}\n"
         f"non_diegetic_music: {score}"

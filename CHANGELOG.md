@@ -2,6 +2,23 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.5.1 - 2026-08-14
+
+### Added
+
+- Release memory now shows a localized Toast with released VRAM and RAM plus current usage and total capacity.
+- Cold starts and reloads after memory release now explicitly show a model-loading phase before elapsed time and `token/s` generation progress.
+
+### Changed
+
+- The active text or vision model status now stays in the shared top status area on every workspace.
+- Prompt-enrichment and image-to-prompt output labels and text areas now align with their corresponding input columns.
+
+### Fixed
+
+- FL2VA conversion no longer invents `<Picture 1>` or a first-frame continuation when the source prompt contains no picture reference.
+- Added a conversion regression check ensuring explicit Chinese dialogue remains untranslated inside `<d>[Chinese] ...</d>` tags.
+
 ## 1.5.0 - 2026-08-14
 
 ### Added

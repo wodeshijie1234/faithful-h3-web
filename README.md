@@ -19,6 +19,13 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
+## What's new in v1.5.1 (2026-08-14)
+
+- Release memory now reports released and current/total VRAM and RAM in a localized Toast.
+- First use and post-release model starts show an explicit loading state before elapsed time and `token/s` generation progress.
+- Text and vision model readiness share the top status area, and paired input/output labels are aligned.
+- FL2VA conversion no longer adds a picture reference when the source prompt does not contain one; explicit Chinese dialogue remains unchanged inside H3 dialogue tags.
+
 ## What's new in v1.5.0 (2026-08-14)
 
 - Navigation is now ordered H3, Prompt enrichment, and Image to prompt, with prompt enrichment promoted to an independent page.
@@ -134,6 +141,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.5.0`<br>
+Version `1.5.1`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

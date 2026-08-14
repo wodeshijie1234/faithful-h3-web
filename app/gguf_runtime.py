@@ -27,6 +27,7 @@ class GgufRuntime:
         self._progress_lock = threading.Lock()
         self._progress = {
             "active": False,
+            "phase": "idle",
             "generated_tokens": 0,
             "tokens_per_second": 0.0,
             "elapsed_seconds": 0.0,
@@ -48,12 +49,13 @@ class GgufRuntime:
             snapshot["elapsed_seconds"] = round(time.monotonic() - self.started_at, 3)
         return snapshot
 
-    def _set_progress(self, *, active: bool, generated_tokens: int = 0,
+    def _set_progress(self, *, active: bool, phase: str | None = None, generated_tokens: int = 0,
                       tokens_per_second: float = 0.0) -> None:
         elapsed = max(0.0, time.monotonic() - self.started_at) if self.started_at is not None else 0.0
         with self._progress_lock:
             self._progress = {
                 "active": active,
+                "phase": phase or ("generating" if active else "idle"),
                 "generated_tokens": int(generated_tokens),
                 "tokens_per_second": round(float(tokens_per_second), 2),
                 "elapsed_seconds": round(elapsed, 3),
@@ -183,8 +185,13 @@ class GgufRuntime:
     def _chat_completion(self, messages: list[dict], *, temperature: float, top_p: float,
                          max_new_tokens: int, stop_on_json: bool = False) -> str:
         self.started_at = time.monotonic()
-        self._set_progress(active=True)
-        self.ensure_started()
+        self._set_progress(active=True, phase="loading")
+        try:
+            self.ensure_started()
+        except Exception:
+            self._set_progress(active=False)
+            raise
+        self._set_progress(active=True, phase="generating")
         payload = {
             "model": "local",
             "messages": messages,

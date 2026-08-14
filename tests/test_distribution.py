@@ -97,6 +97,14 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn('fetch("/api/progress"', script)
         self.assertIn("tokens_per_second", script)
         self.assertIn("token/s", script)
+        self.assertIn('id="release-toast"', html)
+        self.assertNotIn('id="model-status" class="status status-neutral" data-h3-control', html)
+        self.assertIn('data.phase === "loading"', script)
+        self.assertIn("formatReleaseSummary", script)
+
+        styles = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
+        self.assertIn(".output-head { align-items: flex-start;", styles)
+        self.assertIn(".toast {", styles)
 
     def test_frontend_recovers_from_stale_client_state_and_uses_a_versioned_script(self):
         html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")

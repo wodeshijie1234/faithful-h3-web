@@ -280,6 +280,35 @@ class PromptServiceTests(unittest.TestCase):
         self.assertIn("overall_soundscape: a remote-control click and light movement", result["output"])
         self.assertTrue(result["audit"]["valid"])
 
+    def test_fl2va_conversion_does_not_invent_a_picture_reference(self):
+        runtime = FakeRuntime([
+            "A person runs.",
+            "PASS",
+            "overall_soundscape: footsteps\nnon_diegetic_music: N/A",
+            "integrated_multimodal_description: [Shot 1] 一个人奔跑。\noverall_soundscape: footsteps\nnon_diegetic_music: N/A",
+        ])
+
+        result = PromptService(runtime).convert("一个人奔跑。", "fl2va")
+
+        self.assertNotIn("<Picture", result["output"])
+        self.assertNotIn("fully referenced", result["output"])
+        self.assertIn("integrated_multimodal_description: [Shot 1] A person runs.", result["output"])
+        self.assertTrue(result["audit"]["valid"])
+
+    def test_fl2va_conversion_preserves_explicit_chinese_dialogue_untranslated(self):
+        runtime = FakeRuntime([
+            "The woman says <d>[Chinese] 不要动。</d>",
+            "PASS",
+            "overall_soundscape: the woman speaking\nnon_diegetic_music: N/A",
+            "integrated_multimodal_description: [Shot 1] 女人说 <d>[Chinese] 不要动。</d>\noverall_soundscape: 女人说话\nnon_diegetic_music: N/A",
+        ])
+
+        result = PromptService(runtime).convert("女人说：“不要动。”", "fl2va")
+
+        self.assertIn("The woman says <d>[Chinese] 不要动。</d>", result["output"])
+        self.assertNotIn("do not move", result["output"].lower())
+        self.assertFalse(result["audit"]["missing"])
+
     def test_fl2va_and_ref2va_infer_soundscape_when_audio_model_returns_na(self):
         source = "A man presses a remote control and taps the woman's shoulder."
         translation = "A man presses a remote control and taps the woman's shoulder."

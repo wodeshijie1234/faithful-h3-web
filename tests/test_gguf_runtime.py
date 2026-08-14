@@ -45,6 +45,27 @@ class GgufRuntimeTests(unittest.TestCase):
         self.assertEqual({"enable_thinking": False}, captured["chat_template_kwargs"])
         self.assertEqual({"type": "json_object"}, captured["response_format"])
 
+    def test_generation_reports_model_loading_before_token_generation(self):
+        runtime = GgufRuntime(Path("model.gguf"), binary=Path("llama-server.exe"), port=18765)
+        response = {"choices": [{"message": {"content": "Ready."}}]}
+
+        class FakeResponse:
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self): return json.dumps(response).encode()
+
+        observed_phases = []
+        def observe_loading():
+            observed_phases.append(runtime.progress["phase"])
+
+        with patch.object(runtime, "ensure_started", side_effect=observe_loading), \
+             patch("app.gguf_runtime.urlopen", return_value=FakeResponse()):
+            runtime.generate("source", "system", temperature=0.01, top_p=0.1)
+
+        self.assertEqual(["loading"], observed_phases)
+        self.assertEqual("idle", runtime.progress["phase"])
+
     def test_multimodal_generation_sends_an_image_data_url(self):
         runtime = GgufRuntime(
             Path("vision.gguf"),

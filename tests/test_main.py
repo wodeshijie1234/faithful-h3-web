@@ -69,11 +69,18 @@ class ApiContractTests(unittest.TestCase):
         original_release = runtime.release
         runtime.release = lambda: {"released": True, "loaded": False}
         try:
-            response = self.client.post("/api/release")
+            with patch.object(main, "_memory_snapshot", side_effect=[
+                {"ram": {"used_mib": 12000, "total_mib": 32000}, "vram": {"used_mib": 6000, "total_mib": 12288}},
+                {"ram": {"used_mib": 11000, "total_mib": 32000}, "vram": {"used_mib": 3500, "total_mib": 12288}},
+            ]):
+                response = self.client.post("/api/release")
         finally:
             runtime.release = original_release
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"released": True, "loaded": False}, response.json())
+        self.assertEqual({"released": True, "loaded": False, "memory": {
+            "ram": {"released_mib": 1000, "used_mib": 11000, "total_mib": 32000},
+            "vram": {"released_mib": 2500, "used_mib": 3500, "total_mib": 12288},
+        }}, response.json())
 
     def test_progress_endpoint_reports_live_token_throughput(self):
         with patch.object(type(main.vision_runtime), "progress", new_callable=PropertyMock, return_value={

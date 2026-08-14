@@ -187,6 +187,8 @@ button, input, select, textarea { letter-spacing: 0; }
 .enrich-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
 .source-pane { min-width: 0; }
 .field-head, .output-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.output-head { align-items: flex-start; position: relative; min-height: 20px; padding-right: 92px; }
+.output-head > div { position: absolute; top: -5px; right: 0; }
 .field-head > label, label > span { font-size: 13px; font-weight: 720; color: #35403b; }
 .field-head > div { display: flex; gap: 6px; }
 textarea {
@@ -228,4 +230,21 @@ dialog::backdrop { background: rgba(20, 35, 28, .24); }
 .download-option small { color: var(--muted); font-size: 11px; }
 .download-option:has(input:disabled) { color: var(--muted); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  max-width: min(560px, calc(100vw - 32px));
+  border: 1px solid #91c9a9;
+  border-radius: 6px;
+  background: #effaf3;
+  color: #126d40;
+  box-shadow: 0 12px 32px rgba(29, 47, 37, .16);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.toast.error { border-color: #e4aaa5; background: #fff2f1; color: var(--danger); }
+.toast[hidden] { display: none; }
 .footer { border-top: 1px solid var(--border); min-height: 62px; padding: 17px 30px; display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 12px; }

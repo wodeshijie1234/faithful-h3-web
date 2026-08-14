@@ -11,7 +11,8 @@ const I18N = {
     musicPlaceholder: "Leave empty for N/A or supported inference.", h3Output: "H3 output", convertButton: "Convert / update H3", directConvert: "Convert directly to H3",
     download: "Download models", releaseMemory: "Release memory", releasingMemory: "Releasing...",
     memoryReleased: "Memory and VRAM released", memoryAlreadyFree: "No loaded model to release", downloading: "Downloading model...",
-    modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", working: "Working...",
+    modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", loadingModel: "Loading model...", loadingVisionModel: "Loading vision model...", working: "Working...",
+    memoryReleasedPrefix: "Released", memoryCurrent: "now", ramLabel: "RAM", vramLabel: "VRAM",
     runtimeDone: "{backend} · {seconds}s",
     enrichDone: "Enrichment complete", directConvertDone: "H3 generated from the source prompt",
     enterPrompt: "Enter a prompt first.", requestFailed: "Request failed", copied: "Copied",
@@ -34,7 +35,8 @@ const I18N = {
     soundPlaceholder: "留空时可根据动作和对白推断合理声音。", music: "非叙事音乐", musicPlaceholder: "留空时默认为 N/A 或根据原意推断。",
     h3Output: "H3 输出", convertButton: "转换 / 更新 H3", download: "下载模型", releaseMemory: "释放内存显存",
     releasingMemory: "正在释放...", memoryReleased: "已释放内存和显存", memoryAlreadyFree: "当前没有已加载模型",
-    downloading: "正在下载模型...", modelMissing: "模型未下载", modelReady: "模型已就绪", modelLoading: "模型已加载",
+    downloading: "正在下载模型...", modelMissing: "模型未下载", modelReady: "模型已就绪", modelLoading: "模型已加载", loadingModel: "正在加载模型", loadingVisionModel: "正在加载识图模型",
+    memoryReleasedPrefix: "已释放", memoryCurrent: "当前", ramLabel: "内存", vramLabel: "显存",
     working: "处理中...", importDone: "模块已填充，请检查后再转换。", enrichDone: "提示词丰富完成",
     enterPrompt: "请先输入提示词。",
     requestFailed: "请求失败", copied: "已复制",
@@ -57,7 +59,8 @@ const I18N = {
     soundPlaceholder: "留空時可根據動作和對白推斷合理聲音。", music: "非敘事音樂", musicPlaceholder: "留空時預設為 N/A 或根據原意推斷。",
     h3Output: "H3 輸出", convertButton: "轉換 / 更新 H3", download: "下載模型", releaseMemory: "釋放記憶體顯存",
     releasingMemory: "正在釋放...", memoryReleased: "已釋放記憶體和顯存", memoryAlreadyFree: "目前沒有已載入模型",
-    downloading: "正在下載模型...", modelMissing: "模型未下載", modelReady: "模型已就緒", modelLoading: "模型已載入",
+    downloading: "正在下載模型...", modelMissing: "模型未下載", modelReady: "模型已就緒", modelLoading: "模型已載入", loadingModel: "正在載入模型", loadingVisionModel: "正在載入識圖模型",
+    memoryReleasedPrefix: "已釋放", memoryCurrent: "目前", ramLabel: "記憶體", vramLabel: "顯存",
     working: "處理中...", importDone: "模組已填入，請檢查後再轉換。", enrichDone: "提示詞豐富完成",
     enterPrompt: "請先輸入提示詞。",
     requestFailed: "請求失敗", copied: "已複製",
@@ -136,12 +139,15 @@ let busyCount = 0;
 let statusTimer = null;
 let visionStatusTimer = null;
 let progressTimer = null;
+let toastTimer = null;
 let visionImageDataUrl = "";
+let currentView = "h3";
 const $ = id => document.getElementById(id);
 const t = key => I18N[language][key] || I18N.en[key] || key;
 
 function setView(requestedView, updateHash = true) {
   const view = ["h3", "enrich", "vision"].includes(requestedView) ? requestedView : "h3";
+  currentView = view;
   document.querySelectorAll(".view-tab").forEach(button => {
     const active = button.dataset.view === view;
     button.classList.toggle("active", active);
@@ -151,6 +157,8 @@ function setView(requestedView, updateHash = true) {
   $("enrich-view").hidden = view !== "enrich";
   $("vision-view").hidden = view !== "vision";
   document.querySelectorAll("[data-h3-control]").forEach(control => control.hidden = view === "vision");
+  if (view === "vision") updateVisionStatus();
+  else updateModelStatus();
   const hash = `#${view}`;
   if (updateHash && location.hash !== hash) history.replaceState(null, "", hash);
 }
@@ -168,14 +176,58 @@ function runtimeMessage(data, fallback) {
   return fallback + " · " + data.runtime.model.toUpperCase() + " " + data.runtime.backend.toUpperCase() + " · " + data.runtime.elapsed_seconds + "s" + speedText;
 }
 
+function setTopStatus(message, state = "neutral") {
+  const el = $("model-status");
+  el.textContent = message;
+  el.className = `status status-${state}`;
+}
+
+function showToast(message, type = "") {
+  const toast = $("release-toast");
+  toast.textContent = message;
+  toast.className = `toast ${type}`.trim();
+  toast.hidden = false;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+    toastTimer = null;
+  }, 7000);
+}
+
+function formatMib(value) {
+  return (Number(value || 0) / 1024).toFixed(1) + " GB";
+}
+
+function formatReleaseSummary(data) {
+  const parts = [];
+  const memory = data.memory || {};
+  [["vram", "vramLabel"], ["ram", "ramLabel"]].forEach(([key, labelKey]) => {
+    const metric = memory[key];
+    if (!metric) return;
+    parts.push(`${t(labelKey)} ${formatMib(metric.released_mib)}, ${t("memoryCurrent")} ${formatMib(metric.used_mib)} / ${formatMib(metric.total_mib)}`);
+  });
+  const prefix = data.released ? t("memoryReleasedPrefix") : t("memoryAlreadyFree");
+  return parts.length ? `${prefix}：${parts.join("；")}` : prefix;
+}
+
 function startProgressMonitor(statusId) {
+  const loadingText = currentView === "vision" ? t("loadingVisionModel") : t("loadingModel");
+  setStatus(statusId, loadingText, "loading");
+  setTopStatus(loadingText, "neutral");
   const update = async () => {
     try {
       const data = await fetch("/api/progress").then(response => response.json());
-      if (!data.active && busyCount === 0) return;
+      if (!data.active) return;
+      if (data.phase === "loading") {
+        const message = data.task === "vision" ? t("loadingVisionModel") : t("loadingModel");
+        setStatus(statusId, message, "loading");
+        setTopStatus(message, "neutral");
+        return;
+      }
       const elapsed = Number(data.elapsed_seconds || 0).toFixed(1);
       const speed = Number(data.tokens_per_second || 0).toFixed(1);
       setStatus(statusId, t("working") + " · " + elapsed + "s · " + speed + " token/s", "loading");
+      setTopStatus(data.task === "vision" ? t("visionLoaded") : t("modelLoading"), "ready");
     } catch (error) {
       // The final request response remains authoritative if polling briefly fails.
     }
@@ -257,7 +309,7 @@ async function updateVisionStatus() {
   try {
     const data = await fetch("/api/vision/status").then(response => response.json());
     const message = data.downloading ? t("visionDownloading") : data.loaded ? t("visionLoaded") : data.ready ? t("visionReady") : t("visionMissing");
-    setStatus("vision-status", data.error || message, data.error ? "error" : data.downloading ? "loading" : "");
+    if (currentView === "vision") setTopStatus(data.error || message, data.error ? "error" : data.ready ? "ready" : "neutral");
     $("vision-analyze").disabled = data.downloading || !data.ready || !visionImageDataUrl;
     if (data.downloading && !visionStatusTimer) visionStatusTimer = setInterval(updateVisionStatus, 2000);
     if (!data.downloading && visionStatusTimer) {
@@ -265,7 +317,7 @@ async function updateVisionStatus() {
       visionStatusTimer = null;
     }
   } catch (error) {
-    setStatus("vision-status", error.message, "error");
+    if (currentView === "vision") setTopStatus(error.message, "error");
   }
 }
 
@@ -395,9 +447,11 @@ async function updateModelStatus() {
     const el = $("model-status");
     $("model-select").value = data.selected_model;
     const backend = data.backend ? ` · ${data.backend.toUpperCase()}` : "";
-    el.textContent = (data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing")) + backend;
-    el.className = `status ${data.error ? "status-error" : data.ready ? "status-ready" : "status-neutral"}`;
-    if (data.error) el.textContent = data.error;
+    if (currentView !== "vision") {
+      el.textContent = (data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing")) + backend;
+      el.className = `status ${data.error ? "status-error" : data.ready ? "status-ready" : "status-neutral"}`;
+      if (data.error) el.textContent = data.error;
+    }
     const allReady = data.models.every(item => item.ready) && data.vision_ready;
     $("download-model").disabled = allReady;
     if (data.any_downloading && !statusTimer) statusTimer = setInterval(() => {
@@ -474,9 +528,11 @@ $("release-memory").addEventListener("click", async () => {
     const response = await fetch("/api/release", {method: "POST"});
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || t("requestFailed"));
-    $("model-status").textContent = data.released ? t("memoryReleased") : t("memoryAlreadyFree");
+    setTopStatus(data.released ? t("memoryReleased") : t("memoryAlreadyFree"), "ready");
+    showToast(formatReleaseSummary(data));
   } catch (error) {
-    $("model-status").textContent = error.message;
+    setTopStatus(error.message, "error");
+    showToast(error.message, "error");
   } finally {
     button.textContent = old;
     button.disabled = busyCount > 0;

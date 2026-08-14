@@ -1,4 +1,6 @@
+import ctypes
 import os
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -40,8 +42,72 @@ service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
 vision_download_state = {"running": False, "error": ""}
 
-app = FastAPI(title="liuliu Faithful H3", version="1.5.0")
+app = FastAPI(title="liuliu Faithful H3", version="1.5.1")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+def _system_ram_snapshot() -> dict[str, int] | None:
+    if os.name != "nt":
+        return None
+
+    class MemoryStatusEx(ctypes.Structure):
+        _fields_ = [
+            ("length", ctypes.c_ulong),
+            ("memory_load", ctypes.c_ulong),
+            ("total_physical", ctypes.c_ulonglong),
+            ("available_physical", ctypes.c_ulonglong),
+            ("total_page_file", ctypes.c_ulonglong),
+            ("available_page_file", ctypes.c_ulonglong),
+            ("total_virtual", ctypes.c_ulonglong),
+            ("available_virtual", ctypes.c_ulonglong),
+            ("available_extended_virtual", ctypes.c_ulonglong),
+        ]
+
+    status = MemoryStatusEx()
+    status.length = ctypes.sizeof(status)
+    try:
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            return None
+    except (AttributeError, OSError):
+        return None
+    mib = 1024 * 1024
+    total = status.total_physical // mib
+    return {"used_mib": (status.total_physical - status.available_physical) // mib, "total_mib": total}
+
+
+def _vram_snapshot() -> dict[str, int] | None:
+    try:
+        output = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=memory.total,memory.used", "--format=csv,noheader,nounits"],
+            text=True,
+            errors="replace",
+            timeout=8,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        total_text, used_text = output.splitlines()[0].split(",", 1)
+        return {"used_mib": int(used_text.strip()), "total_mib": int(total_text.strip())}
+    except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+        return None
+
+
+def _memory_snapshot() -> dict[str, dict[str, int] | None]:
+    return {"ram": _system_ram_snapshot(), "vram": _vram_snapshot()}
+
+
+def _released_memory(before: dict, after: dict) -> dict:
+    result = {}
+    for kind in ("ram", "vram"):
+        current = after.get(kind)
+        previous = before.get(kind)
+        if current is None:
+            result[kind] = None
+            continue
+        result[kind] = {
+            "released_mib": max(0, int(previous["used_mib"]) - int(current["used_mib"])) if previous else 0,
+            "used_mib": int(current["used_mib"]),
+            "total_mib": int(current["total_mib"]),
+        }
+    return result
 
 
 def _start_daemon(target, *args) -> None:
@@ -147,9 +213,15 @@ def select_model(request: ModelRequest):
 
 @app.post("/api/release")
 def release_memory():
+    before = _memory_snapshot()
     text_result = runtime.release()
     vision_released = vision_runtime.stop()
-    return {"released": bool(text_result.get("released") or vision_released), "loaded": False}
+    after = _memory_snapshot()
+    return {
+        "released": bool(text_result.get("released") or vision_released),
+        "loaded": False,
+        "memory": _released_memory(before, after),
+    }
 
 
 @app.get("/api/progress")

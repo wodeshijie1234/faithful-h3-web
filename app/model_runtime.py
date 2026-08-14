@@ -166,6 +166,7 @@ class ModelRuntime:
             return self._gguf.progress
         return {
             "active": False,
+            "phase": "idle",
             "generated_tokens": 0,
             "tokens_per_second": 0.0,
             "elapsed_seconds": 0.0,
