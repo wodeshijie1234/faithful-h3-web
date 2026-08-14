@@ -23,6 +23,7 @@
 
 ## What's new in v1.3.4 (2026-08-14)
 
+- v1.3.5 recovers from stale browser state and refreshes the application script after updates.
 - Preserve explicit Chinese picture identities and starting-reference facts in Ref2VA output.
 - Remove unsupported vocalizations from faithful H3 conversion through an additional correction gate.
 - Convert an original prompt directly to faithful H3 without first importing it into modules.

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title liuliu Faithful H3 v1.3.4
+title liuliu Faithful H3 v1.3.5
 set "PYTHONNOUSERSITE=1"
 
 if exist "local-settings.bat" call "local-settings.bat"

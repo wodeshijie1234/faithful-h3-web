@@ -84,7 +84,8 @@ Object.assign(I18N["zh-TW"], {
   directConvertDone: "\u5df2\u6839\u64da\u539f\u59cb\u63d0\u793a\u8a5e\u751f\u6210 H3"
 });
 
-let language = localStorage.getItem("faithful-h3-language") || "en";
+const storedLanguage = localStorage.getItem("faithful-h3-language");
+let language = Object.prototype.hasOwnProperty.call(I18N, storedLanguage) ? storedLanguage : "en";
 let mode = "fl2va";
 let shotCount = 3;
 let busyCount = 0;

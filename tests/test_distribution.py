@@ -54,6 +54,13 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn('fetch("/api/model"', script)
         self.assertIn("scrollIntoView", script)
 
+    def test_frontend_recovers_from_stale_client_state_and_uses_a_versioned_script(self):
+        html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('/static/app.js?v=', html)
+        self.assertIn('Object.prototype.hasOwnProperty.call(I18N, storedLanguage)', script)
+
     def test_one_click_entrypoints_and_readme_exist(self):
         self.assertTrue((ROOT / "install-and-run.bat").is_file())
         self.assertTrue((ROOT / "run.bat").is_file())

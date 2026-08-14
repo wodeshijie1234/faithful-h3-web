@@ -2,6 +2,13 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.5 - 2026-08-14
+
+### Fixed
+
+- Recovered from stale browser language values instead of allowing a client-side initialization failure.
+- Added a versioned application script URL and no-cache page entry response so refreshed deployments consistently load matching UI assets.
+
 ## 1.3.4 - 2026-08-14
 
 ### Fixed

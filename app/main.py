@@ -31,7 +31,7 @@ runtime = ModelRuntime(MODEL_DIRS, gguf_paths=GGUF_PATHS,
 service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
 
-app = FastAPI(title="liuliu Faithful H3", version="1.3.4")
+app = FastAPI(title="liuliu Faithful H3", version="1.3.5")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -50,7 +50,7 @@ class ModelRequest(BaseModel):
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/api/status")
