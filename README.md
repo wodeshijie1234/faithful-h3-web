@@ -20,8 +20,9 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.1 (2026-08-14)
+## What's new in v1.3.2 (2026-08-14)
 
+- Support an optional local startup configuration for reusing an existing GGUF model and runtime.
 - Prevent corrupt Chinese GGUF previews from being displayed as question marks; Chinese source prompts fall back to the original source text in the matching H3 template.
 - Reject unreadable previews for non-Chinese source prompts instead of returning corrupted text.
 - Choose between Qwen3.5 4B and 9B local model profiles.
@@ -45,6 +46,8 @@ Full version history remains available in [CHANGELOG.md](CHANGELOG.md).
 4. The script creates `.venv`, detects the GPU, installs the official CUDA or Vulkan `llama.cpp` runtime, recommends 4B or 9B from available VRAM, downloads that model with resume support, verifies it, and opens `http://127.0.0.1:7868/`.
 
 For later launches, double-click `run.bat`.
+
+To reuse a model or runtime already stored elsewhere, copy `local-settings.example.bat` to `local-settings.bat` and set the applicable local paths. This file is ignored by Git and stays on the local machine.
 
 ## System requirements
 
@@ -90,6 +93,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.3.1`<br>
+Version `1.3.2`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

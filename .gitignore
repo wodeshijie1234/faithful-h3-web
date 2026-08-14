@@ -16,6 +16,7 @@ output/
 .env
 .env.*
 !.env.example
+local-settings.bat
 .DS_Store
 Thumbs.db
 .codegraph/

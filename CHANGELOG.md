@@ -2,6 +2,12 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.2 - 2026-08-14
+
+### Fixed
+
+- Added an optional, Git-ignored `local-settings.bat` startup override so local deployments can reuse an existing GGUF model and runtime without relying on temporary terminal environment variables.
+
 ## 1.3.1 - 2026-08-14
 
 ### Fixed

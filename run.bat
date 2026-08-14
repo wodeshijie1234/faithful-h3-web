@@ -1,8 +1,10 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title liuliu Faithful H3 v1.3.1
+title liuliu Faithful H3 v1.3.2
 set "PYTHONNOUSERSITE=1"
+
+if exist "local-settings.bat" call "local-settings.bat"
 
 if not exist ".venv\Scripts\python.exe" (
   echo [ERROR] The application is not installed yet. Run install-and-run.bat first.

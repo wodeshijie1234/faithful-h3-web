@@ -54,6 +54,7 @@ class DistributionContractTests(unittest.TestCase):
         self.assertTrue((ROOT / "run.bat").is_file())
         launcher = (ROOT / "run.bat").read_text(encoding="utf-8")
         self.assertIn("PYTHONNOUSERSITE=1", launcher)
+        self.assertIn('if exist "local-settings.bat" call "local-settings.bat"', launcher)
         self.assertIn("FAITHFUL_H3_LLAMA_BIN", launcher)
         self.assertNotIn("import torch", launcher)
         requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
