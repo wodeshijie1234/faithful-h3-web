@@ -6,6 +6,7 @@
 
 - Faithful FL2VA and Ref2VA conversion without image recognition
 - Prompt enrichment with an independent creative-strength control
+- Enrichment preserves the original prompt as an unchanged prefix; strength 0 is conservative and higher levels append bounded creative detail without altering the faithful-conversion workflow
 - Semantic import from either an original prompt or an enriched result into editable H3 modules
 - Dynamic shot count based on explicit numbering or semantic cuts in the imported prompt
 - Per-shot duration controls with 0.5-second steps, automatic cut timestamps, and a live total duration
@@ -20,8 +21,10 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.3 (2026-08-14)
+## What's new in v1.3.4 (2026-08-14)
 
+- Preserve explicit Chinese picture identities and starting-reference facts in Ref2VA output.
+- Remove unsupported vocalizations from faithful H3 conversion through an additional correction gate.
 - Convert an original prompt directly to faithful H3 without first importing it into modules.
 - Remove any individual shot and drag shots into a new order; timestamps update automatically.
 - Recover common malformed module JSON and retry one strict no-invention correction before showing a failure.
@@ -96,6 +99,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.3.3`<br>
+Version `1.3.4`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

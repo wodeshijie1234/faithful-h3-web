@@ -15,17 +15,32 @@ class PromptService:
 
     def enrich(self, text: str, strength: int) -> str:
         strength = max(0, min(100, int(strength)))
+        source = text.strip()
+        if strength == 0:
+            # Zero is the conservative preset: retain every supplied fact exactly.
+            return source
         temperature = round(0.15 + 0.75 * strength / 100, 3)
         top_p = round(0.35 + 0.60 * strength / 100, 3)
-        return self.runtime.generate(text, h3.enrichment_system(strength), temperature=temperature, top_p=top_p)
+        additions = self.runtime.generate(
+            source,
+            h3.enrichment_system(strength),
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=h3.enrichment_token_limit(strength),
+        ).strip()
+        if not additions or (_contains_cjk(source) and not _contains_cjk(additions)):
+            return source
+        return f"{source}\n\n{additions}"
 
     def convert(self, text: str, mode: str) -> dict:
+        source = h3.canonicalize_picture_references(text) if h3.normalize_mode(mode) == "ref2va" else text
         stages = []
         translation = self._timed_generate(stages, "translate",
-            text, h3.conversion_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700
+            source, h3.conversion_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700
         )
+        translation = h3.remove_unsupported_vocalizations(source, translation)
         review = self._timed_generate(stages, "visual_review",
-            f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
             h3.visual_review_system(mode),
             temperature=0.01,
             top_p=0.1,
@@ -34,29 +49,43 @@ class PromptService:
         if review != "PASS":
             translation = self._timed_generate(
                 stages, "translation_retry",
-                f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
                 h3.translation_repair_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700,
             )
+            translation = h3.remove_unsupported_vocalizations(source, translation)
             review = self._timed_generate(
                 stages, "visual_review_retry",
-                f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
                 h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
             ).strip().upper()
             if review != "PASS":
                 raise RuntimeError("The visual translation failed the strict no-invention review after automatic correction; no H3 output was returned.")
+        if h3.has_unsupported_vocalization(source, translation):
+            translation = self._timed_generate(
+                stages, "vocalization_retry",
+                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700,
+            )
+            review = self._timed_generate(
+                stages, "visual_review_vocalization_retry",
+                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
+            ).strip().upper()
+            if review != "PASS" or h3.has_unsupported_vocalization(source, translation):
+                raise RuntimeError("The visual translation contains an unsupported vocalization after automatic correction; no H3 output was returned.")
         soundscape, music = h3.parse_audio_output(
-            self._timed_generate(stages, "audio", text, h3.audio_system(), temperature=0.01, top_p=0.1,
+            self._timed_generate(stages, "audio", source, h3.audio_system(), temperature=0.01, top_p=0.1,
                                  max_new_tokens=160)
         )
-        output = h3.strict_wrap(translation, mode, soundscape, music)
+        output = h3.strict_wrap(translation, mode, soundscape, music, source_text=source)
         check = h3.audit(output, mode)
         chinese = self._timed_generate(stages, "chinese_preview",
             output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=900
         )
-        if _contains_cjk(text) and not _contains_cjk(chinese):
+        if _contains_cjk(source) and not _contains_cjk(chinese):
             # GGUF variants can occasionally emit literal question marks for Chinese.
             # Keep the source facts editable instead of returning corrupt text.
-            chinese = h3.strict_wrap(text, mode)
+            chinese = h3.strict_wrap(source, mode, source_text=source)
         elif "\ufffd" in chinese or chinese.count("?") > 3:
             raise RuntimeError("The Chinese preview was unreadable; no corrupt preview was returned.")
         return {"output": output, "chinese": chinese, "audit": check, "_stages": stages}

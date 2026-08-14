@@ -14,6 +14,47 @@ class FakeRuntime:
 
 
 class PromptServiceTests(unittest.TestCase):
+    def test_enrichment_maps_all_requested_strength_levels(self):
+        runtime = FakeRuntime(["extra30", "extra50", "extra80", "extra100"])
+        service = PromptService(runtime)
+
+        outputs = [service.enrich("source", strength) for strength in (0, 30, 50, 80, 100)]
+
+        self.assertEqual(
+            ["source", "source\n\nextra30", "source\n\nextra50", "source\n\nextra80", "source\n\nextra100"],
+            outputs,
+        )
+        self.assertEqual(
+            [(0.375, 0.53), (0.525, 0.65), (0.75, 0.83), (0.9, 0.95)],
+            [(call[2]["temperature"], call[2]["top_p"]) for call in runtime.calls],
+        )
+
+    def test_enrichment_keeps_the_original_prompt_and_appends_only_new_detail(self):
+        runtime = FakeRuntime(["Additional camera detail."])
+
+        result = PromptService(runtime).enrich("source facts", 50)
+
+        self.assertEqual("source facts\n\nAdditional camera detail.", result)
+        self.assertEqual(1, len(runtime.calls))
+        self.assertIn("additions only", runtime.calls[0][1])
+
+    def test_zero_strength_enrichment_returns_the_source_without_inventing_details(self):
+        runtime = FakeRuntime([])
+        source = "A person enters from behind and presses a remote."
+
+        result = PromptService(runtime).enrich(source, 0)
+
+        self.assertEqual(source, result)
+        self.assertEqual([], runtime.calls)
+
+    def test_enrichment_retries_when_chinese_input_is_returned_in_english(self):
+        runtime = FakeRuntime(["The person presses the remote."])
+
+        result = PromptService(runtime).enrich("人物按下遥控器。", 100)
+
+        self.assertEqual("人物按下遥控器。", result)
+        self.assertEqual(1, len(runtime.calls))
+
     def test_decompose_returns_editable_modules(self):
         runtime = FakeRuntime([
             '{"scene":"原场景","shots":[{"duration_seconds":3,"action":"动作1","camera":""},{"duration_seconds":3,"action":"动作2","camera":""},{"duration_seconds":3,"action":"动作3","camera":""}],"overall_soundscape":"","non_diegetic_music":""}'
@@ -134,6 +175,22 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(6, len(runtime.calls))
         self.assertEqual(
             ["translate", "visual_review", "translation_retry", "visual_review_retry", "audio", "chinese_preview"],
+            [stage["name"] for stage in result["_stages"]],
+        )
+
+    def test_conversion_removes_an_unmentioned_vocalization_before_visual_review(self):
+        runtime = FakeRuntime([
+            "[Shot 1] The person remains still. The person moans.",
+            "PASS",
+            "overall_soundscape: N/A\nnon_diegetic_music: N/A",
+            "integrated_multimodal_description: source\noverall_soundscape: N/A\nnon_diegetic_music: N/A",
+        ])
+
+        result = PromptService(runtime).convert("source", "fl2va")
+
+        self.assertNotIn("moans", result["output"])
+        self.assertEqual(
+            ["translate", "visual_review", "audio", "chinese_preview"],
             [stage["name"] for stage in result["_stages"]],
         )
 

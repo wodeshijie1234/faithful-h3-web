@@ -33,6 +33,26 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn(f"detailed_description: {source}", output)
         self.assertTrue(h3.audit(output, "ref2va")["valid"])
 
+    def test_ref2va_wrap_preserves_picture_identity_and_start_reference(self):
+        source = "\\u56fe1\\u662f\\u7537\\u751f\\uff0c\\u56fe2\\u662f\\u5973\\u751f\\uff0c\\u89c6\\u9891\\u4ece\\u56fe2\\u5f00\\u59cb\u3002"
+        source = "图1是男生，图2是女生，视频从图2开始。"
+        output = h3.strict_wrap("<Picture 2> is the starting reference.", "ref2va", source_text=source)
+        self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
+        self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
+        self.assertIn("summary: The video begins with <Picture 2>.", output)
+
+    def test_unmentioned_vocalizations_are_detected(self):
+        self.assertTrue(h3.has_unsupported_vocalization("A person remains still.", "The person moans."))
+        self.assertFalse(h3.has_unsupported_vocalization("The person moans.", "The person moans."))
+
+    def test_unmentioned_vocalization_sentence_is_removed_before_visual_review(self):
+        source = "The person remains still."
+        candidate = "The person remains still. She moans softly, eyes unfocused."
+
+        cleaned = h3.remove_unsupported_vocalizations(source, candidate)
+
+        self.assertEqual("The person remains still. Eyes unfocused.", cleaned)
+
     def test_audio_parser_only_accepts_two_audio_fields(self):
         soundscape, music = h3.parse_audio_output(
             "overall_soundscape: footsteps and fabric movement\n"

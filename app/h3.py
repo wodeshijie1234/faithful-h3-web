@@ -34,6 +34,47 @@ def has_untranslated_chinese(text: str) -> bool:
     return bool(re.search(r"[\u3400-\u4dbf\u4e00-\u9fff]", value))
 
 
+def canonicalize_picture_references(text: str) -> str:
+    value = str(text or "")
+    value = re.sub(r"(?<!<)\u56fe\s*(\d+)", r"<Picture \1>", value)
+    return re.sub(r"(?<!<)\b(?:picture|image)\s*(\d+)\b", r"<Picture \1>", value, flags=re.I)
+
+
+def has_unsupported_vocalization(source: str, candidate: str) -> bool:
+    vocalization = r"\b(?:moan|groan|whimper|gasp|scream|cry|laugh)(?:s|ed|ing)?\b"
+    if not re.search(vocalization, str(candidate or ""), flags=re.I):
+        return False
+    source_vocalization = r"(?:\u547b\u541f|\u547c\u558a|\u5c16\u53eb|\u54ed\u558a|\u54ed\u6ce3|\u7b11\u58f0|\u53d1\u51fa.*?\u58f0\u97f3|" + vocalization + r")"
+    return not re.search(source_vocalization, str(source or ""), flags=re.I)
+
+
+def remove_unsupported_vocalizations(source: str, candidate: str) -> str:
+    """Drop complete invented vocalization sentences before the visual-fact review."""
+    value = str(candidate or "").strip()
+    if not has_unsupported_vocalization(source, value):
+        return value
+    vocalization = re.compile(r"\b(?:moan|groan|whimper|gasp|scream|cry|laugh)(?:s|ed|ing)?\b", re.I)
+    sentences = re.split(r"(?<=[.!?])\s+", value)
+    cleaned_sentences = []
+    vocal_clause = re.compile(
+        r"\b(?:he|she|they|the\s+[\w-]+)\s+"
+        r"(?:moan|groan|whimper|gasp|scream|cry|laugh)(?:s|ed|ing)?"
+        r"(?:\s+(?:softly|loudly|quietly|gently|weakly))?\s*,\s*",
+        re.I,
+    )
+    for sentence in sentences:
+        if not vocalization.search(sentence):
+            cleaned_sentences.append(sentence)
+            continue
+        original_sentence = sentence.strip()
+        remainder = vocal_clause.sub("", sentence).strip()
+        if remainder == original_sentence:
+            continue
+        if remainder:
+            cleaned_sentences.append(remainder[0].upper() + remainder[1:])
+    return " ".join(cleaned_sentences).strip()
+
+
 def structure_signature(text: str, mode: str) -> list[str]:
     fields = required_fields(mode)
     pattern = r"(?:" + "|".join(re.escape(field) for field in fields) + r"|<Picture \d+>|<Subject \d+>|\[Shot \d+\]|<d>|</d>|N/A|\b\d{2}:\d{2}\.\d{3}\b)"
@@ -52,9 +93,9 @@ def normalize_output(text: str, mode: str) -> str:
     return f"{FL2VA_HEADER}\n\n{value}"
 
 
-def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A") -> str:
+def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A", source_text: str = "") -> str:
     """Place a translated prompt in the H3 template without generating visual facts."""
-    value = str(text or "").strip()
+    value = canonicalize_picture_references(text).strip()
     value = re.sub(r"(?im)(?<!\[)\bshot\s+(\d+)\s*:\s*", r"[Shot \1] ", value)
     if not value:
         raise ValueError("Source prompt cannot be empty.")
@@ -68,9 +109,18 @@ def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A
             f"overall_soundscape: {soundscape}\n"
             f"non_diegetic_music: {music}"
         )
+    reference_source = canonicalize_picture_references(source_text or text)
+    subjects = []
+    for picture_id, label in re.findall(r"<Picture\s+(\d+)>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)", reference_source):
+        gender = "male" if label.startswith("\u7537") else "female"
+        subjects.append(f"<Subject {picture_id}> (<Picture {picture_id}>) is {gender}.")
+    start_reference = re.search(r"(?:\u5f00\u59cb\u4e8e|\u4ece)\s*<Picture\s+(\d+)>", reference_source)
+    subject_definitions = " ".join(subjects) or "N/A"
+    summary = f"The video begins with <Picture {start_reference.group(1)}> ." if start_reference else "N/A"
+    summary = summary.replace("> .", ">.")
     return (
-        "subject_definitions: N/A\n"
-        "summary: N/A\n"
+        f"subject_definitions: {subject_definitions}\n"
+        f"summary: {summary}\n"
         "retention_analysis: N/A\n"
         f"detailed_description: {value}\n"
         f"overall_soundscape: {soundscape}\n"
@@ -245,12 +295,30 @@ def conversion_system(mode: str) -> str:
 
 def translation_repair_system(mode: str) -> str:
     normalize_mode(mode)
-    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, or camera movement. Return only the corrected English translation, not H3 formatting or commentary."""
+    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, camera movement, or non-dialogue vocalizations. Return only the corrected English translation, not H3 formatting or commentary."""
 
 
 def enrichment_system(strength: int) -> str:
     strength = max(0, min(100, int(strength)))
-    return f"""Enrich a short video prompt while preserving its core intent and every explicit fact. Return only the enriched prompt in exactly the same language as the input. Creative strength is {strength}/100. At low strength add only essential visible continuity; at high strength add filmable visual, motion, camera, lighting, atmosphere, and sound detail. Never contradict identities, counts, positions, actions, order, dialogue, or boundaries."""
+    detail = "one concise continuity or camera sentence" if strength <= 30 else "two concise filmable detail sentences" if strength <= 50 else "three to four filmable visual, camera, atmosphere, or sound sentences" if strength <= 80 else "four to six rich filmable visual, camera, atmosphere, and sound sentences"
+    return f"""Write additions only for the supplied short video prompt. Do not repeat, translate, paraphrase, summarize, replace, or reorder any source fact; the application keeps the original prompt separately. Return only {detail} in exactly the same language as the input; Chinese input must produce Chinese output. Creative strength is {strength}/100. The additions may enrich visual continuity, camera, lighting, atmosphere, motion, or sound, but must not contradict the source identities, reference IDs, counts, positions, actions, boundaries, or dialogue. No headings, labels, markdown, or explanations."""
+
+
+def enrichment_token_limit(strength: int) -> int:
+    strength = max(0, min(100, int(strength)))
+    if strength <= 30:
+        return 96
+    if strength <= 50:
+        return 192
+    if strength <= 80:
+        return 320
+    return 480
+
+
+def enrichment_repair_system(strength: int) -> str:
+    strength = max(0, min(100, int(strength)))
+    additions = "Delete every visual addition not explicitly stated in the source." if strength <= 30 else "You may retain additional filmable detail only when it does not replace, contradict, obscure, or reorder any source fact."
+    return f"""Repair the PROPOSED ENRICHMENT against the ORIGINAL SOURCE. Return only the repaired enriched prompt in exactly the same language as the ORIGINAL SOURCE; Chinese source must produce Chinese output. Preserve every explicit source identity, reference ID, count, position, action, prop, camera direction, sequence, continuity statement, and dialogue. Never replace a source action with a different action. Creative strength is {strength}/100. {additions} Do not add comments, headings, or explanations."""
 
 
 def chinese_preview_system(mode: str) -> str:

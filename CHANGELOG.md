@@ -2,6 +2,17 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.4 - 2026-08-14
+
+### Fixed
+
+- Canonicalized Chinese picture references for Ref2VA and preserved explicit picture identity and starting-reference facts in the generated H3 fields.
+- Added an additional correction gate for unsupported English vocalizations such as `moans`; these are rejected unless explicitly present in the source.
+
+### Changed
+
+- Prompt enrichment is now independent from faithful conversion: the original prompt is always retained as an unchanged prefix, while strengths 30/50/80/100 append separately generated detail within their own token budgets; strength 0 stays conservative and returns the source unchanged.
+
 ## 1.3.3 - 2026-08-14
 
 ### Added
