@@ -20,8 +20,10 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.0 (2026-08-13)
+## What's new in v1.3.1 (2026-08-14)
 
+- Prevent corrupt Chinese GGUF previews from being displayed as question marks; Chinese source prompts fall back to the original source text in the matching H3 template.
+- Reject unreadable previews for non-Chinese source prompts instead of returning corrupted text.
 - Choose between Qwen3.5 4B and 9B local model profiles.
 - Run GGUF models through the official `llama.cpp` backend with automatic startup, health checks, model residency, clean shutdown, and no-thinking requests.
 - Automatically select an NVIDIA CUDA runtime when supported, with Vulkan as a compatibility fallback.
@@ -88,6 +90,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.3.0`<br>
+Version `1.3.1`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

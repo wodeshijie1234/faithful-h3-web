@@ -31,7 +31,7 @@ runtime = ModelRuntime(MODEL_DIRS, gguf_paths=GGUF_PATHS,
 service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
 
-app = FastAPI(title="liuliu Faithful H3", version="1.3.0")
+app = FastAPI(title="liuliu Faithful H3", version="1.3.1")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

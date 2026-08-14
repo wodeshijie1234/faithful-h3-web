@@ -2,6 +2,13 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.1 - 2026-08-14
+
+### Fixed
+
+- Prevented corrupted GGUF Chinese previews from being shown as literal question marks. When the source prompt is Chinese, the tool now returns the original source text in the matching H3 template so the visual facts remain editable and unchanged.
+- Reject unreadable previews for non-Chinese source prompts instead of returning corrupted text.
+
 ## 1.3.0 - 2026-08-13
 
 ### Added

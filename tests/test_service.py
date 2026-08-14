@@ -82,6 +82,21 @@ class PromptServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "no-invention review"):
             PromptService(runtime).convert("一个人奔跑", "fl2va")
 
+    def test_conversion_falls_back_to_the_chinese_source_when_gguf_preview_is_corrupted(self):
+        source = "\u4e00\u4e2a\u4eba\u5954\u8dd1"
+        runtime = FakeRuntime([
+            "[Shot 1] A person runs.",
+            "PASS",
+            "overall_soundscape: running footsteps\nnon_diegetic_music: N/A",
+            "????????????????",
+        ])
+
+        result = PromptService(runtime).convert(source, "fl2va")
+
+        self.assertIn(source, result["chinese"])
+        self.assertNotIn("?", result["chinese"])
+        self.assertTrue(result["audit"]["valid"])
+
     def test_micro_edit_rejects_chinese_after_retry(self):
         runtime = FakeRuntime([
             "integrated_multimodal_description: [Shot 1] 人物奔跑。\noverall_soundscape: N/A\nnon_diegetic_music: N/A",

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title liuliu Faithful H3 v1.3.0
+title liuliu Faithful H3 v1.3.1
 set "PYTHONNOUSERSITE=1"
 
 if not exist ".venv\Scripts\python.exe" (

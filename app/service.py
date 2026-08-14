@@ -5,6 +5,10 @@ import time
 from . import h3
 
 
+def _contains_cjk(text: str) -> bool:
+    return bool(re.search(r"[\u3400-\u4dbf\u4e00-\u9fff]", str(text or "")))
+
+
 class PromptService:
     def __init__(self, runtime):
         self.runtime = runtime
@@ -38,6 +42,12 @@ class PromptService:
         chinese = self._timed_generate(stages, "chinese_preview",
             output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=900
         )
+        if _contains_cjk(text) and not _contains_cjk(chinese):
+            # GGUF variants can occasionally emit literal question marks for Chinese.
+            # Keep the source facts editable instead of returning corrupt text.
+            chinese = h3.strict_wrap(text, mode)
+        elif "\ufffd" in chinese or chinese.count("?") > 3:
+            raise RuntimeError("The Chinese preview was unreadable; no corrupt preview was returned.")
         return {"output": output, "chinese": chinese, "audit": check, "_stages": stages}
 
     def _timed_generate(self, stages: list[dict], name: str, text: str, system: str, **settings) -> str:
