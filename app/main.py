@@ -44,7 +44,7 @@ download_state = {model_id: {"running": False, "error": ""} for model_id in MODE
 vision_download_state = {"running": False, "error": ""}
 resource_monitor = ResourceMonitor()
 
-app = FastAPI(title="liuliu Faithful H3", version="1.5.5")
+app = FastAPI(title="liuliu Faithful H3", version="1.6.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

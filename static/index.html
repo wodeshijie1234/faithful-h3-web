@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>liuliu Faithful H3</title>
-  <link rel="stylesheet" href="/static/styles.css?v=1.5.5">
-  <link rel="stylesheet" href="/static/mobile.css?v=1.5.5">
+  <link rel="stylesheet" href="/static/styles.css?v=1.6.0">
+  <link rel="stylesheet" href="/static/mobile.css?v=1.6.0">
 </head>
 <body>
   <section id="resource-monitor" class="resource-strip" aria-label="System resources">
@@ -35,7 +35,7 @@
     </div>
   </section>
   <header class="topbar">
-    <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.5.5</span></div>
+    <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.6.0</span></div>
     <div class="top-actions">
       <span id="model-status" class="status status-neutral">Model not downloaded</span>
       <button class="help" data-help="model" data-h3-control type="button" aria-label="Model help">?</button>
@@ -63,6 +63,15 @@
     </nav>
 
     <div id="h3-view" class="app-view" role="tabpanel">
+    <section class="workspace-tools" data-workspace-tools="h3" aria-label="H3 workspace data">
+      <span class="draft-state" data-draft-state><span class="draft-dot" aria-hidden="true"></span><span data-i18n="draftSaved">Draft saved</span></span>
+      <div class="workspace-tool-actions">
+        <button class="button button-secondary compact-button" data-workspace-action="enqueue" type="button"><span aria-hidden="true">+</span><span data-i18n="addToQueue">Add to queue</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="run" type="button"><span aria-hidden="true">&#9654;</span><span data-i18n="runQueue">Run queue</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="queue" type="button"><span data-i18n="queue">Queue</span><span class="count-badge" data-queue-count>0</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="history" type="button"><span data-i18n="history">History</span><span class="count-badge" data-history-count>0</span></button>
+      </div>
+    </section>
     <section class="mode-row" aria-labelledby="mode-label">
       <span id="mode-label" class="mode-label" data-i18n="mode">Mode</span>
       <div class="segmented" role="tablist" aria-label="H3 mode">
@@ -93,6 +102,15 @@
     </div>
 
     <div id="enrich-view" class="app-view" hidden role="tabpanel">
+    <section class="workspace-tools" data-workspace-tools="enrich" aria-label="Prompt enrichment workspace data">
+      <span class="draft-state" data-draft-state><span class="draft-dot" aria-hidden="true"></span><span data-i18n="draftSaved">Draft saved</span></span>
+      <div class="workspace-tool-actions">
+        <button class="button button-secondary compact-button" data-workspace-action="enqueue" type="button"><span aria-hidden="true">+</span><span data-i18n="addToQueue">Add to queue</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="run" type="button"><span aria-hidden="true">&#9654;</span><span data-i18n="runQueue">Run queue</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="queue" type="button"><span data-i18n="queue">Queue</span><span class="count-badge" data-queue-count>0</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="history" type="button"><span data-i18n="history">History</span><span class="count-badge" data-history-count>0</span></button>
+      </div>
+    </section>
     <section class="enrich-section" aria-labelledby="enrich-heading">
       <div class="section-heading compact-heading"><h2 id="enrich-heading" data-i18n="enrichTitle">Prompt enrichment</h2><button class="help" data-help="enrich" type="button" aria-label="Prompt enrichment help">?</button></div>
       <div class="enrich-grid">
@@ -113,6 +131,15 @@
     </div>
 
     <div id="vision-view" class="app-view" hidden role="tabpanel">
+    <section class="workspace-tools" data-workspace-tools="vision" aria-label="Image to prompt workspace data">
+      <span class="draft-state" data-draft-state><span class="draft-dot" aria-hidden="true"></span><span data-i18n="draftSaved">Draft saved</span></span>
+      <div class="workspace-tool-actions">
+        <button class="button button-secondary compact-button" data-workspace-action="enqueue" type="button"><span aria-hidden="true">+</span><span data-i18n="addToQueue">Add to queue</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="run" type="button"><span aria-hidden="true">&#9654;</span><span data-i18n="runQueue">Run queue</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="queue" type="button"><span data-i18n="queue">Queue</span><span class="count-badge" data-queue-count>0</span></button>
+        <button class="button button-secondary compact-button" data-workspace-action="history" type="button"><span data-i18n="history">History</span><span class="count-badge" data-history-count>0</span></button>
+      </div>
+    </section>
     <section id="vision-section" class="vision-section" aria-labelledby="vision-heading">
       <div class="vision-grid">
         <div class="vision-input-pane">
@@ -137,7 +164,7 @@
     </div>
   </main>
 
-  <footer class="footer"><span>liuliu Faithful H3 v1.5.5</span><span>@liuliu | 1661204908@qq.com</span></footer>
+  <footer class="footer"><span>liuliu Faithful H3 v1.6.0</span><span>@liuliu | 1661204908@qq.com</span></footer>
   <dialog id="download-dialog">
     <div class="dialog-head"><h3 data-i18n="chooseDownloads">Choose models to download</h3><button id="download-close" class="icon-button" type="button" aria-label="Close">&#215;</button></div>
     <p data-i18n="downloadHint">Select only the models you need. Downloads continue in the background and progress is printed in the startup console.</p>
@@ -150,7 +177,17 @@
     <div class="dialog-actions"><button id="download-cancel" class="button button-secondary" type="button" data-i18n="cancel">Cancel</button><button id="download-confirm" class="button button-primary" type="button" data-i18n="downloadSelected">Download selected</button></div>
   </dialog>
   <dialog id="help-dialog"><div class="dialog-head"><h3 id="help-title"></h3><button id="help-close" class="icon-button" type="button" aria-label="Close">&#215;</button></div><p id="help-body"></p></dialog>
+  <dialog id="workspace-dialog" class="workspace-dialog">
+    <div class="dialog-head"><h3 id="workspace-dialog-title"></h3><button id="workspace-dialog-close" class="icon-button" type="button" aria-label="Close">&#215;</button></div>
+    <div class="workspace-dialog-toolbar">
+      <label class="select-all-label"><input id="workspace-select-all" type="checkbox"><span data-i18n="selectAll">Select all</span></label>
+      <button id="workspace-delete-selected" class="button button-secondary compact-button" type="button" disabled data-i18n="deleteSelected">Delete selected</button>
+    </div>
+    <div id="workspace-record-list" class="workspace-record-list" aria-live="polite"></div>
+    <p id="workspace-empty" class="workspace-empty" hidden></p>
+  </dialog>
   <div id="release-toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script src="/static/app.js?v=1.5.5"></script>
+  <script src="/static/workspace-store.js?v=1.6.0"></script>
+  <script src="/static/app.js?v=1.6.0"></script>
 </body>
 </html>

@@ -90,7 +90,7 @@ Object.assign(I18N.en, {
   invalidImage: "Choose a PNG, JPEG, or WebP image up to 12 MB.", selectImage: "Choose an image first.",
   emptyVisionOutput: "Analyze an image first."
 });
-I18N.en.help.vision = ["Image to prompt", "Uses a compact 2B vision model for fast local drafting. Its recognition ability is limited and may miss details or relationships. Treat the result as a reference, compare it with the source image, and revise it before generation."];
+I18N.en.help.vision = ["Image to prompt", "Uses a separate 2B abliterated vision model to describe only visible image facts. The result stays independent until you place it in the source prompt."];
 I18N.en.help.mode = ["H3 mode", "Choose FL2VA or Ref2VA. H3 conversion is text-only; optional image analysis stays in its separate view."];
 
 Object.assign(I18N["zh-CN"], {
@@ -110,7 +110,7 @@ Object.assign(I18N["zh-CN"], {
   invalidImage: "\u8bf7\u9009\u62e9 12 MB \u4ee5\u5185\u7684 PNG\u3001JPEG \u6216 WebP \u56fe\u7247\u3002", selectImage: "\u8bf7\u5148\u9009\u62e9\u56fe\u7247\u3002",
   emptyVisionOutput: "\u8bf7\u5148\u5206\u6790\u56fe\u7247\u3002"
 });
-I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u4f53\u79ef\u8f83\u5c0f\u7684 2B \u8bc6\u56fe\u6a21\u578b\u5feb\u901f\u751f\u6210\u672c\u5730\u8349\u7a3f\u3002\u6a21\u578b\u80fd\u529b\u6709\u9650\uff0c\u53ef\u80fd\u9057\u6f0f\u7ec6\u8282\u6216\u8bef\u5224\u4eba\u7269\u5173\u7cfb\u3002\u8bf7\u5c06\u7ed3\u679c\u4ec5\u4f5c\u53c2\u8003\uff0c\u5bf9\u7167\u539f\u56fe\u68c0\u67e5\u5e76\u4fee\u6539\u540e\u518d\u7528\u4e8e\u751f\u6210\u3002"];
+I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u72ec\u7acb\u7684 2B \u65e0\u9650\u5236\u89c6\u89c9\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u56fe\u7247\u4e2d\u771f\u5b9e\u53ef\u89c1\u7684\u4e8b\u5b9e\u3002\u7ed3\u679c\u5728\u4f60\u4e3b\u52a8\u586b\u5165\u539f\u59cb\u63d0\u793a\u8bcd\u524d\u4e0e H3 \u6d41\u7a0b\u72ec\u7acb\u3002"];
 I18N["zh-CN"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u522b\u663e\u793a\u5bf9\u5e94\u7684\u5b98\u65b9\u6a21\u5757\u3002H3 \u8f6c\u6362\u4ecd\u4e3a\u7eaf\u6587\u672c\u6d41\u7a0b\uff1b\u53ef\u9009\u8bc6\u56fe\u4fdd\u6301\u5728\u72ec\u7acb\u6a21\u5757\u4e2d\u3002"];
 Object.assign(I18N["zh-TW"], {
   h3View: "H3", enrichView: "豐富提示詞", visionView: "圖片反推", enrichTitle: "豐富提示詞",
@@ -129,8 +129,25 @@ Object.assign(I18N["zh-TW"], {
   invalidImage: "\u8acb\u9078\u64c7 12 MB \u4ee5\u5167\u7684 PNG\u3001JPEG \u6216 WebP \u5716\u7247\u3002", selectImage: "\u8acb\u5148\u9078\u64c7\u5716\u7247\u3002",
   emptyVisionOutput: "\u8acb\u5148\u5206\u6790\u5716\u7247\u3002"
 });
-I18N["zh-TW"].help.vision = ["\u8b58\u5716\u53cd\u63a8", "\u4f7f\u7528\u9ad4\u7a4d\u8f03\u5c0f\u7684 2B \u8b58\u5716\u6a21\u578b\u5feb\u901f\u7522\u751f\u672c\u6a5f\u8349\u7a3f\u3002\u6a21\u578b\u80fd\u529b\u6709\u9650\uff0c\u53ef\u80fd\u907a\u6f0f\u7d30\u7bc0\u6216\u8aa4\u5224\u4eba\u7269\u95dc\u4fc2\u3002\u8acb\u5c07\u7d50\u679c\u50c5\u4f5c\u53c3\u8003\uff0c\u5c0d\u7167\u539f\u5716\u6aa2\u67e5\u4e26\u4fee\u6539\u5f8c\u518d\u7528\u65bc\u751f\u6210\u3002"];
+I18N["zh-TW"].help.vision = ["\u8b58\u5716\u53cd\u63a8", "\u4f7f\u7528\u7368\u7acb\u7684 2B \u7121\u9650\u5236\u8996\u89ba\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u5716\u7247\u4e2d\u771f\u5be6\u53ef\u898b\u7684\u4e8b\u5be6\u3002\u7d50\u679c\u5728\u4f60\u4e3b\u52d5\u586b\u5165\u539f\u59cb\u63d0\u793a\u8a5e\u524d\u8207 H3 \u6d41\u7a0b\u7368\u7acb\u3002"];
 I18N["zh-TW"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u5225\u986f\u793a\u5c0d\u61c9\u7684\u5b98\u65b9\u6a21\u7d44\u3002H3 \u8f49\u63db\u4ecd\u70ba\u7d14\u6587\u5b57\u6d41\u7a0b\uff1b\u53ef\u9078\u8b58\u5716\u4fdd\u6301\u5728\u7368\u7acb\u6a21\u7d44\u4e2d\u3002"];
+
+Object.assign(I18N.en, {
+  draftSaved: "Draft saved", addToQueue: "Add to queue", runQueue: "Run queue", queue: "Queue", history: "History",
+  queueTitle: "Queue", historyTitle: "History", selectAll: "Select all", deleteSelected: "Delete selected", delete: "Delete",
+  restore: "Restore", emptyQueue: "The queue is empty.", emptyHistory: "No history yet.", queued: "Added to queue", queueRunning: "Queue is running...",
+  queueComplete: "Queue complete", imageFile: "Image", failed: "Failed", dragReorder: "Drag to reorder"
+});
+Object.assign(I18N["zh-CN"], {
+  draftSaved: "草稿已暂存", addToQueue: "加入队列", runQueue: "运行队列", queue: "队列", history: "历史记录",
+  queueTitle: "队列", historyTitle: "历史记录", selectAll: "全选", deleteSelected: "删除所选", delete: "删除", restore: "恢复",
+  emptyQueue: "队列为空。", emptyHistory: "暂无历史记录。", queued: "已加入队列", queueRunning: "队列运行中…", queueComplete: "队列完成", imageFile: "图片", failed: "失败", dragReorder: "拖拽排序"
+});
+Object.assign(I18N["zh-TW"], {
+  draftSaved: "草稿已暫存", addToQueue: "加入佇列", runQueue: "執行佇列", queue: "佇列", history: "歷史記錄",
+  queueTitle: "佇列", historyTitle: "歷史記錄", selectAll: "全選", deleteSelected: "刪除所選", delete: "刪除", restore: "還原",
+  emptyQueue: "佇列為空。", emptyHistory: "暫無歷史記錄。", queued: "已加入佇列", queueRunning: "佇列執行中…", queueComplete: "佇列完成", imageFile: "圖片", failed: "失敗", dragReorder: "拖曳排序"
+});
 
 const storedLanguage = localStorage.getItem("faithful-h3-language");
 let language = Object.prototype.hasOwnProperty.call(I18N, storedLanguage) ? storedLanguage : "en";
@@ -141,7 +158,13 @@ let visionStatusTimer = null;
 let progressTimer = null;
 let toastTimer = null;
 let visionImageDataUrl = "";
+let visionImageName = "";
 let currentView = "h3";
+const workspaceStore = new FaithfulWorkspace.WorkspaceStore(new FaithfulWorkspace.IndexedDbWorkspaceBackend());
+const draftTimers = new Map();
+let workspaceDialogType = "queue";
+let workspaceDialogWorkspace = "h3";
+let queueRunning = false;
 const $ = id => document.getElementById(id);
 const t = key => I18N[language][key] || I18N.en[key] || key;
 
@@ -332,10 +355,12 @@ function loadVisionFile(file) {
   const reader = new FileReader();
   reader.addEventListener("load", () => {
     visionImageDataUrl = String(reader.result || "");
+    visionImageName = file.name || "";
     $("vision-preview").src = visionImageDataUrl;
     $("vision-preview").hidden = false;
     $("vision-dropzone").classList.add("has-preview");
     setStatus("vision-status", t("visionSelected"));
+    scheduleDraftSave("vision");
     updateVisionStatus();
   });
   reader.addEventListener("error", () => setStatus("vision-status", t("invalidImage"), "error"));
@@ -358,6 +383,208 @@ async function updateVisionStatus() {
   }
 }
 
+const workspaceStatusIds = {h3: "source-status", enrich: "enrich-status", vision: "vision-status"};
+const workspaceActionIds = {h3: "convert-source", enrich: "enrich", vision: "vision-analyze"};
+
+function workspacePayload(workspace) {
+  if (workspace === "h3") return {mode, source: $("source-input").value, output: $("h3-output").value};
+  if (workspace === "enrich") return {input: $("enrich-input").value, output: $("enrich-output").value, strength: Number($("strength").value)};
+  return {imageDataUrl: visionImageDataUrl, imageName: visionImageName, instruction: $("vision-instruction").value, output: $("vision-output").value, language};
+}
+
+function applyWorkspacePayload(workspace, payload = {}) {
+  if (workspace === "h3") {
+    mode = payload.mode === "ref2va" ? "ref2va" : "fl2va";
+    document.querySelectorAll(".segment").forEach(button => {
+      const active = button.dataset.mode === mode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+    $("source-input").value = payload.source || "";
+    $("h3-output").value = payload.output || "";
+  } else if (workspace === "enrich") {
+    $("enrich-input").value = payload.input || "";
+    $("enrich-output").value = payload.output || "";
+    $("strength").value = Number.isFinite(Number(payload.strength)) ? payload.strength : 40;
+    $("strength-value").value = $("strength").value;
+  } else {
+    visionImageDataUrl = payload.imageDataUrl || "";
+    visionImageName = payload.imageName || "";
+    $("vision-instruction").value = payload.instruction || "";
+    $("vision-output").value = payload.output || "";
+    const preview = $("vision-preview");
+    preview.src = visionImageDataUrl;
+    preview.hidden = !visionImageDataUrl;
+    $("vision-dropzone").classList.toggle("has-preview", Boolean(visionImageDataUrl));
+  }
+}
+
+function scheduleDraftSave(workspace) {
+  document.querySelectorAll(`[data-workspace-tools="${workspace}"] [data-draft-state]`).forEach(el => el.classList.add("saving"));
+  if (draftTimers.has(workspace)) clearTimeout(draftTimers.get(workspace));
+  draftTimers.set(workspace, setTimeout(async () => {
+    try {
+      await workspaceStore.saveDraft(workspace, workspacePayload(workspace));
+    } catch (error) {
+      setTopStatus(error.message, "error");
+    } finally {
+      document.querySelectorAll(`[data-workspace-tools="${workspace}"] [data-draft-state]`).forEach(el => el.classList.remove("saving"));
+      draftTimers.delete(workspace);
+    }
+  }, 250));
+}
+
+async function refreshWorkspaceIndicators(workspace) {
+  const [queue, history] = await Promise.all([workspaceStore.getQueue(workspace), workspaceStore.getHistory(workspace)]);
+  document.querySelectorAll(`[data-workspace-tools="${workspace}"] [data-queue-count]`).forEach(el => el.textContent = queue.length);
+  document.querySelectorAll(`[data-workspace-tools="${workspace}"] [data-history-count]`).forEach(el => el.textContent = history.length);
+}
+
+async function restoreWorkspaceDrafts() {
+  for (const workspace of ["h3", "enrich", "vision"]) {
+    applyWorkspacePayload(workspace, await workspaceStore.getDraft(workspace));
+    await refreshWorkspaceIndicators(workspace);
+  }
+  updateVisionStatus();
+}
+
+function queueInput(workspace) {
+  const payload = workspacePayload(workspace);
+  if (workspace === "h3" && !payload.source.trim()) throw new Error(t("enterPrompt"));
+  if (workspace === "enrich" && !payload.input.trim()) throw new Error(t("enterPrompt"));
+  if (workspace === "vision" && !payload.imageDataUrl) throw new Error(t("selectImage"));
+  return payload;
+}
+
+function displayInput(workspace, payload) {
+  if (workspace === "vision") return payload.imageName || t("imageFile");
+  return String(workspace === "h3" ? (payload.source || payload.input || "") : (payload.input || payload.source || "")).trim();
+}
+
+async function callWorkspaceTask(workspace, payload) {
+  if (workspace === "h3") return api("convert", payload.source, {mode: payload.mode});
+  if (workspace === "enrich") return api("enrich", payload.input, {strength: Number(payload.strength)});
+  const response = await fetch("/api/vision/caption", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({image_data_url: payload.imageDataUrl, instruction: (payload.instruction || "").trim(), language: payload.language || language})
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+  return data;
+}
+
+function applyTaskOutput(workspace, payload, output) {
+  if (workspace === "h3") $("h3-output").value = output;
+  else if (workspace === "enrich") $("enrich-output").value = output;
+  else $("vision-output").value = output;
+}
+
+async function runWorkspaceTask(workspace, payload, queueItem = null) {
+  const statusId = workspaceStatusIds[workspace];
+  const actionButton = $(workspaceActionIds[workspace]);
+  if (workspace === "vision") applyWorkspacePayload(workspace, payload);
+  setStatus(statusId, t("working"), "loading");
+  if (actionButton && !queueItem) setWorking(actionButton, true);
+  const stopProgress = startProgressMonitor(statusId);
+  try {
+    const data = await callWorkspaceTask(workspace, payload);
+    const output = data.output || "";
+    applyTaskOutput(workspace, payload, output);
+    const historyEntry = {input: displayInput(workspace, payload), output, payload: {...payload, output}};
+    if (queueItem) await workspaceStore.completeQueueItem(workspace, queueItem.id, historyEntry);
+    else await workspaceStore.addHistory(workspace, historyEntry);
+    await workspaceStore.saveDraft(workspace, {...payload, output});
+    setStatus(statusId, runtimeMessage(data, workspace === "h3" ? t("directConvertDone") : workspace === "enrich" ? t("enrichDone") : t("visionDone")));
+    await refreshWorkspaceIndicators(workspace);
+    return true;
+  } catch (error) {
+    if (queueItem) await workspaceStore.failQueueItem(workspace, queueItem.id, error.message);
+    setStatus(statusId, error.message, "error");
+    await refreshWorkspaceIndicators(workspace);
+    return false;
+  } finally {
+    await stopProgress();
+    if (actionButton && !queueItem) setWorking(actionButton, false);
+  }
+}
+
+async function runWorkspaceQueue(workspace) {
+  if (queueRunning) return;
+  const queue = await workspaceStore.getQueue(workspace);
+  if (!queue.length) return setStatus(workspaceStatusIds[workspace], t("emptyQueue"), "error");
+  queueRunning = true;
+  setTopStatus(t("queueRunning"), "neutral");
+  try {
+    for (const item of queue) {
+      applyWorkspacePayload(workspace, item.payload);
+      await runWorkspaceTask(workspace, item.payload, item);
+    }
+    setStatus(workspaceStatusIds[workspace], t("queueComplete"));
+  } finally {
+    queueRunning = false;
+    await refreshWorkspaceIndicators(workspace);
+  }
+}
+
+function recordPreview(record, type) {
+  if (type === "queue") return displayInput(workspaceDialogWorkspace, record.payload);
+  return record.input || displayInput(workspaceDialogWorkspace, record.payload || {});
+}
+
+async function renderWorkspaceDialog() {
+  const list = $("workspace-record-list");
+  const isQueue = workspaceDialogType === "queue";
+  const records = isQueue ? await workspaceStore.getQueue(workspaceDialogWorkspace) : await workspaceStore.getHistory(workspaceDialogWorkspace);
+  list.replaceChildren();
+  $("workspace-empty").hidden = records.length > 0;
+  $("workspace-empty").textContent = t(isQueue ? "emptyQueue" : "emptyHistory");
+  records.forEach(record => {
+    const row = document.createElement("article");
+    row.className = "workspace-record";
+    row.dataset.id = record.id;
+    if (isQueue) {
+      row.draggable = true;
+      row.addEventListener("dragstart", () => { row.classList.add("dragging"); });
+      row.addEventListener("dragend", () => { row.classList.remove("dragging"); row.classList.remove("drag-over"); });
+      row.addEventListener("dragover", event => { event.preventDefault(); row.classList.add("drag-over"); });
+      row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+      row.addEventListener("drop", async event => {
+        event.preventDefault();
+        const dragged = list.querySelector(".dragging");
+        row.classList.remove("drag-over");
+        if (dragged && dragged !== row) {
+          await workspaceStore.reorderQueue(workspaceDialogWorkspace, dragged.dataset.id, row.dataset.id);
+          await renderWorkspaceDialog();
+          await refreshWorkspaceIndicators(workspaceDialogWorkspace);
+        }
+      });
+    }
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox"; checkbox.className = "record-select"; checkbox.dataset.recordId = record.id; checkbox.setAttribute("aria-label", t("selectAll"));
+    const main = document.createElement("div"); main.className = "record-main";
+    const title = document.createElement("p"); title.className = "record-title"; title.textContent = record.status === "failed" ? `${t("failed")}: ${record.error || ""}` : recordPreview(record, workspaceDialogType);
+    const preview = document.createElement("p"); preview.className = "record-preview"; preview.textContent = record.output || record.payload?.output || record.payload?.instruction || "";
+    const meta = document.createElement("div"); meta.className = "record-meta"; meta.textContent = record.createdAt ? new Date(record.createdAt).toLocaleString() : "";
+    if (record.error) meta.classList.add("record-error");
+    main.append(title, preview, meta);
+    const actions = document.createElement("div"); actions.className = "record-actions";
+    if (isQueue) { const drag = document.createElement("span"); drag.className = "record-drag"; drag.textContent = "\u2630"; drag.title = t("dragReorder"); actions.append(drag); }
+    const restore = document.createElement("button"); restore.type = "button"; restore.className = "icon-button"; restore.textContent = "\u21b6"; restore.title = t("restore"); restore.addEventListener("click", () => { applyWorkspacePayload(workspaceDialogWorkspace, record.payload || {}); scheduleDraftSave(workspaceDialogWorkspace); $("workspace-dialog").close(); setView(workspaceDialogWorkspace); });
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "icon-button"; remove.textContent = "\u00d7"; remove.title = t("delete"); remove.addEventListener("click", async () => { await (isQueue ? workspaceStore.deleteQueue(workspaceDialogWorkspace, [record.id]) : workspaceStore.deleteHistory(workspaceDialogWorkspace, [record.id])); await renderWorkspaceDialog(); await refreshWorkspaceIndicators(workspaceDialogWorkspace); });
+    actions.append(restore, remove);
+    row.append(checkbox, main, actions); list.append(row);
+  });
+  $("workspace-select-all").checked = false;
+  $("workspace-delete-selected").disabled = true;
+}
+
+async function openWorkspaceDialog(type) {
+  workspaceDialogType = type; workspaceDialogWorkspace = currentView;
+  $("workspace-dialog-title").textContent = `${t(type === "queue" ? "queueTitle" : "historyTitle")} · ${t(workspaceDialogWorkspace + "View")}`;
+  await renderWorkspaceDialog();
+  $("workspace-dialog").showModal();
+}
+
 document.querySelectorAll(".segment").forEach(button => button.addEventListener("click", () => {
   mode = button.dataset.mode;
   document.querySelectorAll(".segment").forEach(item => {
@@ -365,6 +592,7 @@ document.querySelectorAll(".segment").forEach(button => button.addEventListener(
     item.classList.toggle("active", active);
     item.setAttribute("aria-selected", String(active));
   });
+  scheduleDraftSave("h3");
 }));
 
 document.querySelectorAll(".view-tab").forEach(button => button.addEventListener("click", () => {
@@ -378,46 +606,20 @@ $("use-enriched").addEventListener("click", () => {
   const text = $("enrich-output").value.trim();
   if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
   $("source-input").value = text;
+  scheduleDraftSave("h3");
   setView("h3");
   $("source-heading").scrollIntoView({behavior: "smooth", block: "start"});
   $("source-input").focus();
 });
 
 $("convert-source").addEventListener("click", async () => {
-  const text = $("source-input").value.trim();
-  if (!text) return setStatus("source-status", t("enterPrompt"), "error");
-  setStatus("source-status", t("working"), "loading");
-  setWorking($("convert-source"), true);
-  const stopProgress = startProgressMonitor("source-status");
-  try {
-    const data = await api("convert", text);
-    $("h3-output").value = data.output;
-    setStatus("source-status", runtimeMessage(data, t("directConvertDone")));
-    $("result-heading").scrollIntoView({behavior: "smooth", block: "start"});
-  } catch (error) {
-    setStatus("source-status", error.message, "error");
-  } finally {
-    await stopProgress();
-    setWorking($("convert-source"), false);
-  }
+  try { await runWorkspaceTask("h3", queueInput("h3")); $("result-heading").scrollIntoView({behavior: "smooth", block: "start"}); }
+  catch (error) { setStatus("source-status", error.message, "error"); }
 });
 
 $("enrich").addEventListener("click", async () => {
-  const text = $("enrich-input").value.trim();
-  if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
-  setStatus("enrich-status", t("working"), "loading");
-  setWorking($("enrich"), true);
-  const stopProgress = startProgressMonitor("enrich-status");
-  try {
-    const data = await api("enrich", text);
-    $("enrich-output").value = data.output;
-    setStatus("enrich-status", runtimeMessage(data, t("enrichDone")));
-  } catch (error) {
-    setStatus("enrich-status", error.message, "error");
-  } finally {
-    await stopProgress();
-    setWorking($("enrich"), false);
-  }
+  try { await runWorkspaceTask("enrich", queueInput("enrich")); }
+  catch (error) { setStatus("enrich-status", error.message, "error"); }
 });
 
 $("vision-file").addEventListener("change", event => loadVisionFile(event.target.files[0]));
@@ -432,30 +634,50 @@ $("vision-dropzone").addEventListener("drop", event => {
   loadVisionFile(event.dataTransfer.files[0]);
 });
 $("vision-analyze").addEventListener("click", async () => {
-  if (!visionImageDataUrl) return setStatus("vision-status", t("selectImage"), "error");
-  setStatus("vision-status", t("working"), "loading");
-  setWorking($("vision-analyze"), true);
-  const stopProgress = startProgressMonitor("vision-status");
+  try { await runWorkspaceTask("vision", queueInput("vision")); }
+  catch (error) { setStatus("vision-status", error.message, "error"); }
+});
+
+["source-input", "h3-output"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("h3")));
+["enrich-input", "enrich-output", "strength"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("enrich")));
+$("vision-instruction").addEventListener("input", () => scheduleDraftSave("vision"));
+$("vision-output").addEventListener("input", () => scheduleDraftSave("vision"));
+
+document.querySelectorAll("[data-workspace-action]").forEach(button => button.addEventListener("click", async () => {
+  const workspace = button.closest("[data-workspace-tools]").dataset.workspaceTools;
+  const action = button.dataset.workspaceAction;
+  if (action === "queue") return openWorkspaceDialog("queue");
+  if (action === "history") return openWorkspaceDialog("history");
+  if (action === "run") return runWorkspaceQueue(workspace);
+  button.disabled = true;
   try {
-    const response = await fetch("/api/vision/caption", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        image_data_url: visionImageDataUrl,
-        instruction: $("vision-instruction").value.trim(),
-        language,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
-    $("vision-output").value = data.output;
-    setStatus("vision-status", runtimeMessage(data, t("visionDone")));
+    await workspaceStore.enqueue(workspace, queueInput(workspace));
+    await refreshWorkspaceIndicators(workspace);
+    setStatus(workspaceStatusIds[workspace], t("queued"));
   } catch (error) {
-    setStatus("vision-status", error.message, "error");
+    setStatus(workspaceStatusIds[workspace], error.message, "error");
   } finally {
-    await stopProgress();
-    setWorking($("vision-analyze"), false);
+    button.disabled = false;
   }
+}));
+
+$("workspace-dialog-close").addEventListener("click", () => $("workspace-dialog").close());
+$("workspace-select-all").addEventListener("change", event => {
+  $("workspace-record-list").querySelectorAll(".record-select").forEach(input => input.checked = event.target.checked);
+  $("workspace-delete-selected").disabled = !event.target.checked;
+});
+$("workspace-record-list").addEventListener("change", event => {
+  if (!event.target.classList.contains("record-select")) return;
+  const selected = $("workspace-record-list").querySelectorAll(".record-select:checked").length;
+  $("workspace-delete-selected").disabled = selected === 0;
+});
+$("workspace-delete-selected").addEventListener("click", async () => {
+  const ids = [...$("workspace-record-list").querySelectorAll(".record-select:checked")].map(input => input.dataset.recordId);
+  if (!ids.length) return;
+  if (workspaceDialogType === "queue") await workspaceStore.deleteQueue(workspaceDialogWorkspace, ids);
+  else await workspaceStore.deleteHistory(workspaceDialogWorkspace, ids);
+  await renderWorkspaceDialog();
+  await refreshWorkspaceIndicators(workspaceDialogWorkspace);
 });
 document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {
   await navigator.clipboard.writeText($(button.dataset.target).value);
@@ -586,5 +808,6 @@ $("help-close").addEventListener("click", () => $("help-dialog").close());
 
 setView(location.hash.slice(1));
 applyLanguage();
+restoreWorkspaceDrafts().catch(error => setTopStatus(error.message, "error"));
 updateResourceMonitor();
 setInterval(updateResourceMonitor, 2000);

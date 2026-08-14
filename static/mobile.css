@@ -5,9 +5,13 @@
   .source-grid { grid-template-columns: 1fr; gap: 22px; }
   .enrich-grid { grid-template-columns: 1fr; gap: 22px; }
   .vision-grid { grid-template-columns: 1fr; gap: 22px; }
+  .workspace-tools { align-items: flex-start; flex-direction: column; }
+  .workspace-tool-actions { width: 100%; justify-content: flex-start; }
 }
 
 @media (max-width: 620px) {
+  .resource-grid { min-width: 900px; }
+  .resource-metric { padding-inline: 16px; }
   .brand { font-size: 19px; }
   .top-actions { display: grid; grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
   .status { grid-column: 1 / -1; width: 100%; }
@@ -31,4 +35,8 @@
   .result-toolbar { flex-wrap: wrap; }
   .footer { padding: 17px 14px; align-items: flex-start; flex-direction: column; }
   .toast { right: 14px; bottom: 14px; max-width: calc(100vw - 28px); }
+  .workspace-tool-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-tool-actions .button { width: 100%; }
+  .workspace-record { grid-template-columns: 24px minmax(0, 1fr); }
+  .record-actions { grid-column: 2; justify-content: flex-end; }
 }
