@@ -36,7 +36,7 @@ def has_untranslated_chinese(text: str) -> bool:
 
 def canonicalize_picture_references(text: str) -> str:
     value = str(text or "")
-    value = re.sub(r"(?<!<)\u56fe\s*(\d+)", r"<Picture \1>", value)
+    value = re.sub(r"(?<!<)(?:\u56fe\u7247|\u56fe)\s*(\d+)", r"<Picture \1>", value)
     return re.sub(r"(?<!<)\b(?:picture|image)\s*(\d+)\b", r"<Picture \1>", value, flags=re.I)
 
 
@@ -174,6 +174,13 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
         value,
     )
     value = re.sub(
+        r"\bThe\s+(?:man|woman|male|female)\s+is\s+(?:a\s+)?"
+        r"(?:man|woman|male|female)\s*[,.;]?\s*",
+        "",
+        value,
+        flags=re.I,
+    )
+    value = re.sub(
         r"(?:\u89c6\u9891(?:\u573a\u666f)?(?:\u662f)?(?:\u5f00\u59cb\u4e8e|\u4ece)|\u89c6\u9891\u573a\u666f\u5f00\u59cb\u4e8e)\s*"
         r"<Picture\s+\d+>\s*[,\uff0c\u3002]?\s*",
         "",
@@ -188,6 +195,7 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
     intro_patterns = (
         r"^<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\.?$",
         r"^(?:The\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+<Picture\s+\d+>\.?$",
+        r"^(?:The\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+(?:the\s+)?(?:man|woman|male|female)\.?$",
     )
     boundary = re.compile(
         r"^(?:\[Shot\s+\d+\]\s*)?(?:"
@@ -274,6 +282,59 @@ def ref2va_timeline_wrap(
         "non_diegetic_music": str(music or "N/A").strip() or "N/A",
     }
     return build_h3(modules, "ref2va")
+
+
+def _fl2va_header(picture_id: str | None) -> str:
+    if not picture_id or picture_id == "1":
+        return FL2VA_HEADER
+    return (
+        "For the target video, at 0.00 seconds into the target video, "
+        f"<Picture {picture_id}> (from [Shot 1]) is fully referenced."
+    )
+
+
+def fl2va_timeline_wrap(
+    translation: str,
+    source_text: str,
+    soundscape: str = "N/A",
+    music: str = "N/A",
+) -> str:
+    """Apply the first-frame FL2VA contract without adding visual facts."""
+    value = canonicalize_picture_references(translation).strip()
+    if not value:
+        raise ValueError("Source prompt cannot be empty.")
+
+    subjects, start_picture = _ref2va_reference_metadata(source_text or translation)
+    reference_picture = start_picture or "1"
+    shot_actions = _ref2va_action_sentences(value) or [value]
+    subject_facts = " ".join(
+        f"<Picture {picture_id}> is {gender}." for picture_id, gender in subjects
+    )
+    first_action = " ".join(
+        item for item in (
+            f"Continue directly from <Picture {reference_picture}>.",
+            subject_facts,
+            shot_actions[0],
+        ) if item
+    )
+
+    shot_parts = []
+    elapsed = 0.0
+    for index, action in enumerate([first_action, *shot_actions[1:]], start=1):
+        marker = f"[Shot {index}]"
+        if index > 1:
+            marker += f" At {format_timestamp(elapsed)},"
+        shot_parts.append(f"{marker} {action}")
+        elapsed += _ref2va_semantic_duration(shot_actions[index - 1])
+
+    sound = str(soundscape or "N/A").strip() or "N/A"
+    score = str(music or "N/A").strip() or "N/A"
+    return (
+        f"{_fl2va_header(reference_picture)}\n\n"
+        f"integrated_multimodal_description: {' '.join(shot_parts)}\n"
+        f"overall_soundscape: {sound}\n"
+        f"non_diegetic_music: {score}"
+    )
 
 
 def empty_modules(mode: str, shot_count: int = 3) -> dict:

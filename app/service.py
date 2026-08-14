@@ -56,7 +56,7 @@ class PromptService:
         return repaired
 
     def convert(self, text: str, mode: str) -> dict:
-        source = h3.canonicalize_picture_references(text) if h3.normalize_mode(mode) == "ref2va" else text
+        source = h3.canonicalize_picture_references(text)
         stages = []
         translation = self._timed_generate(stages, "translate",
             source, h3.conversion_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700
@@ -103,7 +103,7 @@ class PromptService:
         if h3.normalize_mode(mode) == "ref2va":
             output = h3.ref2va_timeline_wrap(translation, source, soundscape, music)
         else:
-            output = h3.strict_wrap(translation, mode, soundscape, music, source_text=source)
+            output = h3.fl2va_timeline_wrap(translation, source, soundscape, music)
         check = h3.audit(output, mode)
         chinese = self._timed_generate(stages, "chinese_preview",
             output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=900
@@ -114,7 +114,7 @@ class PromptService:
             if h3.normalize_mode(mode) == "ref2va":
                 chinese = h3.ref2va_timeline_wrap(source, source)
             else:
-                chinese = h3.strict_wrap(source, mode, source_text=source)
+                chinese = h3.fl2va_timeline_wrap(source, source)
         elif "\ufffd" in chinese or chinese.count("?") > 3:
             raise RuntimeError("The Chinese preview was unreadable; no corrupt preview was returned.")
         return {"output": output, "chinese": chinese, "audit": check, "_stages": stages}
