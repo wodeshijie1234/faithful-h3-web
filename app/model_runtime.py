@@ -161,6 +161,17 @@ class ModelRuntime:
         return "gguf" if self.selected_model in self.gguf_paths and self.gguf_paths[self.selected_model].is_file() else "quanto"
 
     @property
+    def progress(self) -> dict:
+        if self._gguf:
+            return self._gguf.progress
+        return {
+            "active": False,
+            "generated_tokens": 0,
+            "tokens_per_second": 0.0,
+            "elapsed_seconds": 0.0,
+        }
+
+    @property
     def model_dir(self) -> Path:
         return self.model_dirs[self.selected_model]
 
@@ -210,12 +221,15 @@ class ModelRuntime:
     def release(self) -> dict:
         with self._lock:
             released = self.loaded or self._tokenizer is not None
+            had_quanto_model = self._model is not None or self._tokenizer is not None
             self._model = None
             self._tokenizer = None
             if self._gguf:
                 self._gguf.stop()
                 self._gguf = None
             gc.collect()
+            if not had_quanto_model:
+                return {"released": released, "loaded": False}
             try:
                 import torch
 

@@ -9,7 +9,7 @@ const I18N = {
     totalDuration: "Total duration", action: "Action & dialogue", camera: "Camera", soundscape: "Overall soundscape",
     soundPlaceholder: "Leave empty to infer supported sounds from actions and dialogue.", music: "Non-diegetic music",
     musicPlaceholder: "Leave empty for N/A or supported inference.", h3Output: "H3 output", convertButton: "Convert / update H3", directConvert: "Convert directly to H3",
-    download: "Download model", releaseMemory: "Release memory", releasingMemory: "Releasing...",
+    download: "Download models", releaseMemory: "Release memory", releasingMemory: "Releasing...",
     memoryReleased: "Memory and VRAM released", memoryAlreadyFree: "No loaded model to release", downloading: "Downloading model...",
     modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", working: "Working...",
     runtimeDone: "{backend} · {seconds}s",
@@ -73,7 +73,10 @@ const I18N = {
 };
 
 Object.assign(I18N.en, {
-  h3View: "H3", visionView: "Image to prompt",
+  h3View: "H3", enrichView: "Prompt enrichment", visionView: "Image to prompt", enrichTitle: "Prompt enrichment",
+  chooseDownloads: "Choose models to download", downloadHint: "Select only the models you need. Downloads continue in the background and progress is printed in the startup console.",
+  visionModelOption: "Image-to-prompt model", cancel: "Cancel", downloadSelected: "Download selected", selectDownload: "Select at least one model.",
+  readyLabel: "Ready", downloadingLabel: "Downloading", notDownloadedLabel: "Not downloaded",
   visionTitle: "Image to prompt", optional: "Optional", chooseImage: "Choose an image",
   imageLimits: "PNG, JPEG or WebP, up to 12 MB", visionInstruction: "Focus or description requirement",
   visionInstructionPlaceholder: "Optional. For example: focus on subject positions and camera angle.",
@@ -88,7 +91,10 @@ I18N.en.help.vision = ["Image to prompt", "Uses a separate 2B abliterated vision
 I18N.en.help.mode = ["H3 mode", "Choose FL2VA or Ref2VA. H3 conversion is text-only; optional image analysis stays in its separate view."];
 
 Object.assign(I18N["zh-CN"], {
-  h3View: "H3", visionView: "图片反推",
+  h3View: "H3", enrichView: "丰富提示词", visionView: "图片反推", enrichTitle: "丰富提示词",
+  chooseDownloads: "选择要下载的模型", downloadHint: "只勾选需要的模型。下载将在后台继续，详细进度显示在启动日志黑窗中。",
+  visionModelOption: "图片反推模型", cancel: "取消", downloadSelected: "下载所选模型", selectDownload: "请至少选择一个模型。",
+  readyLabel: "已就绪", downloadingLabel: "下载中", notDownloadedLabel: "未下载",
   directConvert: "\u76f4\u63a5\u8f6c\u4e3a H3",
   directConvertDone: "\u5df2\u6839\u636e\u539f\u59cb\u63d0\u793a\u8bcd\u751f\u6210 H3",
   visionTitle: "\u8bc6\u56fe\u53cd\u63a8\u63d0\u793a\u8bcd", optional: "\u53ef\u9009", chooseImage: "\u9009\u62e9\u56fe\u7247",
@@ -104,7 +110,10 @@ Object.assign(I18N["zh-CN"], {
 I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u72ec\u7acb\u7684 2B \u65e0\u9650\u5236\u89c6\u89c9\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u56fe\u7247\u4e2d\u771f\u5b9e\u53ef\u89c1\u7684\u4e8b\u5b9e\u3002\u7ed3\u679c\u5728\u4f60\u4e3b\u52a8\u586b\u5165\u539f\u59cb\u63d0\u793a\u8bcd\u524d\u4e0e H3 \u6d41\u7a0b\u72ec\u7acb\u3002"];
 I18N["zh-CN"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u522b\u663e\u793a\u5bf9\u5e94\u7684\u5b98\u65b9\u6a21\u5757\u3002H3 \u8f6c\u6362\u4ecd\u4e3a\u7eaf\u6587\u672c\u6d41\u7a0b\uff1b\u53ef\u9009\u8bc6\u56fe\u4fdd\u6301\u5728\u72ec\u7acb\u6a21\u5757\u4e2d\u3002"];
 Object.assign(I18N["zh-TW"], {
-  h3View: "H3", visionView: "圖片反推",
+  h3View: "H3", enrichView: "豐富提示詞", visionView: "圖片反推", enrichTitle: "豐富提示詞",
+  chooseDownloads: "選擇要下載的模型", downloadHint: "只勾選需要的模型。下載將在背景繼續，詳細進度顯示在啟動日誌視窗中。",
+  visionModelOption: "圖片反推模型", cancel: "取消", downloadSelected: "下載所選模型", selectDownload: "請至少選擇一個模型。",
+  readyLabel: "已就緒", downloadingLabel: "下載中", notDownloadedLabel: "未下載",
   directConvert: "\u76f4\u63a5\u8f49\u70ba H3",
   directConvertDone: "\u5df2\u6839\u64da\u539f\u59cb\u63d0\u793a\u8a5e\u751f\u6210 H3",
   visionTitle: "\u8b58\u5716\u53cd\u63a8\u63d0\u793a\u8a5e", optional: "\u53ef\u9078", chooseImage: "\u9078\u64c7\u5716\u7247",
@@ -126,20 +135,22 @@ let mode = "fl2va";
 let busyCount = 0;
 let statusTimer = null;
 let visionStatusTimer = null;
+let progressTimer = null;
 let visionImageDataUrl = "";
 const $ = id => document.getElementById(id);
 const t = key => I18N[language][key] || I18N.en[key] || key;
 
 function setView(requestedView, updateHash = true) {
-  const view = requestedView === "vision" ? "vision" : "h3";
+  const view = ["h3", "enrich", "vision"].includes(requestedView) ? requestedView : "h3";
   document.querySelectorAll(".view-tab").forEach(button => {
     const active = button.dataset.view === view;
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
   $("h3-view").hidden = view !== "h3";
+  $("enrich-view").hidden = view !== "enrich";
   $("vision-view").hidden = view !== "vision";
-  document.querySelectorAll("[data-h3-control]").forEach(control => control.hidden = view !== "h3");
+  document.querySelectorAll("[data-h3-control]").forEach(control => control.hidden = view === "vision");
   const hash = `#${view}`;
   if (updateHash && location.hash !== hash) history.replaceState(null, "", hash);
 }
@@ -152,7 +163,30 @@ function setStatus(id, message, type = "") {
 
 function runtimeMessage(data, fallback) {
   if (!data.runtime) return fallback;
-  return `${fallback} · ${data.runtime.model.toUpperCase()} ${data.runtime.backend.toUpperCase()} · ${data.runtime.elapsed_seconds}s`;
+  const speed = Number(data.runtime.tokens_per_second || 0);
+  const speedText = speed > 0 ? " · " + speed.toFixed(1) + " token/s" : "";
+  return fallback + " · " + data.runtime.model.toUpperCase() + " " + data.runtime.backend.toUpperCase() + " · " + data.runtime.elapsed_seconds + "s" + speedText;
+}
+
+function startProgressMonitor(statusId) {
+  const update = async () => {
+    try {
+      const data = await fetch("/api/progress").then(response => response.json());
+      if (!data.active && busyCount === 0) return;
+      const elapsed = Number(data.elapsed_seconds || 0).toFixed(1);
+      const speed = Number(data.tokens_per_second || 0).toFixed(1);
+      setStatus(statusId, t("working") + " · " + elapsed + "s · " + speed + " token/s", "loading");
+    } catch (error) {
+      // The final request response remains authoritative if polling briefly fails.
+    }
+  };
+  if (progressTimer) clearInterval(progressTimer);
+  update();
+  progressTimer = setInterval(update, 500);
+  return () => {
+    if (progressTimer) clearInterval(progressTimer);
+    progressTimer = null;
+  };
 }
 
 function setWorking(button, working) {
@@ -184,6 +218,23 @@ function applyLanguage() {
   updateVisionStatus();
 }
 
+function updateDownloadOptions(data) {
+  const states = Object.fromEntries(data.models.map(item => [item.id, item]));
+  states.vision = {
+    ready: data.vision_ready,
+    downloading: data.vision_downloading,
+    error: data.vision_error,
+  };
+  document.querySelectorAll('#download-dialog input[type="checkbox"]').forEach(input => {
+    const state = states[input.value];
+    input.checked = false;
+    input.disabled = state.ready || state.downloading;
+    const status = $("download-status-" + input.value);
+    status.textContent = state.error || (state.ready ? t("readyLabel") : state.downloading ? t("downloadingLabel") : t("notDownloadedLabel"));
+    status.classList.toggle("error", Boolean(state.error));
+  });
+}
+
 function loadVisionFile(file) {
   const allowed = ["image/png", "image/jpeg", "image/webp"];
   if (!file || !allowed.includes(file.type) || file.size < 1 || file.size > 12 * 1024 * 1024) {
@@ -207,7 +258,6 @@ async function updateVisionStatus() {
     const data = await fetch("/api/vision/status").then(response => response.json());
     const message = data.downloading ? t("visionDownloading") : data.loaded ? t("visionLoaded") : data.ready ? t("visionReady") : t("visionMissing");
     setStatus("vision-status", data.error || message, data.error ? "error" : data.downloading ? "loading" : "");
-    $("vision-download").disabled = data.downloading || data.ready;
     $("vision-analyze").disabled = data.downloading || !data.ready || !visionImageDataUrl;
     if (data.downloading && !visionStatusTimer) visionStatusTimer = setInterval(updateVisionStatus, 2000);
     if (!data.downloading && visionStatusTimer) {
@@ -239,6 +289,7 @@ $("use-enriched").addEventListener("click", () => {
   const text = $("enrich-output").value.trim();
   if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
   $("source-input").value = text;
+  setView("h3");
   $("source-heading").scrollIntoView({behavior: "smooth", block: "start"});
   $("source-input").focus();
 });
@@ -248,6 +299,7 @@ $("convert-source").addEventListener("click", async () => {
   if (!text) return setStatus("source-status", t("enterPrompt"), "error");
   setStatus("source-status", t("working"), "loading");
   setWorking($("convert-source"), true);
+  const stopProgress = startProgressMonitor("source-status");
   try {
     const data = await api("convert", text);
     $("h3-output").value = data.output;
@@ -256,6 +308,7 @@ $("convert-source").addEventListener("click", async () => {
   } catch (error) {
     setStatus("source-status", error.message, "error");
   } finally {
+    stopProgress();
     setWorking($("convert-source"), false);
   }
 });
@@ -265,6 +318,7 @@ $("enrich").addEventListener("click", async () => {
   if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
   setStatus("enrich-status", t("working"), "loading");
   setWorking($("enrich"), true);
+  const stopProgress = startProgressMonitor("enrich-status");
   try {
     const data = await api("enrich", text);
     $("enrich-output").value = data.output;
@@ -272,6 +326,7 @@ $("enrich").addEventListener("click", async () => {
   } catch (error) {
     setStatus("enrich-status", error.message, "error");
   } finally {
+    stopProgress();
     setWorking($("enrich"), false);
   }
 });
@@ -287,20 +342,11 @@ $("vision-dropzone").addEventListener("drop", event => {
   $("vision-dropzone").classList.remove("drag-over");
   loadVisionFile(event.dataTransfer.files[0]);
 });
-$("vision-download").addEventListener("click", async () => {
-  try {
-    const response = await fetch("/api/vision/download", {method: "POST"});
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
-    updateVisionStatus();
-  } catch (error) {
-    setStatus("vision-status", error.message, "error");
-  }
-});
 $("vision-analyze").addEventListener("click", async () => {
   if (!visionImageDataUrl) return setStatus("vision-status", t("selectImage"), "error");
   setStatus("vision-status", t("working"), "loading");
   setWorking($("vision-analyze"), true);
+  const stopProgress = startProgressMonitor("vision-status");
   try {
     const response = await fetch("/api/vision/caption", {
       method: "POST",
@@ -318,6 +364,7 @@ $("vision-analyze").addEventListener("click", async () => {
   } catch (error) {
     setStatus("vision-status", error.message, "error");
   } finally {
+    stopProgress();
     setWorking($("vision-analyze"), false);
   }
 });
@@ -351,12 +398,17 @@ async function updateModelStatus() {
     el.textContent = (data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing")) + backend;
     el.className = `status ${data.error ? "status-error" : data.ready ? "status-ready" : "status-neutral"}`;
     if (data.error) el.textContent = data.error;
-    $("download-model").disabled = data.downloading || data.ready;
-    if (data.downloading && !statusTimer) statusTimer = setInterval(updateModelStatus, 2000);
-    if (!data.downloading && statusTimer) {
+    const allReady = data.models.every(item => item.ready) && data.vision_ready;
+    $("download-model").disabled = allReady;
+    if (data.any_downloading && !statusTimer) statusTimer = setInterval(() => {
+      updateModelStatus();
+      updateVisionStatus();
+    }, 2000);
+    if (!data.any_downloading && statusTimer) {
       clearInterval(statusTimer);
       statusTimer = null;
     }
+    return data;
   } catch (error) {
     $("model-status").textContent = error.message;
     $("model-status").className = "status status-error";
@@ -380,8 +432,38 @@ $("model-select").addEventListener("change", async event => {
 });
 
 $("download-model").addEventListener("click", async () => {
-  await fetch("/api/download", {method: "POST"});
-  updateModelStatus();
+  try {
+    const data = await updateModelStatus();
+    updateDownloadOptions(data);
+    setStatus("download-feedback", "");
+    $("download-dialog").showModal();
+  } catch (error) {
+    $("model-status").textContent = error.message;
+  }
+});
+$("download-close").addEventListener("click", () => $("download-dialog").close());
+$("download-cancel").addEventListener("click", () => $("download-dialog").close());
+$("download-confirm").addEventListener("click", async () => {
+  const models = [...document.querySelectorAll('#download-dialog input[type="checkbox"]:checked')].map(input => input.value);
+  if (!models.length) return setStatus("download-feedback", t("selectDownload"), "error");
+  const button = $("download-confirm");
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/download", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({models}),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+    $("download-dialog").close();
+    updateModelStatus();
+    updateVisionStatus();
+  } catch (error) {
+    setStatus("download-feedback", error.message, "error");
+  } finally {
+    button.disabled = false;
+  }
 });
 $("release-memory").addEventListener("click", async () => {
   const button = $("release-memory");

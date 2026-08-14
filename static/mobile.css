@@ -3,6 +3,7 @@
   .top-actions { width: 100%; justify-content: flex-start; }
   .workspace { padding: 20px 20px 52px; }
   .source-grid { grid-template-columns: 1fr; gap: 22px; }
+  .enrich-grid { grid-template-columns: 1fr; gap: 22px; }
   .vision-grid { grid-template-columns: 1fr; gap: 22px; }
 }
 

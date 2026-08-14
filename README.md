@@ -1,12 +1,12 @@
 # liuliu Faithful H3
 
-`liuliu Faithful H3` is a standalone local Web tool with separate H3 authoring and image-to-prompt workspaces.
+`liuliu Faithful H3` is a standalone local Web tool with separate H3 conversion, prompt-enrichment, and image-to-prompt workspaces.
 
 ## Features
 
 - Faithful FL2VA and Ref2VA text conversion on the default H3 page
-- Independent image-to-prompt page with local preview, factual captioning, and one-click copy
-- Prompt enrichment with an independent creative-strength control
+- Independent image-to-prompt page with accelerated local preview, factual captioning, and one-click copy
+- Top-level prompt-enrichment page with an independent creative-strength control
 - Enrichment preserves the original prompt as an unchanged prefix; strength 0 is conservative and higher levels append bounded creative detail without altering the faithful-conversion workflow
 - Direct conversion from the original prompt, with an optional arrow to move enriched text into the source field
 - Literal English visual translation with a fail-closed no-invention review
@@ -15,9 +15,18 @@
 - Contextual `?` help for the model, mode, and every editing workflow
 - Selectable Qwen3.5 4B and 9B local models
 - Official `llama.cpp` GGUF runtime with automatic startup and model residency
-- Active backend and measured request duration shown after each operation
+- Live elapsed time and `token/s`, plus the final backend and measured request duration
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
+
+## What's new in v1.5.0 (2026-08-14)
+
+- Navigation is now ordered H3, Prompt enrichment, and Image to prompt, with prompt enrichment promoted to an independent page.
+- The top Download models action lets users choose 4B, 9B, and the optional vision pair independently; only checked items download in the background and progress remains visible in the startup console.
+- Vision inference enables Flash Attention and uses a bounded 256-512 image-token budget with a 4096-token context.
+- Local generation now reports live elapsed time and `token/s` while work is in progress.
+- Release memory now also terminates matching inherited local model servers, preventing text and vision models from remaining in VRAM together.
+- RTX 4070 Ti verification completed a 141 KB PNG in `15.750s` from a cold start at a final `210.29 token/s`; a repeated cached request completed in `0.313s`.
 
 ## What's new in v1.4.0 (2026-08-14)
 
@@ -97,7 +106,7 @@ The default runtime is the official Windows build of `llama.cpp` release `b10375
 - 9B model: <https://huggingface.co/byliuliu/faithful-h3-qwen3.5-9b-abliterated-v2>
 - Optional vision model: <https://huggingface.co/mradermacher/Qwen2-VL-2B-Abliterated-Caption-it-GGUF>
 
-The image-to-prompt page downloads `Q4_K_S` plus the `Q8_0` multimodal projector on demand. It needs about 1.65 GB of additional disk space and uses an isolated 8192-token context. Images remain local and are sent only to the local `llama.cpp` process.
+The top Download models action offers 4B, 9B, and the vision pair as independent choices. The vision pair consists of `Q4_K_S` plus the `Q8_0` multimodal projector, needs about 1.65 GB of additional disk space, and uses an isolated 4096-token context with a bounded 256-512 image-token budget. Images remain local and are sent only to the local `llama.cpp` process.
 
 Existing Quanto checkpoints remain an optional compatibility path. Install `requirements-quanto.txt` only when that fallback is specifically required.
 
@@ -125,6 +134,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.4.0`<br>
+Version `1.5.0`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

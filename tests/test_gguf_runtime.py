@@ -80,6 +80,35 @@ class GgufRuntimeTests(unittest.TestCase):
         self.assertEqual("data:image/png;base64,iVBORw0KGgo=", content[0]["image_url"]["url"])
         self.assertEqual("text", content[1]["type"])
 
+    def test_streaming_generation_reports_live_token_throughput(self):
+        runtime = GgufRuntime(Path("model.gguf"), binary=Path("llama-server.exe"), port=18766)
+        events = [
+            b'data: {"choices":[{"delta":{"content":"A"}}]}\n',
+            b'data: {"choices":[{"delta":{"content":" factual caption"}}],"usage":{"completion_tokens":2}}\n',
+            b'data: [DONE]\n',
+        ]
+
+        class StreamingResponse:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def __iter__(self): return iter(events)
+
+        captured = {}
+        def fake_urlopen(request, timeout=0):
+            captured.update(json.loads(request.data.decode()))
+            return StreamingResponse()
+
+        with patch.object(runtime, "ensure_started"), patch("app.gguf_runtime.urlopen", fake_urlopen):
+            result = runtime.generate("source", "system", temperature=0.1, top_p=0.8)
+
+        self.assertEqual("A factual caption", result)
+        self.assertTrue(captured["stream"])
+        self.assertEqual({"include_usage": True}, captured["stream_options"])
+        progress = runtime.progress
+        self.assertFalse(progress["active"])
+        self.assertEqual(2, progress["generated_tokens"])
+        self.assertGreater(progress["tokens_per_second"], 0)
+
     def test_multimodal_server_starts_with_the_vision_projector(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -99,6 +128,9 @@ class GgufRuntimeTests(unittest.TestCase):
             self.assertIn("--mmproj", command)
             self.assertEqual(str(mmproj), command[command.index("--mmproj") + 1])
             self.assertIn("--image-min-tokens", command)
+            self.assertEqual("256", command[command.index("--image-min-tokens") + 1])
+            self.assertEqual("512", command[command.index("--image-max-tokens") + 1])
+            self.assertEqual("on", command[command.index("--flash-attn") + 1])
 
     def test_stop_terminates_a_running_server(self):
         runtime = GgufRuntime(Path("model.gguf"))
@@ -112,6 +144,18 @@ class GgufRuntimeTests(unittest.TestCase):
         runtime.stop()
         self.assertTrue(process.terminated)
         self.assertIsNone(runtime.process)
+
+    def test_stop_terminates_an_adopted_matching_windows_server(self):
+        runtime = GgufRuntime(Path("model.gguf"), binary=Path("llama-server.exe"), port=18766)
+        with patch.object(runtime, "_healthy", return_value=True), \
+             patch.object(runtime, "_listening_pid", return_value=1234), \
+             patch.object(runtime, "_pid_executable", return_value=runtime.binary.resolve()), \
+             patch("app.gguf_runtime.os.name", "nt"), \
+             patch("app.gguf_runtime.subprocess.run") as run:
+            runtime.stop()
+
+        run.assert_called_once()
+        self.assertEqual(["taskkill", "/PID", "1234", "/T", "/F"], run.call_args.args[0])
 
     def test_start_ignores_a_probe_timeout_before_launching_server(self):
         with tempfile.TemporaryDirectory() as directory:

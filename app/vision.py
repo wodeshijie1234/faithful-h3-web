@@ -119,7 +119,7 @@ class VisionCaptionRuntime:
             binary=binary,
             port=port,
             mmproj_path=mmproj_path,
-            context_size=8192,
+            context_size=4096,
         )
 
     @property
@@ -129,6 +129,10 @@ class VisionCaptionRuntime:
     @property
     def loaded(self) -> bool:
         return self._runtime.loaded
+
+    @property
+    def progress(self) -> dict:
+        return self._runtime.progress
 
     def caption(self, image_data_url: str, instruction: str, language: str) -> str:
         validate_image_data_url(image_data_url)
@@ -147,7 +151,7 @@ class VisionCaptionRuntime:
             image_data_url,
             user_instruction,
             "",
-            max_new_tokens=900,
+            max_new_tokens=512,
         )
         if not result:
             raise RuntimeError("The vision model returned an empty description.")

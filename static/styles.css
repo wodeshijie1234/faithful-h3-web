@@ -99,7 +99,7 @@ button, input, select, textarea { letter-spacing: 0; }
 .workspace { max-width: 1280px; margin: 0 auto; padding: 24px 30px 68px; }
 .top-view-nav {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1px solid var(--border);
   margin: -24px 0 28px;
 }
@@ -118,7 +118,7 @@ button, input, select, textarea { letter-spacing: 0; }
 .view-tab:hover { color: var(--text); background: var(--surface); }
 .view-tab.active { color: var(--accent-dark); border-bottom-color: var(--accent); }
 .app-view[hidden] { display: none; }
-.vision-section { padding: 0 0 28px; }
+.vision-section, .enrich-section { padding: 0 0 28px; }
 .optional-label { border-radius: 4px; padding: 3px 7px; background: #eef2f0; color: var(--muted); font-size: 11px; font-weight: 700; }
 .vision-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 32px; }
 .vision-input-pane, .vision-output-pane { min-width: 0; }
@@ -183,6 +183,8 @@ button, input, select, textarea { letter-spacing: 0; }
 }
 
 .source-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+.source-grid.single-column { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+.enrich-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
 .source-pane { min-width: 0; }
 .field-head, .output-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .field-head > label, label > span { font-size: 13px; font-weight: 720; color: #35403b; }
@@ -220,4 +222,10 @@ dialog::backdrop { background: rgba(20, 35, 28, .24); }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 30px; }
 .dialog-head h3 { margin: 0; font-size: 17px; }
 .dialog-head ~ p { max-width: 500px; color: #4e5953; line-height: 1.65; }
+.download-options { display: grid; gap: 8px; margin: 18px 0 8px; }
+.download-option { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid var(--border); }
+.download-option input { width: 17px; height: 17px; accent-color: var(--accent); }
+.download-option small { color: var(--muted); font-size: 11px; }
+.download-option:has(input:disabled) { color: var(--muted); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .footer { border-top: 1px solid var(--border); min-height: 62px; padding: 17px 30px; display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 12px; }

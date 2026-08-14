@@ -40,8 +40,12 @@ service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
 vision_download_state = {"running": False, "error": ""}
 
-app = FastAPI(title="liuliu Faithful H3", version="1.4.0")
+app = FastAPI(title="liuliu Faithful H3", version="1.5.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+def _start_daemon(target, *args) -> None:
+    threading.Thread(target=target, args=args, daemon=True).start()
 
 
 class GenerateRequest(BaseModel):
@@ -54,6 +58,10 @@ class GenerateRequest(BaseModel):
 
 class ModelRequest(BaseModel):
     model_id: str
+
+
+class DownloadRequest(BaseModel):
+    models: list[Literal["4b", "9b", "vision"]] = Field(min_length=1)
 
 
 class VisionCaptionRequest(BaseModel):
@@ -78,13 +86,19 @@ def status():
         "loaded": runtime.loaded,
         "backend": runtime.backend,
         "downloading": model_download["running"],
+        "any_downloading": any(item["running"] for item in download_state.values()) or vision_download_state["running"],
+        "vision_ready": vision_ready(VISION_ROOT),
+        "vision_downloading": vision_download_state["running"],
+        "vision_error": vision_download_state["error"],
         "error": model_download["error"],
         "missing": missing,
         "repo": spec.repo,
         "selected_model": runtime.selected_model,
         "models": [
             {"id": model_id, "label": item.label,
-             "ready": GGUF_PATHS[model_id].is_file() or not missing_files(MODEL_DIRS[model_id], item)}
+             "ready": GGUF_PATHS[model_id].is_file() or not missing_files(MODEL_DIRS[model_id], item),
+             "downloading": download_state[model_id]["running"],
+             "error": download_state[model_id]["error"]}
             for model_id, item in MODEL_SPECS.items()
         ],
         "version": app.version,
@@ -94,22 +108,35 @@ def status():
 def _download_worker(model_id: str):
     model_download = download_state[model_id]
     model_download.update(running=True, error="")
+    print(f"[download] Starting text model: {MODEL_SPECS[model_id].label}", flush=True)
     try:
         download_gguf(GGUF_ROOT, MODEL_SPECS[model_id])
+        print(f"[download] Completed text model: {MODEL_SPECS[model_id].label}", flush=True)
     except Exception as exc:
         model_download["error"] = str(exc)
+        print(f"[download] Failed text model {MODEL_SPECS[model_id].label}: {exc}", flush=True)
     finally:
         model_download["running"] = False
 
 
 @app.post("/api/download")
-def begin_download():
-    model_id = runtime.selected_model
-    if GGUF_PATHS[model_id].is_file():
-        return {"started": False, "ready": True}
-    if not download_state[model_id]["running"]:
-        threading.Thread(target=_download_worker, args=(model_id,), daemon=True).start()
-    return {"started": True, "ready": False}
+def begin_download(request: DownloadRequest):
+    requested = list(dict.fromkeys(request.models))
+    started = []
+    for model_id in requested:
+        if model_id == "vision":
+            if not vision_ready(VISION_ROOT) and not vision_download_state["running"]:
+                _start_daemon(_vision_download_worker)
+                started.append(model_id)
+            continue
+        if not GGUF_PATHS[model_id].is_file() and not download_state[model_id]["running"]:
+            _start_daemon(_download_worker, model_id)
+            started.append(model_id)
+    return {
+        "started": bool(started),
+        "requested": requested,
+        "started_models": started,
+    }
 
 
 @app.post("/api/model")
@@ -125,12 +152,27 @@ def release_memory():
     return {"released": bool(text_result.get("released") or vision_released), "loaded": False}
 
 
+@app.get("/api/progress")
+def inference_progress():
+    text_progress = runtime.progress
+    vision_progress = vision_runtime.progress
+    if vision_progress["active"]:
+        return {**vision_progress, "task": "vision"}
+    if text_progress["active"]:
+        return {**text_progress, "task": "text"}
+    latest = max((text_progress, vision_progress), key=lambda item: item["elapsed_seconds"])
+    return {**latest, "task": "idle"}
+
+
 def _vision_download_worker():
     vision_download_state.update(running=True, error="")
+    print(f"[download] Starting vision model: {VISION_MODEL.label}", flush=True)
     try:
         download_vision_model(VISION_ROOT)
+        print(f"[download] Completed vision model: {VISION_MODEL.label}", flush=True)
     except Exception as exc:
         vision_download_state["error"] = str(exc)
+        print(f"[download] Failed vision model {VISION_MODEL.label}: {exc}", flush=True)
     finally:
         vision_download_state["running"] = False
 
@@ -153,7 +195,7 @@ def begin_vision_download():
     if vision_ready(VISION_ROOT):
         return {"started": False, "ready": True}
     if not vision_download_state["running"]:
-        threading.Thread(target=_vision_download_worker, daemon=True).start()
+        _start_daemon(_vision_download_worker)
     return {"started": True, "ready": False}
 
 
@@ -169,6 +211,7 @@ def caption_image(request: VisionCaptionRequest):
                 "backend": "gguf-vision",
                 "model": VISION_MODEL.label,
                 "elapsed_seconds": round(time.monotonic() - started, 3),
+                "tokens_per_second": vision_runtime.progress["tokens_per_second"],
             },
         }
     except Exception as exc:
@@ -190,7 +233,8 @@ def generate(request: GenerateRequest):
             raise ValueError("Unknown action.")
         stages = result.pop("_stages", None)
         result["runtime"] = {"backend": runtime.backend, "model": runtime.selected_model,
-                             "elapsed_seconds": round(time.monotonic() - started, 3)}
+                             "elapsed_seconds": round(time.monotonic() - started, 3),
+                             "tokens_per_second": runtime.progress["tokens_per_second"]}
         if stages is not None:
             result["runtime"]["stages"] = stages
         return result

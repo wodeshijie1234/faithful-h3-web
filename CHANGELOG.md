@@ -2,6 +2,28 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.5.0 - 2026-08-14
+
+### Added
+
+- Added live elapsed time and `token/s` feedback while local text and vision generations are running.
+
+### Changed
+
+- Promoted prompt enrichment to its own top-level page. Navigation is now ordered H3, Prompt enrichment, and Image to prompt.
+- The top Download models action now opens an on-demand selector for 4B, 9B, and the vision model; only checked items download in the background, with progress printed in the startup console.
+- Vision inference now uses Flash Attention, a 4096-token context, and a bounded 256-512 image-token budget to reduce image prefill latency.
+- Vision output is capped at 512 generated tokens, which remains sufficient for one cohesive factual image prompt.
+
+### Fixed
+
+- Release memory now closes matching inherited `llama-server` processes after verifying their model, port, and executable path, so stale text and vision runtimes no longer remain together in VRAM.
+
+### Verification
+
+- On an RTX 4070 Ti, a 141 KB PNG completed in `15.750s` from a cold vision-model start at a final `210.29 token/s`; the same cached request completed in `0.313s` once resident.
+- Release memory reduced observed VRAM use from `4020 MiB` to `1764 MiB` and left no text or vision model listener running.
+
 ## 1.4.0 - 2026-08-14
 
 ### Added

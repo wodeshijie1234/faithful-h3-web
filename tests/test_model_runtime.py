@@ -1,5 +1,6 @@
 import base64
 import gc
+import builtins
 import json
 import sys
 import tempfile
@@ -40,7 +41,15 @@ class ModelMappingTests(unittest.TestCase):
 
     def test_release_is_safe_when_model_is_not_loaded(self):
         runtime = ModelRuntime(Path("models"))
-        result = runtime.release()
+        original_import = builtins.__import__
+
+        def guarded_import(name, *args, **kwargs):
+            if name == "torch":
+                raise AssertionError("GGUF-only release must not initialize PyTorch")
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=guarded_import):
+            result = runtime.release()
         self.assertFalse(result["released"])
         self.assertFalse(result["loaded"])
 
