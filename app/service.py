@@ -1,5 +1,4 @@
 import re
-import json
 import time
 
 from . import h3
@@ -127,69 +126,6 @@ class PromptService:
             return self.runtime.generate(text, system, **settings)
         finally:
             stages.append({"name": name, "elapsed_seconds": round(time.monotonic() - started, 3)})
-
-    def _generate_modules_json(self, source: str, mode: str, system: str, *, max_new_tokens: int) -> dict:
-        settings = {"temperature": 0.01, "top_p": 0.05, "max_new_tokens": max_new_tokens, "stop_on_json": True}
-        output = self.runtime.generate(source, system, **settings)
-        try:
-            return h3.parse_modules_json(output, mode)
-        except (json.JSONDecodeError, ValueError):
-            retry = self.runtime.generate(source, system, **settings)
-            try:
-                return h3.parse_modules_json(retry, mode)
-            except (json.JSONDecodeError, ValueError) as exc:
-                raise RuntimeError("The model returned invalid module data after automatic recovery. Please try again.") from exc
-
-    def decompose(self, text: str, mode: str) -> dict:
-        return {"modules": self._generate_modules_json(
-            text, mode, h3.decompose_system(mode), max_new_tokens=384
-        )}
-
-    def convert_modules(self, modules: dict, mode: str) -> dict:
-        source_modules = h3.normalize_modules(modules, mode)
-        translated = self._generate_modules_json(
-            json.dumps(source_modules, ensure_ascii=False), mode,
-            h3.translate_modules_system(mode), max_new_tokens=1200
-        )
-        original_visual = h3.module_source_text(source_modules, mode)
-        translated_visual = h3.module_source_text(translated, mode)
-        review = self.runtime.generate(
-            f"ORIGINAL SOURCE:\n{original_visual}\n\nPROPOSED ENGLISH TRANSLATION:\n{translated_visual}",
-            h3.visual_review_system(mode),
-            temperature=0.01,
-            top_p=0.1,
-            max_new_tokens=8,
-        ).strip().upper()
-        if review != "PASS":
-            translated = self._generate_modules_json(
-                f"ORIGINAL MODULE JSON:\n{json.dumps(source_modules, ensure_ascii=False)}\n\n"
-                f"PROPOSED ENGLISH MODULE JSON:\n{json.dumps(translated, ensure_ascii=False)}",
-                mode, h3.translate_modules_repair_system(mode), max_new_tokens=1200,
-            )
-            translated_visual = h3.module_source_text(translated, mode)
-            review = self.runtime.generate(
-                f"ORIGINAL SOURCE:\n{original_visual}\n\nPROPOSED ENGLISH TRANSLATION:\n{translated_visual}",
-                h3.visual_review_system(mode),
-                temperature=0.01,
-                top_p=0.1,
-                max_new_tokens=8,
-            ).strip().upper()
-            if review != "PASS":
-                raise RuntimeError("The visual translation failed the strict no-invention review after automatic correction; no H3 output was returned.")
-        if not translated["overall_soundscape"] and not translated["non_diegetic_music"]:
-            soundscape, music = h3.parse_audio_output(
-                self.runtime.generate(
-                    original_visual, h3.audio_system(), temperature=0.01, top_p=0.1, max_new_tokens=160
-                )
-            )
-            if soundscape == "N/A":
-                soundscape = h3.infer_soundscape(original_visual, translated_visual)
-            translated["overall_soundscape"] = soundscape
-            translated["non_diegetic_music"] = music
-        output = h3.build_h3(translated, mode)
-        check = h3.audit(output, mode)
-        chinese = h3.build_h3(source_modules, mode)
-        return {"output": output, "chinese": chinese, "audit": check, "modules": translated}
 
     def micro_edit(self, edited: str, mode: str, original: str = "") -> dict:
         if not h3.has_complete_structure(edited, mode):

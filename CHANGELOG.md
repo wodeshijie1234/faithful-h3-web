@@ -6,7 +6,7 @@ All notable changes to liuliu Faithful H3 are documented here.
 
 ### Added
 
-- Added an independent image-to-prompt module using `Qwen2-VL-2B-Abliterated-Caption-it` with local image preview, optional focus instructions, localized output, copy, and transfer to the source prompt.
+- Added an independent image-to-prompt page using `Qwen2-VL-2B-Abliterated-Caption-it` with local image preview, optional focus instructions, localized output, and copy.
 - Added on-demand, resumable download and SHA256 verification for the 940,312,704-byte `Q4_K_S` model and 712,895,168-byte `Q8_0` vision projector.
 - Added PNG, JPEG, and WebP validation with a 12 MB request limit.
 - Added standalone vision download and real-inference self-check scripts.
@@ -14,6 +14,8 @@ All notable changes to liuliu Faithful H3 are documented here.
 ### Changed
 
 - Text and vision inference now release each other before loading so they do not compete for VRAM.
+- Added top-level H3 and image-to-prompt navigation. H3 is the default page, and image analysis no longer shares the H3 editing workflow.
+- Removed the redundant H3 module editor and its import/decompose API; H3 conversion now runs directly from the source prompt.
 - The release-memory endpoint now stops both runtimes.
 - Vision inference uses an isolated 8192-token context with at least 1024 image tokens.
 

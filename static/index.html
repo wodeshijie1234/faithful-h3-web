@@ -11,13 +11,13 @@
   <header class="topbar">
     <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.4.0</span></div>
     <div class="top-actions">
-      <span id="model-status" class="status status-neutral">Model not downloaded</span>
-      <button class="help" data-help="model" type="button" aria-label="Model help">?</button>
-      <select id="model-select" class="model-select" aria-label="Model">
+      <span id="model-status" class="status status-neutral" data-h3-control>Model not downloaded</span>
+      <button class="help" data-help="model" data-h3-control type="button" aria-label="Model help">?</button>
+      <select id="model-select" class="model-select" data-h3-control aria-label="Model">
         <option value="4b">Qwen3.5 4B</option>
         <option value="9b" selected>Qwen3.5 9B</option>
       </select>
-      <button id="download-model" class="button button-secondary" type="button">Download model</button>
+      <button id="download-model" class="button button-secondary" data-h3-control type="button">Download model</button>
       <button id="release-memory" class="button button-secondary" type="button">Release memory</button>
       <button class="help release-help" data-help="release" type="button" aria-label="Release memory help">?</button>
       <label class="language-label" for="language" data-i18n="language">Language</label>
@@ -30,6 +30,52 @@
   </header>
 
   <main class="workspace editor-workspace">
+    <nav class="top-view-nav" aria-label="Workspace" role="tablist">
+      <button class="view-tab active" data-view="h3" type="button" role="tab" aria-selected="true" aria-controls="h3-view" data-i18n="h3View">H3</button>
+      <button class="view-tab" data-view="vision" type="button" role="tab" aria-selected="false" aria-controls="vision-view" data-i18n="visionView">Image to prompt</button>
+    </nav>
+
+    <div id="h3-view" class="app-view" role="tabpanel">
+    <section class="mode-row" aria-labelledby="mode-label">
+      <span id="mode-label" class="mode-label" data-i18n="mode">Mode</span>
+      <div class="segmented" role="tablist" aria-label="H3 mode">
+        <button class="segment active" data-mode="fl2va" type="button" role="tab" aria-selected="true">FL2VA</button>
+        <button class="segment" data-mode="ref2va" type="button" role="tab" aria-selected="false">Ref2VA</button>
+      </div>
+      <button class="help" data-help="mode" type="button" aria-label="Mode help">?</button>
+    </section>
+
+    <section class="source-band" aria-labelledby="source-heading">
+      <div class="section-heading compact-heading"><span class="step">1</span><h2 id="source-heading" data-i18n="sourceArea">Prompt sources</h2><button class="help" data-help="sources" type="button" aria-label="Prompt source help">?</button></div>
+      <div class="source-grid">
+        <div class="source-pane">
+          <div class="field-head"><label for="source-input" data-i18n="sourcePrompt">Source prompt</label></div>
+          <textarea id="source-input" rows="7" data-i18n-placeholder="sourcePlaceholder" placeholder="Enter the original prompt to preserve."></textarea>
+          <button id="convert-source" class="button button-primary" type="button" data-i18n="directConvert">Convert directly to H3</button>
+          <div id="source-status" class="feedback" aria-live="polite"></div>
+        </div>
+        <div class="source-pane">
+          <div class="field-head"><label for="enrich-input" data-i18n="simplePrompt">Simple prompt</label><button class="help mini-help" data-help="enrich" type="button" aria-label="Prompt enrichment help">?</button></div>
+          <textarea id="enrich-input" rows="3" data-i18n-placeholder="simplePlaceholder" placeholder="Enter a short prompt in any language."></textarea>
+          <div class="slider-row"><label for="strength" data-i18n="creativeStrength">Creative strength</label><output id="strength-value">40</output></div>
+          <input id="strength" type="range" min="0" max="100" step="5" value="40">
+          <button id="enrich" class="button button-secondary" type="button" data-i18n="enrichButton">Enrich prompt</button>
+          <div class="field-head output-head"><label for="enrich-output" data-i18n="enrichedOutput">Enriched prompt</label><div><button id="use-enriched" class="icon-button import-button" type="button" title="Use as source prompt" aria-label="Use enriched prompt as source prompt">&#8595;</button><button class="copy icon-button" data-target="enrich-output" type="button" title="Copy" aria-label="Copy enriched prompt">&#128203;</button></div></div>
+          <textarea id="enrich-output" rows="5" readonly></textarea>
+          <div id="enrich-status" class="feedback" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="result-section" aria-labelledby="result-heading">
+      <div class="section-heading compact-heading"><span class="step">2</span><h2 id="result-heading" data-i18n="h3Output">H3 output</h2><button class="help" data-help="output" type="button" aria-label="H3 output help">?</button></div>
+      <div class="result-toolbar"><button class="copy icon-button" data-target="h3-output" type="button" title="Copy" aria-label="Copy H3 output">&#128203;</button><button class="download icon-button" data-target="h3-output" type="button" title="Save" aria-label="Save H3 output">&#8681;</button></div>
+      <textarea id="h3-output" class="result-output" rows="16" readonly></textarea>
+      <div id="convert-status" class="feedback" aria-live="polite"></div>
+    </section>
+    </div>
+
+    <div id="vision-view" class="app-view" hidden role="tabpanel">
     <section id="vision-section" class="vision-section" aria-labelledby="vision-heading">
       <div class="section-heading compact-heading"><h2 id="vision-heading" data-i18n="visionTitle">Image to prompt</h2><span class="optional-label" data-i18n="optional">Optional</span><button class="help" data-help="vision" type="button" aria-label="Image to prompt help">?</button></div>
       <div class="vision-grid">
@@ -46,68 +92,12 @@
           <div id="vision-status" class="feedback" aria-live="polite"></div>
         </div>
         <div class="vision-output-pane">
-          <div class="field-head output-head"><label for="vision-output" data-i18n="visionOutput">Reconstructed prompt</label><div><button id="vision-to-source" class="icon-button import-button" type="button" title="Use as source prompt" aria-label="Use reconstructed prompt as source prompt">&#8595;</button><button class="copy icon-button" data-target="vision-output" type="button" title="Copy" aria-label="Copy reconstructed prompt">&#128203;</button></div></div>
+          <div class="field-head output-head"><label for="vision-output" data-i18n="visionOutput">Reconstructed prompt</label><div><button class="copy icon-button" data-target="vision-output" type="button" title="Copy" aria-label="Copy reconstructed prompt">&#128203;</button></div></div>
           <textarea id="vision-output" rows="12" readonly data-i18n-placeholder="visionOutputPlaceholder" placeholder="The literal image description will appear here."></textarea>
         </div>
       </div>
     </section>
-
-    <section class="mode-row" aria-labelledby="mode-label">
-      <span id="mode-label" class="mode-label" data-i18n="mode">Mode</span>
-      <div class="segmented" role="tablist" aria-label="H3 mode">
-        <button class="segment active" data-mode="fl2va" type="button" role="tab" aria-selected="true">FL2VA</button>
-        <button class="segment" data-mode="ref2va" type="button" role="tab" aria-selected="false">Ref2VA</button>
-      </div>
-      <button class="help" data-help="mode" type="button" aria-label="Mode help">?</button>
-    </section>
-
-    <section class="source-band" aria-labelledby="source-heading">
-      <div class="section-heading compact-heading"><span class="step">1</span><h2 id="source-heading" data-i18n="sourceArea">Prompt sources</h2><button class="help" data-help="sources" type="button" aria-label="Prompt source help">?</button></div>
-      <div class="source-grid">
-        <div class="source-pane">
-          <div class="field-head"><label for="source-input" data-i18n="sourcePrompt">Source prompt</label><button id="import-source" class="icon-button import-button" type="button" title="Import into modules" aria-label="Import source into modules">&#8595;</button></div>
-          <textarea id="source-input" rows="7" data-i18n-placeholder="sourcePlaceholder" placeholder="Enter the original prompt to preserve."></textarea>
-          <button id="convert-source" class="button button-secondary" type="button" data-i18n="directConvert">Convert directly to H3</button>
-          <div id="source-status" class="feedback" aria-live="polite"></div>
-        </div>
-        <div class="source-pane">
-          <div class="field-head"><label for="enrich-input" data-i18n="simplePrompt">Simple prompt</label><button class="help mini-help" data-help="enrich" type="button" aria-label="Prompt enrichment help">?</button></div>
-          <textarea id="enrich-input" rows="3" data-i18n-placeholder="simplePlaceholder" placeholder="Enter a short prompt in any language."></textarea>
-          <div class="slider-row"><label for="strength" data-i18n="creativeStrength">Creative strength</label><output id="strength-value">40</output></div>
-          <input id="strength" type="range" min="0" max="100" step="5" value="40">
-          <button id="enrich" class="button button-secondary" type="button" data-i18n="enrichButton">Enrich prompt</button>
-          <div class="field-head output-head"><label for="enrich-output" data-i18n="enrichedOutput">Enriched prompt</label><div><button id="import-enriched" class="icon-button import-button" type="button" title="Import into modules" aria-label="Import enriched prompt into modules">&#8595;</button><button class="copy icon-button" data-target="enrich-output" type="button" title="Copy" aria-label="Copy enriched prompt">&#128203;</button></div></div>
-          <textarea id="enrich-output" rows="5" readonly></textarea>
-          <div id="enrich-status" class="feedback" aria-live="polite"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="module-section" aria-labelledby="module-heading">
-      <div class="section-heading compact-heading"><span class="step">2</span><h2 id="module-heading" data-i18n="moduleEditor">H3 module editor</h2><button class="help" data-help="modules" type="button" aria-label="Module editor help">?</button></div>
-      <div id="ref-modules" class="ref-modules" hidden>
-        <label><span data-i18n="subjects">Subject definitions</span><textarea id="subject-definitions" rows="4"></textarea></label>
-        <label><span data-i18n="summary">Summary</span><textarea id="summary" rows="3"></textarea></label>
-        <label><span data-i18n="retention">Retention analysis</span><textarea id="retention-analysis" rows="4"></textarea></label>
-      </div>
-      <label class="module-block"><span data-i18n="scene">Scene & continuity</span><textarea id="scene" rows="4" data-i18n-placeholder="scenePlaceholder" placeholder="Only facts that apply across shots."></textarea></label>
-      <div class="shots-block">
-        <div class="module-title-row"><div class="module-title-group"><span class="module-title" data-i18n="shots">Shots</span><span id="shot-count" class="module-count">3</span><span class="total-duration"><span data-i18n="totalDuration">Total duration</span><strong id="total-duration">9.0s</strong></span></div><div class="shot-actions"><button id="add-shot" class="icon-button" type="button" title="Add shot" aria-label="Add shot">+</button></div></div>
-        <div id="shots-list" class="shots-list"></div>
-      </div>
-      <div class="audio-grid">
-        <label class="module-block"><span data-i18n="soundscape">Overall soundscape</span><textarea id="overall-soundscape" rows="4" data-i18n-placeholder="soundPlaceholder" placeholder="Leave empty to infer supported sounds from actions and dialogue."></textarea></label>
-        <label class="module-block"><span data-i18n="music">Non-diegetic music</span><textarea id="non-diegetic-music" rows="4" data-i18n-placeholder="musicPlaceholder" placeholder="Leave empty for N/A or supported inference."></textarea></label>
-      </div>
-      <div id="module-status" class="feedback" aria-live="polite"></div>
-    </section>
-
-    <section class="result-section" aria-labelledby="result-heading">
-      <div class="section-heading compact-heading"><span class="step">3</span><h2 id="result-heading" data-i18n="h3Output">H3 output</h2><button class="help" data-help="output" type="button" aria-label="H3 output help">?</button></div>
-      <div class="result-toolbar"><button id="convert-modules" class="button button-primary" type="button" data-i18n="convertButton">Convert / update H3</button><button class="copy icon-button" data-target="h3-output" type="button" title="Copy" aria-label="Copy H3 output">&#128203;</button><button class="download icon-button" data-target="h3-output" type="button" title="Save" aria-label="Save H3 output">&#8681;</button></div>
-      <textarea id="h3-output" class="result-output" rows="16" readonly></textarea>
-      <div id="convert-status" class="feedback" aria-live="polite"></div>
-    </section>
+    </div>
   </main>
 
   <footer class="footer"><span>liuliu Faithful H3 v1.4.0</span><span>@liuliu | 1661204908@qq.com</span></footer>

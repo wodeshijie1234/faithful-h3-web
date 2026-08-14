@@ -1,19 +1,16 @@
 # liuliu Faithful H3
 
-`liuliu Faithful H3` is a standalone local Web tool for faithful `FL2VA` and `Ref2VA` prompt formatting, controlled prompt enrichment, and module-based H3 editing.
+`liuliu Faithful H3` is a standalone local Web tool with separate H3 authoring and image-to-prompt workspaces.
 
 ## Features
 
-- Faithful FL2VA and Ref2VA text conversion, isolated from optional image analysis
-- Independent image-to-prompt reconstruction with local preview, factual captioning, copy, and one-click transfer to the source prompt
+- Faithful FL2VA and Ref2VA text conversion on the default H3 page
+- Independent image-to-prompt page with local preview, factual captioning, and one-click copy
 - Prompt enrichment with an independent creative-strength control
 - Enrichment preserves the original prompt as an unchanged prefix; strength 0 is conservative and higher levels append bounded creative detail without altering the faithful-conversion workflow
-- Semantic import from either an original prompt or an enriched result into editable H3 modules
-- Dynamic shot count based on explicit numbering or semantic cuts in the imported prompt
-- Per-shot duration controls with 0.5-second steps, automatic cut timestamps, and a live total duration
-- One shared module editor before and after conversion, so users can adjust individual fields and regenerate H3
+- Direct conversion from the original prompt, with an optional arrow to move enriched text into the source field
 - Literal English visual translation with a fail-closed no-invention review
-- Separate audio inference that cannot modify visual modules
+- Separate audio inference that cannot modify visual descriptions
 - English default interface with Simplified Chinese and Traditional Chinese
 - Contextual `?` help for the model, mode, and every editing workflow
 - Selectable Qwen3.5 4B and 9B local models
@@ -24,8 +21,9 @@
 
 ## What's new in v1.4.0 (2026-08-14)
 
-- Added a separate image-to-prompt module powered by the uncensored `Qwen2-VL-2B-Abliterated-Caption-it` vision model.
-- Added local PNG, JPEG, and WebP selection with a stable preview, optional focus instruction, same-language output, copy, and one-click transfer to the source prompt.
+- Added a separate image-to-prompt page powered by the uncensored `Qwen2-VL-2B-Abliterated-Caption-it` vision model.
+- Added top-level H3 and image-to-prompt navigation. H3 remains the default page, while image analysis has its own independent workflow and output.
+- Added local PNG, JPEG, and WebP selection with a stable preview, optional focus instruction, same-language output, and one-click copy.
 - Added on-demand download and SHA256 verification for a `Q4_K_S` model plus `Q8_0` vision projector, totaling about 1.65 GB.
 - Text and vision runtimes now release each other before inference so the optional vision model cannot silently compete with the 4B or 9B text model for VRAM.
 - The existing release-memory action now unloads either runtime.
@@ -51,9 +49,8 @@
 - v1.3.5 recovers from stale browser state and refreshes the application script after updates.
 - Preserve explicit Chinese picture identities and starting-reference facts in Ref2VA output.
 - Remove unsupported vocalizations from faithful H3 conversion through an additional correction gate.
-- Convert an original prompt directly to faithful H3 without first importing it into modules.
+- Convert an original prompt directly to faithful H3.
 - Remove any individual shot and drag shots into a new order; timestamps update automatically.
-- Recover common malformed module JSON and retry one strict no-invention correction before showing a failure.
 - Support an optional local startup configuration for reusing an existing GGUF model and runtime.
 - Prevent corrupt Chinese GGUF previews from being displayed as question marks; Chinese source prompts fall back to the original source text in the matching H3 template.
 - Reject unreadable previews for non-Chinese source prompts instead of returning corrupted text.
@@ -100,7 +97,7 @@ The default runtime is the official Windows build of `llama.cpp` release `b10375
 - 9B model: <https://huggingface.co/byliuliu/faithful-h3-qwen3.5-9b-abliterated-v2>
 - Optional vision model: <https://huggingface.co/mradermacher/Qwen2-VL-2B-Abliterated-Caption-it-GGUF>
 
-The optional vision module downloads `Q4_K_S` plus the `Q8_0` multimodal projector on demand. It needs about 1.65 GB of additional disk space and uses an isolated 8192-token context. Images remain local and are sent only to the local `llama.cpp` process.
+The image-to-prompt page downloads `Q4_K_S` plus the `Q8_0` multimodal projector on demand. It needs about 1.65 GB of additional disk space and uses an isolated 8192-token context. Images remain local and are sent only to the local `llama.cpp` process.
 
 Existing Quanto checkpoints remain an optional compatibility path. Install `requirements-quanto.txt` only when that fallback is specifically required.
 
@@ -128,6 +125,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.3.7`<br>
+Version `1.4.0`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

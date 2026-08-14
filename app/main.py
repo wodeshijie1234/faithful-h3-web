@@ -50,7 +50,6 @@ class GenerateRequest(BaseModel):
     text: str = Field(min_length=1)
     strength: int = Field(default=40, ge=0, le=100)
     original: str = ""
-    modules: dict | None = None
 
 
 class ModelRequest(BaseModel):
@@ -185,10 +184,6 @@ def generate(request: GenerateRequest):
             result = {"output": service.enrich(request.text, request.strength)}
         elif request.action == "convert":
             result = service.convert(request.text, request.mode)
-        elif request.action == "decompose":
-            result = service.decompose(request.text, request.mode)
-        elif request.action == "convert_modules":
-            result = service.convert_modules(request.modules or {}, request.mode)
         elif request.action == "micro":
             result = service.micro_edit(request.text, request.mode, request.original)
         else:

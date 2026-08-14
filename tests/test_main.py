@@ -73,21 +73,14 @@ class ApiContractTests(unittest.TestCase):
             "en",
         )
 
-    def test_convert_modules_requires_no_plain_text_contract_change(self):
-        from app.main import service
-
-        original = service.convert_modules
-        service.convert_modules = lambda modules, mode: {"output": "ok", "modules": modules, "mode": mode}
-        try:
+    def test_removed_module_actions_are_rejected(self):
+        for action in ("decompose", "convert_modules"):
             response = self.client.post(
                 "/api/generate",
-                json={"action": "convert_modules", "text": "modules", "mode": "ref2va", "modules": {"scene": "x"}},
+                json={"action": action, "text": "modules", "mode": "ref2va"},
             )
-        finally:
-            service.convert_modules = original
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("x", response.json()["modules"]["scene"])
-        self.assertEqual("ref2va", response.json()["mode"])
+            self.assertEqual(400, response.status_code)
+            self.assertEqual("Unknown action.", response.json()["detail"])
 
     def test_both_gguf_models_support_explicit_existing_file_paths(self):
         source = (main.ROOT / "app" / "main.py").read_text(encoding="utf-8")

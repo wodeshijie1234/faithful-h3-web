@@ -3,7 +3,7 @@ const I18N = {
     language: "Language", mode: "Mode", sourceArea: "Prompt sources", sourcePrompt: "Source prompt",
     sourcePlaceholder: "Enter the original facts, shots, positions, actions, and dialogue to preserve.",
     simplePrompt: "Simple prompt", simplePlaceholder: "Enter a short prompt in any language.", creativeStrength: "Creative strength",
-    enrichButton: "Enrich prompt", enrichedOutput: "Enriched prompt", moduleEditor: "H3 module editor",
+    enrichButton: "Enrich prompt", enrichedOutput: "Enriched prompt",
     subjects: "Subject definitions", summary: "Summary", retention: "Retention analysis", scene: "Scene & continuity",
     scenePlaceholder: "Only facts that apply across shots.", shots: "Shot", duration: "Duration", startsAt: "Starts at",
     totalDuration: "Total duration", action: "Action & dialogue", camera: "Camera", soundscape: "Overall soundscape",
@@ -13,15 +13,14 @@ const I18N = {
     memoryReleased: "Memory and VRAM released", memoryAlreadyFree: "No loaded model to release", downloading: "Downloading model...",
     modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", working: "Working...",
     runtimeDone: "{backend} · {seconds}s",
-    importDone: "Modules filled. Review them before conversion.", enrichDone: "Enrichment complete", convertDone: "H3 and editing modules updated", directConvertDone: "H3 generated from the source prompt",
-    enterPrompt: "Enter a prompt first.", noModuleContent: "Fill or import at least one visual module first.", requestFailed: "Request failed", copied: "Copied",
+    enrichDone: "Enrichment complete", directConvertDone: "H3 generated from the source prompt",
+    enterPrompt: "Enter a prompt first.", requestFailed: "Request failed", copied: "Copied",
     help: {
       model: ["Local model", "The model runs locally on the NVIDIA GPU."],
       release: ["Release memory", "Unloads this tool's model and clears its Python and CUDA caches."],
-      mode: ["H3 mode", "FL2VA and Ref2VA expose their official module structures. The tool never inspects images."],
-      sources: ["Prompt sources", "Import either the original prompt or the enriched result. Importing only distributes existing content into modules; it does not translate or expand it."],
+      mode: ["H3 mode", "Choose FL2VA or Ref2VA. The tool never inspects images during H3 conversion."],
+      sources: ["Prompt sources", "Use the original prompt for faithful conversion, or enrich a short prompt first and place the result into the source field."],
       enrich: ["Prompt enrichment", "This is the only creative workflow. Its strength never affects faithful H3 conversion."],
-      modules: ["H3 module editor", "This is the shared editing surface before and after conversion. Each shot defaults to 3 seconds. Change duration in 0.5-second steps; start times and total duration are calculated automatically."],
       output: ["Faithful English H3", "Visual values are translated literally and reviewed for invented details. Empty audio fields may be inferred from supported actions and dialogue."]
     }
   },
@@ -29,7 +28,7 @@ const I18N = {
     language: "语言", mode: "模式", sourceArea: "提示词来源", sourcePrompt: "原始提示词",
     sourcePlaceholder: "输入必须保留的人物、镜头、站位、动作和对白。", simplePrompt: "简单提示词",
     simplePlaceholder: "输入任意语言的简短提示词。", creativeStrength: "创作强度", enrichButton: "丰富提示词",
-    enrichedOutput: "丰富结果", moduleEditor: "H3 模块编辑器", subjects: "主体定义", summary: "摘要", retention: "保留分析",
+    enrichedOutput: "丰富结果",
     scene: "场景与连续性", scenePlaceholder: "只填写跨镜头持续成立的事实。", shots: "镜头", duration: "持续时长",
     startsAt: "起始时间", totalDuration: "总时长", action: "动作与对白", camera: "镜头机位", soundscape: "整体声音环境",
     soundPlaceholder: "留空时可根据动作和对白推断合理声音。", music: "非叙事音乐", musicPlaceholder: "留空时默认为 N/A 或根据原意推断。",
@@ -37,7 +36,7 @@ const I18N = {
     releasingMemory: "正在释放...", memoryReleased: "已释放内存和显存", memoryAlreadyFree: "当前没有已加载模型",
     downloading: "正在下载模型...", modelMissing: "模型未下载", modelReady: "模型已就绪", modelLoading: "模型已加载",
     working: "处理中...", importDone: "模块已填充，请检查后再转换。", enrichDone: "提示词丰富完成",
-    convertDone: "H3 与微调模块均已更新", enterPrompt: "请先输入提示词。", noModuleContent: "请先填写或导入至少一个视觉模块。",
+    enterPrompt: "请先输入提示词。",
     requestFailed: "请求失败", copied: "已复制",
     help: {
       model: ["本地模型", "模型在本机 NVIDIA GPU 上运行。"],
@@ -45,7 +44,6 @@ const I18N = {
       mode: ["H3 模式", "FL2VA 与 Ref2VA 分别显示对应官方模块；工具不识别图片。"],
       sources: ["提示词来源", "原始提示词和丰富结果都可导入。导入只把现有文字分配到模块，不翻译、不扩写。"],
       enrich: ["提示词丰富", "这是唯一允许创作扩写的功能，创作强度不会影响忠实转换。"],
-      modules: ["H3 模块编辑器", "转换前后共用这一套微调模块。每个镜头默认 3 秒，以 0.5 秒为步长调整；起始时间和总时长会自动计算。"],
       output: ["忠实英文 H3", "视觉内容只忠实翻译，并审查是否新增细节；空声音字段允许根据动作与对白推断。"]
     }
   },
@@ -53,7 +51,7 @@ const I18N = {
     language: "語言", mode: "模式", sourceArea: "提示詞來源", sourcePrompt: "原始提示詞",
     sourcePlaceholder: "輸入必須保留的人物、鏡頭、站位、動作和對白。", simplePrompt: "簡單提示詞",
     simplePlaceholder: "輸入任意語言的簡短提示詞。", creativeStrength: "創作強度", enrichButton: "豐富提示詞",
-    enrichedOutput: "豐富結果", moduleEditor: "H3 模組編輯器", subjects: "主體定義", summary: "摘要", retention: "保留分析",
+    enrichedOutput: "豐富結果",
     scene: "場景與連續性", scenePlaceholder: "只填寫跨鏡頭持續成立的事實。", shots: "鏡頭", duration: "持續時長",
     startsAt: "起始時間", totalDuration: "總時長", action: "動作與對白", camera: "鏡頭機位", soundscape: "整體聲音環境",
     soundPlaceholder: "留空時可根據動作和對白推斷合理聲音。", music: "非敘事音樂", musicPlaceholder: "留空時預設為 N/A 或根據原意推斷。",
@@ -61,7 +59,7 @@ const I18N = {
     releasingMemory: "正在釋放...", memoryReleased: "已釋放記憶體和顯存", memoryAlreadyFree: "目前沒有已載入模型",
     downloading: "正在下載模型...", modelMissing: "模型未下載", modelReady: "模型已就緒", modelLoading: "模型已載入",
     working: "處理中...", importDone: "模組已填入，請檢查後再轉換。", enrichDone: "提示詞豐富完成",
-    convertDone: "H3 與微調模組均已更新", enterPrompt: "請先輸入提示詞。", noModuleContent: "請先填寫或匯入至少一個視覺模組。",
+    enterPrompt: "請先輸入提示詞。",
     requestFailed: "請求失敗", copied: "已複製",
     help: {
       model: ["本機模型", "模型在本機 NVIDIA GPU 上執行。"],
@@ -69,13 +67,13 @@ const I18N = {
       mode: ["H3 模式", "FL2VA 與 Ref2VA 分別顯示對應官方模組；工具不辨識圖片。"],
       sources: ["提示詞來源", "原始提示詞和豐富結果都可匯入。匯入只把現有文字分配到模組，不翻譯、不擴寫。"],
       enrich: ["提示詞豐富", "這是唯一允許創作擴寫的功能，創作強度不會影響忠實轉換。"],
-      modules: ["H3 模組編輯器", "轉換前後共用這套微調模組。每個鏡頭預設 3 秒，以 0.5 秒為步長調整；起始時間和總時長會自動計算。"],
       output: ["忠實英文 H3", "視覺內容只忠實翻譯，並審查是否新增細節；空聲音欄位允許根據動作與對白推斷。"]
     }
   }
 };
 
 Object.assign(I18N.en, {
+  h3View: "H3", visionView: "Image to prompt",
   visionTitle: "Image to prompt", optional: "Optional", chooseImage: "Choose an image",
   imageLimits: "PNG, JPEG or WebP, up to 12 MB", visionInstruction: "Focus or description requirement",
   visionInstructionPlaceholder: "Optional. For example: focus on subject positions and camera angle.",
@@ -87,9 +85,10 @@ Object.assign(I18N.en, {
   emptyVisionOutput: "Analyze an image first."
 });
 I18N.en.help.vision = ["Image to prompt", "Uses a separate 2B abliterated vision model to describe only visible image facts. The result stays independent until you place it in the source prompt."];
-I18N.en.help.mode = ["H3 mode", "FL2VA and Ref2VA expose their official module structures. H3 conversion is text-only; optional image analysis stays in its separate module."];
+I18N.en.help.mode = ["H3 mode", "Choose FL2VA or Ref2VA. H3 conversion is text-only; optional image analysis stays in its separate view."];
 
 Object.assign(I18N["zh-CN"], {
+  h3View: "H3", visionView: "图片反推",
   directConvert: "\u76f4\u63a5\u8f6c\u4e3a H3",
   directConvertDone: "\u5df2\u6839\u636e\u539f\u59cb\u63d0\u793a\u8bcd\u751f\u6210 H3",
   visionTitle: "\u8bc6\u56fe\u53cd\u63a8\u63d0\u793a\u8bcd", optional: "\u53ef\u9009", chooseImage: "\u9009\u62e9\u56fe\u7247",
@@ -105,6 +104,7 @@ Object.assign(I18N["zh-CN"], {
 I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u72ec\u7acb\u7684 2B \u65e0\u9650\u5236\u89c6\u89c9\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u56fe\u7247\u4e2d\u771f\u5b9e\u53ef\u89c1\u7684\u4e8b\u5b9e\u3002\u7ed3\u679c\u5728\u4f60\u4e3b\u52a8\u586b\u5165\u539f\u59cb\u63d0\u793a\u8bcd\u524d\u4e0e H3 \u6d41\u7a0b\u72ec\u7acb\u3002"];
 I18N["zh-CN"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u522b\u663e\u793a\u5bf9\u5e94\u7684\u5b98\u65b9\u6a21\u5757\u3002H3 \u8f6c\u6362\u4ecd\u4e3a\u7eaf\u6587\u672c\u6d41\u7a0b\uff1b\u53ef\u9009\u8bc6\u56fe\u4fdd\u6301\u5728\u72ec\u7acb\u6a21\u5757\u4e2d\u3002"];
 Object.assign(I18N["zh-TW"], {
+  h3View: "H3", visionView: "圖片反推",
   directConvert: "\u76f4\u63a5\u8f49\u70ba H3",
   directConvertDone: "\u5df2\u6839\u64da\u539f\u59cb\u63d0\u793a\u8a5e\u751f\u6210 H3",
   visionTitle: "\u8b58\u5716\u53cd\u63a8\u63d0\u793a\u8a5e", optional: "\u53ef\u9078", chooseImage: "\u9078\u64c7\u5716\u7247",
@@ -123,13 +123,26 @@ I18N["zh-TW"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u5225\
 const storedLanguage = localStorage.getItem("faithful-h3-language");
 let language = Object.prototype.hasOwnProperty.call(I18N, storedLanguage) ? storedLanguage : "en";
 let mode = "fl2va";
-let shotCount = 3;
 let busyCount = 0;
 let statusTimer = null;
 let visionStatusTimer = null;
 let visionImageDataUrl = "";
 const $ = id => document.getElementById(id);
 const t = key => I18N[language][key] || I18N.en[key] || key;
+
+function setView(requestedView, updateHash = true) {
+  const view = requestedView === "vision" ? "vision" : "h3";
+  document.querySelectorAll(".view-tab").forEach(button => {
+    const active = button.dataset.view === view;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  $("h3-view").hidden = view !== "h3";
+  $("vision-view").hidden = view !== "vision";
+  document.querySelectorAll("[data-h3-control]").forEach(control => control.hidden = view !== "h3");
+  const hash = `#${view}`;
+  if (updateHash && location.hash !== hash) history.replaceState(null, "", hash);
+}
 
 function setStatus(id, message, type = "") {
   const el = $(id);
@@ -160,104 +173,13 @@ async function api(action, text = "", extra = {}) {
   return data;
 }
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, char => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[char]));
-}
-
-function normalizeDuration(value) {
-  const numeric = Number.parseFloat(value);
-  const safe = Number.isFinite(numeric) ? numeric : 3;
-  return Math.round(Math.min(30, Math.max(0.5, safe)) * 2) / 2;
-}
-
-function formatTime(seconds) {
-  const totalMs = Math.round(seconds * 1000);
-  const minutes = Math.floor(totalMs / 60000);
-  const remainder = totalMs % 60000;
-  const wholeSeconds = Math.floor(remainder / 1000);
-  const milliseconds = remainder % 1000;
-  return `${String(minutes).padStart(2, "0")}:${String(wholeSeconds).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
-}
-
-function shotTemplate(index, data = {}) {
-  const duration = normalizeDuration(data.duration_seconds ?? 3);
-  const removeDisabled = shotCount <= 1 ? "disabled" : "";
-  return `<article class="shot-module" data-shot="${index}">
-    <div class="shot-heading">
-      <div class="shot-title"><span class="drag-handle" draggable="true" title="Drag to reorder" aria-hidden="true">&#8645;</span><strong>${t("shots")} ${index + 1}</strong></div>
-      <div class="shot-timing">
-        <span class="shot-start"><span>${t("startsAt")}</span><output class="shot-start-value">00:00.000</output></span>
-        <label class="duration-control"><span>${t("duration")}</span><span class="duration-input"><input class="shot-duration" type="number" min="0.5" max="30" step="0.5" value="${duration.toFixed(1)}"><span>s</span></span></label>
-        <button class="icon-button shot-remove" type="button" title="Remove shot" aria-label="Remove shot" ${removeDisabled}>&#8722;</button>
-      </div>
-    </div>
-    <div class="shot-fields">
-      <label><span>${t("action")}</span><textarea class="shot-action" rows="3">${escapeHtml(data.action || "")}</textarea></label>
-      <label><span>${t("camera")}</span><textarea class="shot-camera" rows="3">${escapeHtml(data.camera || "")}</textarea></label>
-    </div>
-  </article>`;
-}
-
-function recalculateTimeline() {
-  let elapsed = 0;
-  document.querySelectorAll(".shot-module").forEach(shot => {
-    shot.querySelector(".shot-start-value").textContent = formatTime(elapsed);
-    elapsed += normalizeDuration(shot.querySelector(".shot-duration").value);
-  });
-  $("total-duration").textContent = `${elapsed.toFixed(1)}s`;
-}
-
-function renderShots(data = []) {
-  shotCount = Math.max(1, data.length || shotCount);
-  $("shots-list").innerHTML = Array.from({length: shotCount}, (_, index) => shotTemplate(index, data[index] || {})).join("");
-  $("shot-count").textContent = String(shotCount);
-  recalculateTimeline();
-}
-
-function collectModules() {
-  const modules = {
-    scene: $("scene").value.trim(),
-    shots: [...document.querySelectorAll(".shot-module")].map(el => ({
-      duration_seconds: normalizeDuration(el.querySelector(".shot-duration").value),
-      action: el.querySelector(".shot-action").value.trim(),
-      camera: el.querySelector(".shot-camera").value.trim()
-    })),
-    overall_soundscape: $("overall-soundscape").value.trim(),
-    non_diegetic_music: $("non-diegetic-music").value.trim()
-  };
-  if (mode === "ref2va") Object.assign(modules, {
-    subject_definitions: $("subject-definitions").value.trim(),
-    summary: $("summary").value.trim(),
-    retention_analysis: $("retention-analysis").value.trim()
-  });
-  return modules;
-}
-
-function fillModules(modules) {
-  $("scene").value = modules.scene || "";
-  $("overall-soundscape").value = modules.overall_soundscape || "";
-  $("non-diegetic-music").value = modules.non_diegetic_music || "";
-  if (mode === "ref2va") {
-    $("subject-definitions").value = modules.subject_definitions || "";
-    $("summary").value = modules.summary || "";
-    $("retention-analysis").value = modules.retention_analysis || "";
-  }
-  renderShots(modules.shots?.length ? modules.shots : [{}, {}, {}]);
-}
-
-function hasVisualContent(modules) {
-  return Boolean(modules.scene || modules.subject_definitions || modules.summary || modules.retention_analysis || modules.shots.some(shot => shot.action || shot.camera));
-}
-
 function applyLanguage() {
-  const currentShots = collectModules().shots;
   document.documentElement.lang = language;
   document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
   $("download-model").textContent = t("download");
   $("release-memory").textContent = t("releaseMemory");
   $("language").value = language;
-  renderShots(currentShots);
   updateModelStatus();
   updateVisionStatus();
 }
@@ -297,22 +219,6 @@ async function updateVisionStatus() {
   }
 }
 
-async function importToModules(text, statusId, button) {
-  if (!text.trim()) return setStatus(statusId, t("enterPrompt"), "error");
-  setStatus(statusId, t("working"), "loading");
-  setWorking(button, true);
-  try {
-    const data = await api("decompose", text);
-    fillModules(data.modules);
-    setStatus(statusId, runtimeMessage(data, t("importDone")));
-    $("module-heading").scrollIntoView({behavior: "smooth", block: "start"});
-  } catch (error) {
-    setStatus(statusId, error.message, "error");
-  } finally {
-    setWorking(button, false);
-  }
-}
-
 document.querySelectorAll(".segment").forEach(button => button.addEventListener("click", () => {
   mode = button.dataset.mode;
   document.querySelectorAll(".segment").forEach(item => {
@@ -320,67 +226,22 @@ document.querySelectorAll(".segment").forEach(button => button.addEventListener(
     item.classList.toggle("active", active);
     item.setAttribute("aria-selected", String(active));
   });
-  $("ref-modules").hidden = mode !== "ref2va";
 }));
 
-$("strength").addEventListener("input", event => $("strength-value").value = event.target.value);
-$("shots-list").addEventListener("input", event => {
-  if (event.target.classList.contains("shot-duration")) recalculateTimeline();
-});
-$("shots-list").addEventListener("change", event => {
-  if (!event.target.classList.contains("shot-duration")) return;
-  event.target.value = normalizeDuration(event.target.value).toFixed(1);
-  recalculateTimeline();
-});
-$("add-shot").addEventListener("click", () => {
-  const data = collectModules().shots;
-  data.push({duration_seconds: 3});
-  renderShots(data);
-});
-$("shots-list").addEventListener("click", event => {
-  const remove = event.target.closest(".shot-remove");
-  if (!remove || shotCount <= 1) return;
-  const shot = remove.closest(".shot-module");
-  const data = collectModules().shots;
-  data.splice(Number(shot.dataset.shot), 1);
-  renderShots(data);
-});
+document.querySelectorAll(".view-tab").forEach(button => button.addEventListener("click", () => {
+  setView(button.dataset.view);
+  window.scrollTo({top: 0, behavior: "smooth"});
+}));
+window.addEventListener("hashchange", () => setView(location.hash.slice(1), false));
 
-let draggedShotIndex = null;
-$("shots-list").addEventListener("dragstart", event => {
-  const handle = event.target.closest(".drag-handle");
-  if (!handle) return;
-  const shot = handle.closest(".shot-module");
-  draggedShotIndex = Number(shot.dataset.shot);
-  shot.classList.add("shot-dragging");
-  event.dataTransfer.effectAllowed = "move";
-  event.dataTransfer.setData("text/plain", String(draggedShotIndex));
+$("strength").addEventListener("input", event => $("strength-value").value = event.target.value);
+$("use-enriched").addEventListener("click", () => {
+  const text = $("enrich-output").value.trim();
+  if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
+  $("source-input").value = text;
+  $("source-heading").scrollIntoView({behavior: "smooth", block: "start"});
+  $("source-input").focus();
 });
-$("shots-list").addEventListener("dragover", event => {
-  const shot = event.target.closest(".shot-module");
-  if (!shot || draggedShotIndex === null) return;
-  event.preventDefault();
-  document.querySelectorAll(".shot-module.drag-over").forEach(item => item.classList.remove("drag-over"));
-  shot.classList.add("drag-over");
-});
-$("shots-list").addEventListener("drop", event => {
-  const target = event.target.closest(".shot-module");
-  if (!target || draggedShotIndex === null) return;
-  event.preventDefault();
-  const targetIndex = Number(target.dataset.shot);
-  const data = collectModules().shots;
-  const [moved] = data.splice(draggedShotIndex, 1);
-  const insertionIndex = draggedShotIndex < targetIndex ? targetIndex - 1 : targetIndex;
-  data.splice(insertionIndex, 0, moved);
-  draggedShotIndex = null;
-  renderShots(data);
-});
-$("shots-list").addEventListener("dragend", () => {
-  draggedShotIndex = null;
-  document.querySelectorAll(".shot-module.shot-dragging, .shot-module.drag-over").forEach(item => item.classList.remove("shot-dragging", "drag-over"));
-});
-$("import-source").addEventListener("click", () => importToModules($("source-input").value, "source-status", $("import-source")));
-$("import-enriched").addEventListener("click", () => importToModules($("enrich-output").value, "enrich-status", $("import-enriched")));
 
 $("convert-source").addEventListener("click", async () => {
   const text = $("source-input").value.trim();
@@ -412,23 +273,6 @@ $("enrich").addEventListener("click", async () => {
     setStatus("enrich-status", error.message, "error");
   } finally {
     setWorking($("enrich"), false);
-  }
-});
-
-$("convert-modules").addEventListener("click", async () => {
-  const modules = collectModules();
-  if (!hasVisualContent(modules)) return setStatus("convert-status", t("noModuleContent"), "error");
-  setStatus("convert-status", t("working"), "loading");
-  setWorking($("convert-modules"), true);
-  try {
-    const data = await api("convert_modules", "modules", {modules});
-    $("h3-output").value = data.output;
-    fillModules(data.modules);
-    setStatus("convert-status", runtimeMessage(data, t("convertDone")));
-  } catch (error) {
-    setStatus("convert-status", error.message, "error");
-  } finally {
-    setWorking($("convert-modules"), false);
   }
 });
 
@@ -477,15 +321,6 @@ $("vision-analyze").addEventListener("click", async () => {
     setWorking($("vision-analyze"), false);
   }
 });
-$("vision-to-source").addEventListener("click", () => {
-  const text = $("vision-output").value.trim();
-  if (!text) return setStatus("vision-status", t("emptyVisionOutput"), "error");
-  $("source-input").value = text;
-  setStatus("vision-status", t("visionToSource"));
-  $("source-heading").scrollIntoView({behavior: "smooth", block: "start"});
-  $("source-input").focus();
-});
-
 document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {
   await navigator.clipboard.writeText($(button.dataset.target).value);
   const old = button.title;
@@ -574,5 +409,5 @@ document.querySelectorAll(".help").forEach(button => button.addEventListener("cl
 }));
 $("help-close").addEventListener("click", () => $("help-dialog").close());
 
-renderShots([{duration_seconds: 3}, {duration_seconds: 3}, {duration_seconds: 3}]);
+setView(location.hash.slice(1));
 applyLanguage();

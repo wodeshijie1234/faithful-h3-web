@@ -119,6 +119,7 @@ class PromptServiceTests(unittest.TestCase):
 
         self.assertTrue(result.startswith("图片1是男人，图片2是女人，视频开始于图片2的场景，"))
 
+    @unittest.skip("H3 module editor removed")
     def test_decompose_returns_editable_modules(self):
         runtime = FakeRuntime([
             '{"scene":"原场景","shots":[{"duration_seconds":3,"action":"动作1","camera":""},{"duration_seconds":3,"action":"动作2","camera":""},{"duration_seconds":3,"action":"动作3","camera":""}],"overall_soundscape":"","non_diegetic_music":""}'
@@ -128,6 +129,7 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual("动作1", result["modules"]["shots"][0]["action"])
         self.assertEqual(384, runtime.calls[0][2]["max_new_tokens"])
 
+    @unittest.skip("H3 module editor removed")
     def test_decompose_retries_once_when_the_model_returns_unterminated_json(self):
         runtime = FakeRuntime([
             '{"scene":"unterminated',
@@ -140,6 +142,7 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(2, len(runtime.calls))
         self.assertTrue(runtime.calls[1][2]["stop_on_json"])
 
+    @unittest.skip("H3 module editor removed")
     def test_convert_modules_builds_h3_without_model_formatting(self):
         source = {
             "scene": "女生在左边，男生在右边。",
@@ -170,6 +173,7 @@ class PromptServiceTests(unittest.TestCase):
         self.assertIn("[Shot 2] At 00:03.500", result["output"])
         self.assertIn("breathing and fabric movement", result["output"])
 
+    @unittest.skip("H3 module editor removed")
     def test_convert_modules_retries_a_failed_visual_review_without_relaxing_the_guard(self):
         source = {
             "scene": "a person runs",
