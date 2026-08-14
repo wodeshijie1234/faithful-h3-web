@@ -276,6 +276,22 @@ class PromptServiceTests(unittest.TestCase):
         self.assertIn("overall_soundscape: a remote-control click and light movement", result["output"])
         self.assertTrue(result["audit"]["valid"])
 
+    def test_fl2va_and_ref2va_infer_soundscape_when_audio_model_returns_na(self):
+        source = "A man presses a remote control and taps the woman's shoulder."
+        translation = "A man presses a remote control and taps the woman's shoulder."
+        for mode in ("fl2va", "ref2va"):
+            runtime = FakeRuntime([
+                translation,
+                "PASS",
+                "overall_soundscape: N/A\nnon_diegetic_music: N/A",
+                "translated preview",
+            ])
+
+            result = PromptService(runtime).convert(source, mode)
+
+            self.assertNotEqual("overall_soundscape: N/A", result["output"].splitlines()[-2])
+            self.assertIn("remote-control click", result["output"])
+
     def test_conversion_rejects_visual_invention(self):
         runtime = FakeRuntime([
             "[Shot 1] A person runs in a red coat.",

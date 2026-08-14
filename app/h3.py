@@ -475,7 +475,7 @@ def audit(text: str, mode: str) -> dict:
 
 
 def audio_system() -> str:
-    return """You are the audio-only assistant for a strict H3 formatter. Infer only audible details directly supported by explicit actions, objects, environment, or dialogue in the source. Return exactly two lines: overall_soundscape: <brief sound description or N/A> and non_diegetic_music: <music description or N/A>. Do not describe or infer appearance, clothing, location, lighting, camera, choreography, or any visual detail. Do not invent specific sounds when the source gives no reasonable audio cue. Never output any other field, explanation, or markdown."""
+    return """You are the audio-only assistant for a strict H3 formatter. Infer only audible details directly supported by explicit actions, objects, environment, or dialogue in the source. When a physical action or object directly implies a sound, state that sound instead of N/A; use N/A only when no reasonable audible cue exists. Return exactly two lines: overall_soundscape: <brief sound description or N/A> and non_diegetic_music: <music description or N/A>. Do not describe or infer appearance, clothing, location, lighting, camera, choreography, or any visual detail. Do not invent specific sounds when the source gives no reasonable audio cue. Never output any other field, explanation, or markdown."""
 
 
 def parse_audio_output(text: str) -> tuple[str, str]:
@@ -488,6 +488,26 @@ def parse_audio_output(text: str) -> tuple[str, str]:
             if cleaned and len(cleaned) <= 500:
                 values[key] = cleaned
     return values["overall_soundscape"], values["non_diegetic_music"]
+
+
+def infer_soundscape(source: str, translation: str = "") -> str:
+    """Return only directly implied physical sounds when the audio model supplies none."""
+    value = f"{source}\n{translation}".lower()
+    cues: list[str] = []
+
+    def add_if(pattern: str, sound: str) -> None:
+        if re.search(pattern, value, flags=re.I) and sound not in cues:
+            cues.append(sound)
+
+    add_if(r"(?:remote\s*control|\u9065\u63a7\u5668).{0,48}(?:press|button|\u6309)|(?:press|\u6309).{0,48}(?:remote\s*control|\u9065\u63a7\u5668)", "a remote-control click")
+    add_if(r"(?:\btap(?:s|ped|ping)?\b|\bpat(?:s|ted|ting)?\b|\u8f7b?\u62cd|\u6572)", "a light tap against fabric")
+    add_if(r"(?:run(?:s|ning)?\s+(?:his|her|their)\s+fingers?\s+through\s+(?:his|her|their)\s+hair|touch(?:es|ing)?\s+(?:his|her|their)\s+hair|\u6478.*?\u5934\u53d1)", "soft hair and fabric movement")
+    add_if(r"(?:\b(?:walk|run)(?:s|ning|ned)?\b|\u8d70\u8def|\u8dd1\u6b65)", "footsteps")
+    add_if(r"(?:\brain\b|\u4e0b\u96e8|\u96e8\u6c34)", "rainfall")
+    add_if(r"(?:\b(?:open|close)(?:s|d|ing)?\s+(?:the\s+)?door\b|\u5f00\u95e8|\u5173\u95e8)", "a door moving")
+    add_if(r"(?:\bsplash(?:es|ed|ing)?\b|\u6c34\u82b1|\u6e85\u8d77)", "water splashing")
+
+    return ", ".join(cues) if cues else "N/A"
 
 
 def visual_review_system(mode: str) -> str:

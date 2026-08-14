@@ -100,6 +100,8 @@ class PromptService:
             self._timed_generate(stages, "audio", source, h3.audio_system(), temperature=0.01, top_p=0.1,
                                  max_new_tokens=160)
         )
+        if soundscape == "N/A":
+            soundscape = h3.infer_soundscape(source, translation)
         if h3.normalize_mode(mode) == "ref2va":
             output = h3.ref2va_timeline_wrap(translation, source, soundscape, music)
         else:
@@ -180,6 +182,8 @@ class PromptService:
                     original_visual, h3.audio_system(), temperature=0.01, top_p=0.1, max_new_tokens=160
                 )
             )
+            if soundscape == "N/A":
+                soundscape = h3.infer_soundscape(original_visual, translated_visual)
             translated["overall_soundscape"] = soundscape
             translated["non_diegetic_music"] = music
         output = h3.build_h3(translated, mode)
