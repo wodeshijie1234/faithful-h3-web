@@ -20,6 +20,46 @@
 body { margin: 0; background: #fff; }
 button, input, select, textarea { letter-spacing: 0; }
 
+.resource-strip {
+  width: 100%;
+  overflow-x: auto;
+  border-bottom: 1px solid #303934;
+  background: #19201c;
+  color: #f6f8f7;
+  scrollbar-width: thin;
+}
+.resource-grid {
+  width: 100%;
+  min-width: 760px;
+  max-width: 1280px;
+  min-height: 58px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.resource-metric {
+  min-width: 0;
+  padding: 8px 20px;
+  border-right: 1px solid #303934;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  align-items: baseline;
+  column-gap: 10px;
+}
+.resource-metric:last-child { border-right: 0; }
+.resource-label { color: #9fb0a7; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.resource-value { justify-self: end; font-size: 14px; font-weight: 750; white-space: nowrap; }
+.resource-detail {
+  grid-column: 1 / -1;
+  justify-self: end;
+  color: #c5d0ca;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.resource-unavailable .resource-value,
+.resource-unavailable .resource-detail { color: #8c9992; }
+
 .topbar {
   min-height: 74px;
   border-bottom: 1px solid var(--border);

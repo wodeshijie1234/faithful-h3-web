@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from .model_files import MODEL_SPECS, download_gguf, missing_files
 from .model_runtime import ModelRuntime
+from .resources import ResourceMonitor
 from .service import PromptService
 from .vision import VISION_MODEL, VisionCaptionRuntime, download_vision_model, vision_ready
 
@@ -41,8 +42,9 @@ vision_runtime = VisionCaptionRuntime(
 service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
 vision_download_state = {"running": False, "error": ""}
+resource_monitor = ResourceMonitor()
 
-app = FastAPI(title="liuliu Faithful H3", version="1.5.4")
+app = FastAPI(title="liuliu Faithful H3", version="1.5.5")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -169,6 +171,11 @@ def status():
         ],
         "version": app.version,
     }
+
+
+@app.get("/api/resources")
+def resources():
+    return resource_monitor.snapshot()
 
 
 def _download_worker(model_id: str):

@@ -95,6 +95,21 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(24, response.json()["generated_tokens"])
         self.assertEqual(18.75, response.json()["tokens_per_second"])
 
+    def test_resources_endpoint_reports_system_and_gpu_metrics(self):
+        sample = {
+            "available": True,
+            "cpu_percent": 46.4,
+            "ram": {"used_gib": 34.2, "total_gib": 63.7, "percent": 53.7},
+            "disk": {"read_mb_s": 5.0, "write_mb_s": 4.7},
+            "gpu_percent": 26.0,
+            "vram": {"used_gib": 2.7, "total_gib": 12.0, "percent": 22.8},
+        }
+        with patch.object(main.resource_monitor, "snapshot", return_value=sample):
+            response = self.client.get("/api/resources")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(sample, response.json())
+
     def test_vision_caption_releases_the_text_model_before_analysis(self):
         with patch.object(main.runtime, "release", return_value={"released": True, "loaded": False}) as release:
             with patch.object(main.vision_runtime, "caption", return_value="Only visible facts.") as caption:

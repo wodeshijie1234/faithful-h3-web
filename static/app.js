@@ -210,6 +210,41 @@ function formatReleaseSummary(data) {
   return parts.length ? `${prefix}：${parts.join("；")}` : prefix;
 }
 
+function formatResourcePercent(value) {
+  return Number.isFinite(Number(value)) ? Number(value).toFixed(1) + "%" : "--";
+}
+
+function formatResourceMemory(metric) {
+  if (!metric) return {percent: "--", detail: "-- / -- GB"};
+  return {
+    percent: formatResourcePercent(metric.percent),
+    detail: `${Number(metric.used_gib).toFixed(1)} / ${Number(metric.total_gib).toFixed(1)} GB`,
+  };
+}
+
+async function updateResourceMonitor() {
+  const monitor = $("resource-monitor");
+  try {
+    const response = await fetch("/api/resources");
+    if (!response.ok) throw new Error("Resource monitor unavailable");
+    const data = await response.json();
+    const ram = formatResourceMemory(data.ram);
+    const vram = formatResourceMemory(data.vram);
+    $("resource-cpu").textContent = formatResourcePercent(data.cpu_percent);
+    $("resource-ram").textContent = ram.percent;
+    $("resource-ram-detail").textContent = ram.detail;
+    $("resource-disk").textContent = data.disk
+      ? `${Number(data.disk.read_mb_s).toFixed(1)} / ${Number(data.disk.write_mb_s).toFixed(1)} MB/s`
+      : "-- / -- MB/s";
+    $("resource-gpu").textContent = formatResourcePercent(data.gpu_percent);
+    $("resource-vram").textContent = vram.percent;
+    $("resource-vram-detail").textContent = vram.detail;
+    monitor.classList.toggle("resource-unavailable", !data.available);
+  } catch (error) {
+    monitor.classList.add("resource-unavailable");
+  }
+}
+
 function startProgressMonitor(statusId) {
   const loadingText = currentView === "vision" ? t("loadingVisionModel") : t("loadingModel");
   setStatus(statusId, loadingText, "loading");
@@ -551,3 +586,5 @@ $("help-close").addEventListener("click", () => $("help-dialog").close());
 
 setView(location.hash.slice(1));
 applyLanguage();
+updateResourceMonitor();
+setInterval(updateResourceMonitor, 2000);

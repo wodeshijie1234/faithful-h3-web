@@ -130,6 +130,19 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("await updateVisionStatus();", cleanup)
         self.assertEqual(3, script.count("await stopProgress();"))
 
+    def test_resource_monitor_is_a_separate_top_strip(self):
+        html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+        script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+        styles = (ROOT / "static" / "styles.css").read_text(encoding="utf-8")
+
+        self.assertLess(html.index('id="resource-monitor"'), html.index('class="topbar"'))
+        for metric_id in ("resource-cpu", "resource-ram", "resource-ram-detail", "resource-disk", "resource-gpu", "resource-vram", "resource-vram-detail"):
+            self.assertIn(f'id="{metric_id}"', html)
+        self.assertIn('fetch("/api/resources")', script)
+        self.assertIn('setInterval(updateResourceMonitor, 2000)', script)
+        self.assertIn('.resource-strip {', styles)
+        self.assertIn('grid-template-columns: repeat(5, minmax(0, 1fr))', styles)
+
     def test_one_click_entrypoints_and_readme_exist(self):
         self.assertTrue((ROOT / "install-and-run.bat").is_file())
         self.assertTrue((ROOT / "run.bat").is_file())

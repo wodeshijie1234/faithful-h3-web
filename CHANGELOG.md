@@ -2,6 +2,17 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.5.5 - 2026-08-14
+
+### Added
+
+- Added a separate full-width resource strip above the existing header with live CPU, RAM, SSD read/write throughput, GPU utilization, and VRAM metrics.
+- Added a cached `/api/resources` endpoint backed by Windows system APIs, PDH disk counters, and `nvidia-smi`, avoiding heavy runtime dependencies and blocking UI polling.
+
+### Changed
+
+- The resource strip refreshes every two seconds and keeps a stable single-row layout without consuming space inside the existing model controls or workspaces.
+
 ## 1.5.4 - 2026-08-14
 
 ### Fixed
