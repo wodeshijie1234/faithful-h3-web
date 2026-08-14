@@ -100,6 +100,7 @@ class GgufRuntimeTests(unittest.TestCase):
         self.assertEqual("image_url", content[0]["type"])
         self.assertEqual("data:image/png;base64,iVBORw0KGgo=", content[0]["image_url"]["url"])
         self.assertEqual("text", content[1]["type"])
+        self.assertEqual(1.15, captured["repeat_penalty"])
 
     def test_streaming_generation_reports_live_token_throughput(self):
         runtime = GgufRuntime(Path("model.gguf"), binary=Path("llama-server.exe"), port=18766)

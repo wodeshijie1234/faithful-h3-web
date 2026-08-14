@@ -1,5 +1,7 @@
 import base64
 import unittest
+from pathlib import Path
+from unittest.mock import Mock
 
 
 class VisionModelContractTests(unittest.TestCase):
@@ -34,6 +36,18 @@ class VisionModelContractTests(unittest.TestCase):
 
         png = "data:image/png;base64," + base64.b64encode(b"\x89PNG\r\n\x1a\nminimal").decode()
         validate_image_data_url(png)
+
+    def test_caption_removes_repeated_sentences_and_their_truncated_tail(self):
+        from app.vision import VisionCaptionRuntime
+
+        runtime = VisionCaptionRuntime(Path("missing"))
+        repeated = "角色手持金色弓箭。角色表情严肃。" + "角色表情严肃。" * 8 + "角色表情严"
+        runtime._runtime = Mock(generate_with_image=Mock(return_value=repeated))
+        png = "data:image/png;base64," + base64.b64encode(b"\x89PNG\r\n\x1a\nminimal").decode()
+
+        result = runtime.caption(png, "", "zh-CN")
+
+        self.assertEqual("角色手持金色弓箭。角色表情严肃。", result)
 
 
 if __name__ == "__main__":

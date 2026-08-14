@@ -90,6 +90,25 @@ _IMAGE_SIGNATURES = {
 }
 
 
+def _deduplicate_caption(text: str) -> str:
+    segments = re.findall(r"[^。！？!?]+[。！？!?]+|[^。！？!?]+$", text.strip())
+    kept: list[str] = []
+    seen: list[str] = []
+    for segment in segments:
+        clean = segment.strip()
+        if not clean:
+            continue
+        key = re.sub(r"\s+", "", clean).rstrip("。！？!?").casefold()
+        if not key or key in seen:
+            continue
+        is_truncated = clean[-1] not in "。！？!?"
+        if is_truncated and len(key) >= 4 and any(previous.startswith(key) for previous in seen):
+            continue
+        kept.append(clean)
+        seen.append(key)
+    return "".join(kept).strip()
+
+
 def validate_image_data_url(image_data_url: str) -> None:
     match = _DATA_URL.fullmatch(image_data_url.strip())
     if not match:
@@ -144,18 +163,18 @@ class VisionCaptionRuntime:
         if not language_name:
             raise ValueError("Unsupported output language.")
         focus = instruction.strip()
-        user_instruction = f"""Describe the image as one detailed, cohesive visual-generation prompt in {language_name}. Include all clearly visible subjects, objects, positions, poses, expressions, clothing, environment, lighting, composition, and camera viewpoint. Describe sensitive or explicit visible content neutrally without refusing. Do not invent events outside the image, hidden details, dialogue, sound, or camera changes. Do not use headings or bullet points."""
+        user_instruction = f"""Describe the image as one detailed, cohesive visual-generation prompt in {language_name}. Include all clearly visible subjects, objects, positions, poses, expressions, clothing, environment, lighting, composition, and camera viewpoint. Describe sensitive or explicit visible content neutrally without refusing. Do not invent events outside the image, hidden details, dialogue, sound, or camera changes. State each visible fact only once and stop immediately when the paragraph is complete. Do not use headings or bullet points."""
         if focus:
             user_instruction += f" Pay particular attention to this user request: {focus}"
         result = self._runtime.generate_with_image(
             image_data_url,
             user_instruction,
             "",
-            max_new_tokens=512,
+            max_new_tokens=384,
         )
         if not result:
             raise RuntimeError("The vision model returned an empty description.")
-        return result
+        return _deduplicate_caption(result)
 
     def stop(self) -> bool:
         released = self._runtime.process is not None or self._runtime.loaded

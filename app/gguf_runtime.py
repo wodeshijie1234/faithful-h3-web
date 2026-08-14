@@ -180,10 +180,12 @@ class GgufRuntime:
             temperature=0.1,
             top_p=0.8,
             max_new_tokens=max_new_tokens,
+            repeat_penalty=1.15,
         )
 
     def _chat_completion(self, messages: list[dict], *, temperature: float, top_p: float,
-                         max_new_tokens: int, stop_on_json: bool = False) -> str:
+                         max_new_tokens: int, stop_on_json: bool = False,
+                         repeat_penalty: float | None = None) -> str:
         self.started_at = time.monotonic()
         self._set_progress(active=True, phase="loading")
         try:
@@ -202,6 +204,8 @@ class GgufRuntime:
         }
         if stop_on_json:
             payload["response_format"] = {"type": "json_object"}
+        if repeat_penalty is not None:
+            payload["repeat_penalty"] = float(repeat_penalty)
         request = Request(
             self.base_url + "/v1/chat/completions", data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"}, method="POST",
