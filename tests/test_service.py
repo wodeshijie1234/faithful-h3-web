@@ -15,46 +15,35 @@ class FakeRuntime:
 
 class PromptServiceTests(unittest.TestCase):
     def test_enrichment_maps_all_requested_strength_levels(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，特写他按下遥控器，切换中景，女生静止不动，镜头切换，极低视角仰拍。"
         runtime = FakeRuntime([
-            "昏暗的室内空间以克制暖光勾勒背景层次。",
-            "雨夜街道的霓虹反光、潮湿空气与深邃阴影共同构成背景氛围。",
+            "integrated30", "PASS",
+            "integrated50", "PASS",
+            "integrated80", "PASS",
+            "integrated100", "PASS",
         ])
         service = PromptService(runtime)
 
-        outputs = [service.enrich(source, strength) for strength in (0, 30, 50, 80, 100)]
+        outputs = [service.enrich("source", strength) for strength in (0, 30, 50, 80, 100)]
 
-        self.assertEqual(source, outputs[0])
-        self.assertIn("焦点稳定落在按键和手部动作上", outputs[1])
-        self.assertIn("人物相对位置与前后动作保持连续", outputs[2])
-        self.assertIn("静止姿态与空洞目光在镜头切换后保持一致", outputs[3])
-        self.assertIn("按键动作的节奏与后续镜头切换保持连贯", outputs[4])
-        self.assertIn("昏暗的室内空间", outputs[3])
-        self.assertIn("雨夜街道的霓虹反光", outputs[4])
-        self.assertTrue(all("图1是男生" in output and "图2是女生" in output for output in outputs))
-        self.assertEqual(2, len(runtime.calls))
+        self.assertEqual(
+            ["source", "integrated30", "integrated50", "integrated80", "integrated100"],
+            outputs,
+        )
+        self.assertEqual(
+            [(0.375, 0.53), (0.525, 0.65), (0.75, 0.83), (0.9, 0.95)],
+            [(call[2]["temperature"], call[2]["top_p"]) for call in runtime.calls[::2]],
+        )
 
     def test_enrichment_returns_one_integrated_prompt_instead_of_an_appended_afterword(self):
-        runtime = FakeRuntime([])
+        runtime = FakeRuntime(["Source facts with integrated camera detail.", "PASS"])
 
-        result = PromptService(runtime).enrich("特写人物按下遥控器，切换中景。", 50)
+        result = PromptService(runtime).enrich("source facts", 50)
 
+        self.assertEqual("Source facts with integrated camera detail.", result)
         self.assertNotIn("\n\n", result)
-        self.assertIn("焦点稳定落在按键和手部动作上", result)
-        self.assertIn("人物相对位置与前后动作保持连续", result)
-        self.assertEqual([], runtime.calls)
-
-    def test_high_strength_rejects_scene_text_with_people_or_actions(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，特写他按下遥控器。"
-        runtime = FakeRuntime(["陌生人走进房间并开始说话。"])
-
-        result = PromptService(runtime).enrich(source, 80)
-
-        self.assertIn("图1是男生", result)
-        self.assertIn("图2是女生", result)
-        self.assertIn("场景氛围：雨夜的空旷街道覆盖着潮湿反光与深邃阴影", result)
-        self.assertNotIn("陌生人", result)
-        self.assertNotIn("说话", result)
+        self.assertEqual(2, len(runtime.calls))
+        self.assertIn("not additions", runtime.calls[0][1])
+        self.assertIn("Return exactly PASS", runtime.calls[1][1])
 
     def test_zero_strength_enrichment_returns_the_source_without_inventing_details(self):
         runtime = FakeRuntime([])
@@ -65,67 +54,59 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(source, result)
         self.assertEqual([], runtime.calls)
 
-    def test_high_strength_accepts_a_chinese_scene_clause_and_keeps_protected_facts(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，男生按下遥控器。"
-        runtime = FakeRuntime(["雨夜的街道映出需虹反光，潮湿空气与深遂阴影营造出紧张氛围。"])
+    def test_enrichment_retries_when_chinese_input_is_returned_in_english(self):
+        runtime = FakeRuntime(["The person presses the remote."])
 
-        result = PromptService(runtime).enrich(source, 100)
+        result = PromptService(runtime).enrich("人物按下遥控器。", 100)
 
-        self.assertIn("雨夜的街道", result)
-        self.assertTrue(all(anchor in result for anchor in ("图1是男生", "图2是女生", "视频场景是开始于图2")))
-        self.assertIn("男生按下遥控器", result)
+        self.assertEqual("人物按下遥控器。", result)
+        self.assertEqual(1, len(runtime.calls))
+
+    def test_enrichment_repairs_a_new_plot_before_returning_it(self):
+        runtime = FakeRuntime([
+            "人物按下遥控器，陌生人进入房间并开始说话。",
+            "FAIL",
+            "人物按下遥控器，镜头短暂聚焦于按键动作。",
+            "PASS",
+        ])
+
+        result = PromptService(runtime).enrich("人物按下遥控器。", 80)
+
+        self.assertEqual("人物按下遥控器，镜头短暂聚焦于按键动作。", result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("new character", runtime.calls[1][1])
+        self.assertIn("ORIGINAL SOURCE", runtime.calls[2][0])
+
+    def test_enrichment_repairs_a_source_plus_afterword_even_when_the_content_review_passes(self):
+        source = "人物按下遥控器。"
+        runtime = FakeRuntime([
+            f"{source}\n\n镜头短暂聚焦于按键动作。",
+            "PASS",
+            "人物按下遥控器时，镜头短暂聚焦于按键动作。",
+            "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, 50)
+
+        self.assertEqual("人物按下遥控器时，镜头短暂聚焦于按键动作。", result)
         self.assertNotIn("\n\n", result)
+        self.assertEqual(4, len(runtime.calls))
 
-    def test_strength_60_is_the_first_level_that_allows_a_new_scene_clause(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，男生按下遥控器。"
-        runtime = FakeRuntime(["黄昏的废弃车站笼罩在薄雾与冷色光影中。"])
+    def test_enrichment_restores_missing_picture_identity_and_starting_reference(self):
+        source = (
+            "图1是男生，图2是女生，视频场景是开始于图2。"
+            "男生突然出现在女生后面，他拿着遥控器。"
+        )
+        runtime = FakeRuntime([
+            "男生突然出现在女生后面，镜头跟随他手中的遥控器。",
+            "PASS",
+        ])
 
-        result = PromptService(runtime).enrich(source, 60)
+        result = PromptService(runtime).enrich(source, 50)
 
-        self.assertIn("黄昏的废弃车站", result)
-        self.assertTrue(all(anchor in result for anchor in ("图1是男生", "图2是女生", "视频场景是开始于图2")))
-
-    def test_high_strength_rejects_english_scene_for_chinese_source(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，男生按下遥控器。"
-        runtime = FakeRuntime(["A dim room with warm light and soft shadows."])
-
-        result = PromptService(runtime).enrich(source, 80)
-
-        self.assertIn("雨夜的空旷街道覆盖着潮湿反光与深邃阴影", result)
-        self.assertNotIn("A dim room", result)
-
-    def test_high_strength_rejects_scene_text_with_people_actions_dialogue_or_camera(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，男生按下遥控器。"
-        unsafe_scenes = [
-            "陌生人走进雨夜的街道。",
-            "远处传来“别动”的说话声。",
-            "镜头缓慢推近空旷的走廊。",
-        ]
-
-        for unsafe_scene in unsafe_scenes:
-            with self.subTest(scene=unsafe_scene):
-                result = PromptService(FakeRuntime([unsafe_scene])).enrich(source, 80)
-                self.assertIn("雨夜的空旷街道覆盖着潮湿反光与深邃阴影", result)
-                self.assertNotIn(unsafe_scene, result)
-
-    def test_high_strength_rejects_a_new_prop_in_scene_text(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，男生按下遥控器。"
-        runtime = FakeRuntime(["是暧的室内空间中，电视屏幕和冰箱嗡鸣在远处延续。"])
-
-        result = PromptService(runtime).enrich(source, 60)
-
-        self.assertIn("昏暗的室内场景笼罩在冷色月光与寂静空气中", result)
-        self.assertNotIn("电视", result)
-        self.assertNotIn("冰箱", result)
-
-    def test_high_strength_rejects_a_new_lamp_in_scene_text(self):
-        source = "图1是男生，图2是女生，视频场景是开始于图2，男生按下遥控器。"
-        runtime = FakeRuntime(["是暧的客厅里，冷色调的台灯在背景中投下微弱的光晕。"])
-
-        result = PromptService(runtime).enrich(source, 60)
-
-        self.assertIn("昏暗的室内场景笼罩在冷色月光与寂静空气中", result)
-        self.assertNotIn("台灯", result)
+        self.assertTrue(result.startswith("图1是男生，图2是女生，视频场景是开始于图2，"))
+        self.assertIn("男生突然出现在女生后面", result)
+        self.assertNotIn("\n\n", result)
 
     def test_decompose_returns_editable_modules(self):
         runtime = FakeRuntime([

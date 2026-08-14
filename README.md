@@ -21,7 +21,12 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.7 (2026-08-14)
+## What's new in v1.3.8 (2026-08-14)
+
+- Restored the previous model-driven prompt-enrichment behavior after feedback that the fixed high-strength scene restrictions were too rigid.
+- The rollback affects prompt enrichment only; faithful conversion, Ref2VA timeline handling, model selection, and local runtime behavior are unchanged.
+
+## v1.3.7 (2026-08-14)
 
 - Prompt enrichment now produces one cohesive prompt and automatically removes disconnected source-plus-afterword output or unsupported new plot elements.
 - Explicit Chinese picture identities and starting-reference facts remain protected during prompt enrichment.
