@@ -8,12 +8,12 @@ const I18N = {
     scenePlaceholder: "Only facts that apply across shots.", shots: "Shot", duration: "Duration", startsAt: "Starts at",
     totalDuration: "Total duration", action: "Action & dialogue", camera: "Camera", soundscape: "Overall soundscape",
     soundPlaceholder: "Leave empty to infer supported sounds from actions and dialogue.", music: "Non-diegetic music",
-    musicPlaceholder: "Leave empty for N/A or supported inference.", h3Output: "H3 output", convertButton: "Convert / update H3",
+    musicPlaceholder: "Leave empty for N/A or supported inference.", h3Output: "H3 output", convertButton: "Convert / update H3", directConvert: "Convert directly to H3",
     download: "Download model", releaseMemory: "Release memory", releasingMemory: "Releasing...",
     memoryReleased: "Memory and VRAM released", memoryAlreadyFree: "No loaded model to release", downloading: "Downloading model...",
     modelMissing: "Model not downloaded", modelReady: "Model ready", modelLoading: "Model loaded", working: "Working...",
     runtimeDone: "{backend} · {seconds}s",
-    importDone: "Modules filled. Review them before conversion.", enrichDone: "Enrichment complete", convertDone: "H3 and editing modules updated",
+    importDone: "Modules filled. Review them before conversion.", enrichDone: "Enrichment complete", convertDone: "H3 and editing modules updated", directConvertDone: "H3 generated from the source prompt",
     enterPrompt: "Enter a prompt first.", noModuleContent: "Fill or import at least one visual module first.", requestFailed: "Request failed", copied: "Copied",
     help: {
       model: ["Local model", "The model runs locally on the NVIDIA GPU."],
@@ -75,6 +75,15 @@ const I18N = {
   }
 };
 
+Object.assign(I18N["zh-CN"], {
+  directConvert: "\u76f4\u63a5\u8f6c\u4e3a H3",
+  directConvertDone: "\u5df2\u6839\u636e\u539f\u59cb\u63d0\u793a\u8bcd\u751f\u6210 H3"
+});
+Object.assign(I18N["zh-TW"], {
+  directConvert: "\u76f4\u63a5\u8f49\u70ba H3",
+  directConvertDone: "\u5df2\u6839\u64da\u539f\u59cb\u63d0\u793a\u8a5e\u751f\u6210 H3"
+});
+
 let language = localStorage.getItem("faithful-h3-language") || "en";
 let mode = "fl2va";
 let shotCount = 3;
@@ -133,12 +142,14 @@ function formatTime(seconds) {
 
 function shotTemplate(index, data = {}) {
   const duration = normalizeDuration(data.duration_seconds ?? 3);
+  const removeDisabled = shotCount <= 1 ? "disabled" : "";
   return `<article class="shot-module" data-shot="${index}">
     <div class="shot-heading">
-      <strong>${t("shots")} ${index + 1}</strong>
+      <div class="shot-title"><span class="drag-handle" draggable="true" title="Drag to reorder" aria-hidden="true">&#8645;</span><strong>${t("shots")} ${index + 1}</strong></div>
       <div class="shot-timing">
         <span class="shot-start"><span>${t("startsAt")}</span><output class="shot-start-value">00:00.000</output></span>
         <label class="duration-control"><span>${t("duration")}</span><span class="duration-input"><input class="shot-duration" type="number" min="0.5" max="30" step="0.5" value="${duration.toFixed(1)}"><span>s</span></span></label>
+        <button class="icon-button shot-remove" type="button" title="Remove shot" aria-label="Remove shot" ${removeDisabled}>&#8722;</button>
       </div>
     </div>
     <div class="shot-fields">
@@ -161,7 +172,6 @@ function renderShots(data = []) {
   shotCount = Math.max(1, data.length || shotCount);
   $("shots-list").innerHTML = Array.from({length: shotCount}, (_, index) => shotTemplate(index, data[index] || {})).join("");
   $("shot-count").textContent = String(shotCount);
-  $("remove-shot").disabled = shotCount <= 1;
   recalculateTimeline();
 }
 
@@ -252,14 +262,67 @@ $("add-shot").addEventListener("click", () => {
   data.push({duration_seconds: 3});
   renderShots(data);
 });
-$("remove-shot").addEventListener("click", () => {
-  if (shotCount <= 1) return;
+$("shots-list").addEventListener("click", event => {
+  const remove = event.target.closest(".shot-remove");
+  if (!remove || shotCount <= 1) return;
+  const shot = remove.closest(".shot-module");
   const data = collectModules().shots;
-  data.pop();
+  data.splice(Number(shot.dataset.shot), 1);
   renderShots(data);
+});
+
+let draggedShotIndex = null;
+$("shots-list").addEventListener("dragstart", event => {
+  const handle = event.target.closest(".drag-handle");
+  if (!handle) return;
+  const shot = handle.closest(".shot-module");
+  draggedShotIndex = Number(shot.dataset.shot);
+  shot.classList.add("shot-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", String(draggedShotIndex));
+});
+$("shots-list").addEventListener("dragover", event => {
+  const shot = event.target.closest(".shot-module");
+  if (!shot || draggedShotIndex === null) return;
+  event.preventDefault();
+  document.querySelectorAll(".shot-module.drag-over").forEach(item => item.classList.remove("drag-over"));
+  shot.classList.add("drag-over");
+});
+$("shots-list").addEventListener("drop", event => {
+  const target = event.target.closest(".shot-module");
+  if (!target || draggedShotIndex === null) return;
+  event.preventDefault();
+  const targetIndex = Number(target.dataset.shot);
+  const data = collectModules().shots;
+  const [moved] = data.splice(draggedShotIndex, 1);
+  const insertionIndex = draggedShotIndex < targetIndex ? targetIndex - 1 : targetIndex;
+  data.splice(insertionIndex, 0, moved);
+  draggedShotIndex = null;
+  renderShots(data);
+});
+$("shots-list").addEventListener("dragend", () => {
+  draggedShotIndex = null;
+  document.querySelectorAll(".shot-module.shot-dragging, .shot-module.drag-over").forEach(item => item.classList.remove("shot-dragging", "drag-over"));
 });
 $("import-source").addEventListener("click", () => importToModules($("source-input").value, "source-status", $("import-source")));
 $("import-enriched").addEventListener("click", () => importToModules($("enrich-output").value, "enrich-status", $("import-enriched")));
+
+$("convert-source").addEventListener("click", async () => {
+  const text = $("source-input").value.trim();
+  if (!text) return setStatus("source-status", t("enterPrompt"), "error");
+  setStatus("source-status", t("working"), "loading");
+  setWorking($("convert-source"), true);
+  try {
+    const data = await api("convert", text);
+    $("h3-output").value = data.output;
+    setStatus("source-status", runtimeMessage(data, t("directConvertDone")));
+    $("result-heading").scrollIntoView({behavior: "smooth", block: "start"});
+  } catch (error) {
+    setStatus("source-status", error.message, "error");
+  } finally {
+    setWorking($("convert-source"), false);
+  }
+});
 
 $("enrich").addEventListener("click", async () => {
   const text = $("enrich-input").value.trim();

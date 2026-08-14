@@ -131,7 +131,11 @@ def normalize_modules(raw: dict, mode: str) -> dict:
 
 def parse_modules_json(text: str, mode: str) -> dict:
     value = str(text or "").strip()
-    value = re.sub(r"^```(?:json)?\s*|\s*```$", "", value, flags=re.I)
+    value = re.sub(r"```(?:json)?", "", value, flags=re.I).replace("```", "").strip()
+    start, end = value.find("{"), value.rfind("}")
+    if start >= 0 and end >= start:
+        value = value[start:end + 1]
+    value = re.sub(r",\s*([}\]])", r"\1", value)
     return normalize_modules(json.loads(value), mode)
 
 
@@ -201,6 +205,11 @@ def translate_modules_system(mode: str) -> str:
     return f"""Translate every non-empty string value in the supplied JSON into faithful English. Preserve the exact JSON schema and key order {json.dumps(keys)}, shot count, duration_seconds values, labels, tags, reference IDs, explicit facts, positions, actions, camera directions, and dialogue. This is literal translation only. Never add appearance, clothing, setting, props, lighting, mood, motion, camera, or any other fact. Keep dialogue text in its original language inside existing <d> tags. Return JSON only."""
 
 
+def translate_modules_repair_system(mode: str) -> str:
+    keys = REF_MODULE_KEYS if normalize_mode(mode) == "ref2va" else MODULE_KEYS
+    return f"""Use ORIGINAL MODULE JSON as the sole source of facts. Return corrected, valid JSON with the exact schema and key order {json.dumps(keys)}. Translate every non-empty original value faithfully into English. The proposed JSON may contain inventions: delete every unsupported appearance, clothing, setting, prop, lighting, mood, motion, camera, relationship, intention, or other visual fact. Preserve original shot count, duration_seconds, labels, tags, reference IDs, positions, actions, camera directions, dialogue, and every supported fact. Do not add, remove, summarize, or embellish. Return JSON only."""
+
+
 def audit(text: str, mode: str) -> dict:
     missing = [field for field in required_fields(mode) if field not in str(text or "")]
     return {"valid": not missing and has_complete_structure(text, mode), "missing": missing}
@@ -232,6 +241,11 @@ def conversion_system(mode: str) -> str:
     if mode == "fl2va":
         return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate each source clause exactly once and in the original order. Preserve every explicit person, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, resolve ambiguity, or continue anything. Never infer appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, props, lighting, mood, camera movement, body details, relationships, intentions, or transitions. If the source does not specify a fact, omit it. Return only the English translation."""
     return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
+
+
+def translation_repair_system(mode: str) -> str:
+    normalize_mode(mode)
+    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, or camera movement. Return only the corrected English translation, not H3 formatting or commentary."""
 
 
 def enrichment_system(strength: int) -> str:

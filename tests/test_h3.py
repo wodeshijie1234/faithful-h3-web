@@ -94,6 +94,16 @@ class H3ContractTests(unittest.TestCase):
         self.assertEqual("动作1", modules["shots"][0]["action"])
         self.assertEqual(3.5, modules["shots"][0]["duration_seconds"])
 
+    def test_decompose_parser_accepts_fenced_json_with_a_trailing_comma(self):
+        raw = '''The extracted modules are:
+```json
+{"scene":"source","shots":[{"duration_seconds":3,"action":"run","camera":""}],"overall_soundscape":"","non_diegetic_music":"",}
+```
+'''
+        modules = h3.parse_modules_json(raw, "fl2va")
+        self.assertEqual("source", modules["scene"])
+        self.assertEqual("run", modules["shots"][0]["action"])
+
     def test_ref2va_requires_all_six_fields(self):
         text = "subject_definitions: x\nsummary: x\nretention_analysis: x\ndetailed_description: x\noverall_soundscape: N/A\nnon_diegetic_music: N/A"
         self.assertTrue(h3.audit(text, "ref2va")["valid"])

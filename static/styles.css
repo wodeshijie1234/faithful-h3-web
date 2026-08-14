@@ -170,13 +170,19 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 9px 0 11
 .shot-actions { display: flex; gap: 7px; }
 .shots-list { display: grid; gap: 10px; }
 .shot-module { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: #fff; }
+.shot-module.shot-dragging { opacity: .48; }
+.shot-module.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(22, 134, 79, .14); }
 .shot-heading { min-height: 48px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 18px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .shot-heading > strong { font-size: 13px; }
+.shot-title { display: flex; align-items: center; gap: 7px; }
+.drag-handle { color: var(--muted); cursor: grab; font-size: 18px; line-height: 1; user-select: none; }
+.drag-handle:active { cursor: grabbing; }
 .shot-timing { display: flex; align-items: center; gap: 16px; }
 .shot-start, .duration-control { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; font-weight: 650; }
 .shot-start-value { min-width: 68px; color: #3b4942; font-size: 12px; font-variant-numeric: tabular-nums; }
 .duration-input { display: flex; align-items: center; gap: 5px; }
 .shot-duration { width: 70px; height: 32px; border: 1px solid var(--border-strong); border-radius: 4px; padding: 5px 7px; color: #26312c; background: #fff; font: inherit; font-size: 12px; font-variant-numeric: tabular-nums; }
+.shot-remove { flex: 0 0 auto; }
 .shot-fields { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 14px; padding: 12px; }
 .shot-fields textarea { min-height: 82px; }
 .audio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }

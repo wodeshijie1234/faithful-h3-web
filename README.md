@@ -20,8 +20,11 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.2 (2026-08-14)
+## What's new in v1.3.3 (2026-08-14)
 
+- Convert an original prompt directly to faithful H3 without first importing it into modules.
+- Remove any individual shot and drag shots into a new order; timestamps update automatically.
+- Recover common malformed module JSON and retry one strict no-invention correction before showing a failure.
 - Support an optional local startup configuration for reusing an existing GGUF model and runtime.
 - Prevent corrupt Chinese GGUF previews from being displayed as question marks; Chinese source prompts fall back to the original source text in the matching H3 template.
 - Reject unreadable previews for non-Chinese source prompts instead of returning corrupted text.
@@ -93,6 +96,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.3.2`<br>
+Version `1.3.3`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

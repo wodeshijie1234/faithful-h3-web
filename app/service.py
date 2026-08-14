@@ -32,7 +32,18 @@ class PromptService:
             max_new_tokens=8,
         ).strip().upper()
         if review != "PASS":
-            raise RuntimeError("The visual translation failed the strict no-invention review; no H3 output was returned.")
+            translation = self._timed_generate(
+                stages, "translation_retry",
+                f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700,
+            )
+            review = self._timed_generate(
+                stages, "visual_review_retry",
+                f"ORIGINAL SOURCE:\n{text}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
+            ).strip().upper()
+            if review != "PASS":
+                raise RuntimeError("The visual translation failed the strict no-invention review after automatic correction; no H3 output was returned.")
         soundscape, music = h3.parse_audio_output(
             self._timed_generate(stages, "audio", text, h3.audio_system(), temperature=0.01, top_p=0.1,
                                  max_new_tokens=160)
@@ -57,23 +68,29 @@ class PromptService:
         finally:
             stages.append({"name": name, "elapsed_seconds": round(time.monotonic() - started, 3)})
 
+    def _generate_modules_json(self, source: str, mode: str, system: str, *, max_new_tokens: int) -> dict:
+        settings = {"temperature": 0.01, "top_p": 0.05, "max_new_tokens": max_new_tokens, "stop_on_json": True}
+        output = self.runtime.generate(source, system, **settings)
+        try:
+            return h3.parse_modules_json(output, mode)
+        except (json.JSONDecodeError, ValueError):
+            retry = self.runtime.generate(source, system, **settings)
+            try:
+                return h3.parse_modules_json(retry, mode)
+            except (json.JSONDecodeError, ValueError) as exc:
+                raise RuntimeError("The model returned invalid module data after automatic recovery. Please try again.") from exc
+
     def decompose(self, text: str, mode: str) -> dict:
-        output = self.runtime.generate(
-            text, h3.decompose_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=384, stop_on_json=True
-        )
-        return {"modules": h3.parse_modules_json(output, mode)}
+        return {"modules": self._generate_modules_json(
+            text, mode, h3.decompose_system(mode), max_new_tokens=384
+        )}
 
     def convert_modules(self, modules: dict, mode: str) -> dict:
         source_modules = h3.normalize_modules(modules, mode)
-        translated_raw = self.runtime.generate(
-            json.dumps(source_modules, ensure_ascii=False),
-            h3.translate_modules_system(mode),
-            temperature=0.01,
-            top_p=0.05,
-            max_new_tokens=1200,
-            stop_on_json=True,
+        translated = self._generate_modules_json(
+            json.dumps(source_modules, ensure_ascii=False), mode,
+            h3.translate_modules_system(mode), max_new_tokens=1200
         )
-        translated = h3.parse_modules_json(translated_raw, mode)
         original_visual = h3.module_source_text(source_modules, mode)
         translated_visual = h3.module_source_text(translated, mode)
         review = self.runtime.generate(
@@ -84,7 +101,21 @@ class PromptService:
             max_new_tokens=8,
         ).strip().upper()
         if review != "PASS":
-            raise RuntimeError("The visual translation failed the strict no-invention review; no H3 output was returned.")
+            translated = self._generate_modules_json(
+                f"ORIGINAL MODULE JSON:\n{json.dumps(source_modules, ensure_ascii=False)}\n\n"
+                f"PROPOSED ENGLISH MODULE JSON:\n{json.dumps(translated, ensure_ascii=False)}",
+                mode, h3.translate_modules_repair_system(mode), max_new_tokens=1200,
+            )
+            translated_visual = h3.module_source_text(translated, mode)
+            review = self.runtime.generate(
+                f"ORIGINAL SOURCE:\n{original_visual}\n\nPROPOSED ENGLISH TRANSLATION:\n{translated_visual}",
+                h3.visual_review_system(mode),
+                temperature=0.01,
+                top_p=0.1,
+                max_new_tokens=8,
+            ).strip().upper()
+            if review != "PASS":
+                raise RuntimeError("The visual translation failed the strict no-invention review after automatic correction; no H3 output was returned.")
         if not translated["overall_soundscape"] and not translated["non_diegetic_music"]:
             soundscape, music = h3.parse_audio_output(
                 self.runtime.generate(

@@ -2,6 +2,18 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.3 - 2026-08-14
+
+### Added
+
+- Added direct faithful H3 conversion from the source prompt without requiring module import first.
+- Added per-shot removal controls and drag-to-reorder support. Start timestamps are recalculated after every change and the first shot starts at `00:00.000`.
+
+### Fixed
+
+- Recover fenced module JSON, object wrappers, and trailing commas locally; retry one malformed or unterminated model JSON response before reporting a concise recovery failure.
+- Retry a failed strict visual review once using a deletion-only correction pass. The no-invention guard remains enforced after the retry.
+
 ## 1.3.2 - 2026-08-14
 
 ### Fixed
