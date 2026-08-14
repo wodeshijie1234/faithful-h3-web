@@ -149,6 +149,57 @@ Object.assign(I18N["zh-TW"], {
   emptyQueue: "佇列為空。", emptyHistory: "暫無歷史記錄。", queued: "已加入佇列", queueRunning: "佇列執行中…", queueComplete: "佇列完成", imageFile: "圖片", failed: "失敗", dragReorder: "拖曳排序"
 });
 
+Object.assign(I18N.en, {
+  storyboardView: "Storyboard workspace", storySource: "Source", uploadStoryboardImage: "Upload comic page or image",
+  storyTaskType: "Task type", comicPanels: "Comic panels", viralVideo: "Viral video", creativeGoal: "Creative goal",
+  storyGoalPlaceholder: "Describe pacing, audience, platform, or constraints.", outputLanguage: "Output language",
+  detectedPanels: "Detected panels", shotTimeline: "Shot timeline", addShot: "Add shot", shotNumber: "Shot",
+  startTime: "Start", shotDetails: "Shot details", noShots: "No shots yet", analyzeToBegin: "Analyze panels or add a shot to begin.",
+  totalShots: "Total shots", storyDetails: "Story details", storyTitle: "Title", synopsis: "Synopsis",
+  characters: "Characters", charactersPlaceholder: "One character per line", viralHook: "Opening hook",
+  soundDesign: "Sound design", ending: "Ending", structuredOutput: "Structured output", visionModel: "Vision model",
+  fastVisionModel: "Fast 2B", accurateVisionModel: "Accurate 8B", analyzePanels: "Analyze panels",
+  generateStoryboard: "Generate storyboard", analyzingPanels: "Analyzing panels...", storyboardDone: "Storyboard generated",
+  panel: "Panel", none: "None", shotSize: "Shot size", cameraMovement: "Camera movement", visualAction: "Visual action",
+  dialogue: "Dialogue", sound: "Sound", transition: "Transition", visionFastOption: "Fast vision model (2B)",
+  visionAccurateOption: "Accurate vision model (8B)"
+});
+I18N.en.help.storyboard = ["Storyboard workspace", "Detects comic panels locally, then uses the selected vision model to build an editable shot timeline. Comic mode preserves visible panel evidence; viral-video mode may create a story around the source-image identity anchor."];
+
+Object.assign(I18N["zh-CN"], {
+  storyboardView: "分镜工作台", storySource: "素材", uploadStoryboardImage: "上传漫画分镜图或单张图片",
+  storyTaskType: "任务类型", comicPanels: "漫画分镜", viralVideo: "爆款视频", creativeGoal: "创作目标",
+  storyGoalPlaceholder: "填写节奏、受众、平台或必须遵守的约束。", outputLanguage: "输出语言",
+  detectedPanels: "检测到的分格", shotTimeline: "镜头时间线", addShot: "新增镜头", shotNumber: "镜头",
+  startTime: "起始", shotDetails: "镜头内容", noShots: "暂无镜头", analyzeToBegin: "分析分格或手动新增镜头后开始编辑。",
+  totalShots: "镜头总数", storyDetails: "故事与结构化输出", storyTitle: "标题", synopsis: "梗概",
+  characters: "角色", charactersPlaceholder: "每行一个角色", viralHook: "开场钩子",
+  soundDesign: "声音设计", ending: "结尾", structuredOutput: "结构化输出", visionModel: "识图模型",
+  fastVisionModel: "快速 2B", accurateVisionModel: "准确 8B", analyzePanels: "分析分格",
+  generateStoryboard: "生成分镜", analyzingPanels: "正在分析分格…", storyboardDone: "分镜已生成",
+  panel: "分格", none: "无", shotSize: "景别", cameraMovement: "运镜", visualAction: "画面动作",
+  dialogue: "对白", sound: "声音", transition: "转场", visionFastOption: "快速识图模型（2B）",
+  visionAccurateOption: "准确识图模型（8B）"
+});
+I18N["zh-CN"].help.storyboard = ["分镜工作台", "先在本地检测漫画分格，再由所选视觉模型生成可编辑镜头时间线。漫画模式忠于画面证据；爆款视频模式可围绕原图人物和视觉锚点创作剧情。"];
+
+Object.assign(I18N["zh-TW"], {
+  storyboardView: "分鏡工作台", storySource: "素材", uploadStoryboardImage: "上傳漫畫分鏡圖或單張圖片",
+  storyTaskType: "任務類型", comicPanels: "漫畫分鏡", viralVideo: "爆款影片", creativeGoal: "創作目標",
+  storyGoalPlaceholder: "填寫節奏、受眾、平台或必須遵守的約束。", outputLanguage: "輸出語言",
+  detectedPanels: "偵測到的分格", shotTimeline: "鏡頭時間線", addShot: "新增鏡頭", shotNumber: "鏡頭",
+  startTime: "起始", shotDetails: "鏡頭內容", noShots: "暫無鏡頭", analyzeToBegin: "分析分格或手動新增鏡頭後開始編輯。",
+  totalShots: "鏡頭總數", storyDetails: "故事與結構化輸出", storyTitle: "標題", synopsis: "梗概",
+  characters: "角色", charactersPlaceholder: "每行一個角色", viralHook: "開場鉤子",
+  soundDesign: "聲音設計", ending: "結尾", structuredOutput: "結構化輸出", visionModel: "識圖模型",
+  fastVisionModel: "快速 2B", accurateVisionModel: "準確 8B", analyzePanels: "分析分格",
+  generateStoryboard: "生成分鏡", analyzingPanels: "正在分析分格…", storyboardDone: "分鏡已生成",
+  panel: "分格", none: "無", shotSize: "景別", cameraMovement: "運鏡", visualAction: "畫面動作",
+  dialogue: "對白", sound: "聲音", transition: "轉場", visionFastOption: "快速識圖模型（2B）",
+  visionAccurateOption: "準確識圖模型（8B）"
+});
+I18N["zh-TW"].help.storyboard = ["分鏡工作台", "先在本機偵測漫畫分格，再由所選視覺模型生成可編輯鏡頭時間線。漫畫模式忠於畫面證據；爆款影片模式可圍繞原圖人物和視覺錨點創作劇情。"];
+
 const storedLanguage = localStorage.getItem("faithful-h3-language");
 let language = Object.prototype.hasOwnProperty.call(I18N, storedLanguage) ? storedLanguage : "en";
 let mode = "fl2va";
@@ -165,11 +216,12 @@ const draftTimers = new Map();
 let workspaceDialogType = "queue";
 let workspaceDialogWorkspace = "h3";
 let queueRunning = false;
+let storyboardUI = null;
 const $ = id => document.getElementById(id);
 const t = key => I18N[language][key] || I18N.en[key] || key;
 
 function setView(requestedView, updateHash = true) {
-  const view = ["h3", "enrich", "vision"].includes(requestedView) ? requestedView : "h3";
+  const view = ["h3", "enrich", "vision", "storyboard"].includes(requestedView) ? requestedView : "h3";
   currentView = view;
   document.querySelectorAll(".view-tab").forEach(button => {
     const active = button.dataset.view === view;
@@ -179,8 +231,10 @@ function setView(requestedView, updateHash = true) {
   $("h3-view").hidden = view !== "h3";
   $("enrich-view").hidden = view !== "enrich";
   $("vision-view").hidden = view !== "vision";
-  document.querySelectorAll("[data-h3-control]").forEach(control => control.hidden = view === "vision");
-  if (view === "vision") updateVisionStatus();
+  $("storyboard-view").hidden = view !== "storyboard";
+  document.querySelector(".editor-workspace").classList.toggle("storyboard-active", view === "storyboard");
+  document.querySelectorAll("[data-h3-control]").forEach(control => control.hidden = view === "vision" || view === "storyboard");
+  if (view === "vision" || view === "storyboard") updateVisionStatus();
   else updateModelStatus();
   const hash = `#${view}`;
   if (updateHash && location.hash !== hash) history.replaceState(null, "", hash);
@@ -269,7 +323,7 @@ async function updateResourceMonitor() {
 }
 
 function startProgressMonitor(statusId) {
-  const loadingText = currentView === "vision" ? t("loadingVisionModel") : t("loadingModel");
+  const loadingText = currentView === "vision" || currentView === "storyboard" ? t("loadingVisionModel") : t("loadingModel");
   setStatus(statusId, loadingText, "loading");
   setTopStatus(loadingText, "neutral");
   const update = async () => {
@@ -296,7 +350,7 @@ function startProgressMonitor(statusId) {
   return async () => {
     if (progressTimer) clearInterval(progressTimer);
     progressTimer = null;
-    if (currentView === "vision") await updateVisionStatus();
+    if (currentView === "vision" || currentView === "storyboard") await updateVisionStatus();
     else await updateModelStatus();
   };
 }
@@ -326,17 +380,14 @@ function applyLanguage() {
   $("download-model").textContent = t("download");
   $("release-memory").textContent = t("releaseMemory");
   $("language").value = language;
+  if (storyboardUI) storyboardUI.apply(storyboardUI.payload());
   updateModelStatus();
   updateVisionStatus();
 }
 
 function updateDownloadOptions(data) {
   const states = Object.fromEntries(data.models.map(item => [item.id, item]));
-  states.vision = {
-    ready: data.vision_ready,
-    downloading: data.vision_downloading,
-    error: data.vision_error,
-  };
+  (data.vision_models || []).forEach(item => { states[`vision-${item.id}`] = item; });
   document.querySelectorAll('#download-dialog input[type="checkbox"]').forEach(input => {
     const state = states[input.value];
     input.checked = false;
@@ -369,12 +420,15 @@ function loadVisionFile(file) {
 
 async function updateVisionStatus() {
   try {
-    const data = await fetch("/api/vision/status").then(response => response.json());
-    const message = data.downloading ? t("visionDownloading") : data.loaded ? t("visionLoaded") : data.ready ? t("visionReady") : t("visionMissing");
-    if (currentView === "vision") setTopStatus(data.error || message, data.error ? "error" : data.ready ? "ready" : "neutral");
-    $("vision-analyze").disabled = data.downloading || !data.ready || !visionImageDataUrl;
-    if (data.downloading && !visionStatusTimer) visionStatusTimer = setInterval(updateVisionStatus, 2000);
-    if (!data.downloading && visionStatusTimer) {
+    const data = await fetch("/api/status").then(response => response.json());
+    const selectedId = currentView === "storyboard" ? ($("storyboard-model").value || "accurate") : ($("vision-model").value || "fast");
+    const selected = (data.vision_models || []).find(item => item.id === selectedId) || {};
+    const message = selected.downloading ? t("visionDownloading") : selected.loaded ? t("visionLoaded") : selected.ready ? t("visionReady") : t("visionMissing");
+    if (currentView === "vision" || currentView === "storyboard") setTopStatus(selected.error || message, selected.error ? "error" : selected.ready ? "ready" : "neutral");
+    $("vision-analyze").disabled = selectedId === $("vision-model").value && (selected.downloading || !selected.ready || !visionImageDataUrl);
+    if (storyboardUI && currentView === "storyboard") storyboardUI.setModelAvailability(Boolean(selected.ready), Boolean(selected.downloading));
+    if (selected.downloading && !visionStatusTimer) visionStatusTimer = setInterval(updateVisionStatus, 2000);
+    if (!selected.downloading && visionStatusTimer) {
       clearInterval(visionStatusTimer);
       visionStatusTimer = null;
     }
@@ -383,13 +437,14 @@ async function updateVisionStatus() {
   }
 }
 
-const workspaceStatusIds = {h3: "source-status", enrich: "enrich-status", vision: "vision-status"};
-const workspaceActionIds = {h3: "convert-source", enrich: "enrich", vision: "vision-analyze"};
+const workspaceStatusIds = {h3: "source-status", enrich: "enrich-status", vision: "vision-status", storyboard: "storyboard-status"};
+const workspaceActionIds = {h3: "convert-source", enrich: "enrich", vision: "vision-analyze", storyboard: "storyboard-generate"};
 
 function workspacePayload(workspace) {
   if (workspace === "h3") return {mode, source: $("source-input").value, output: $("h3-output").value};
   if (workspace === "enrich") return {input: $("enrich-input").value, output: $("enrich-output").value, strength: Number($("strength").value)};
-  return {imageDataUrl: visionImageDataUrl, imageName: visionImageName, instruction: $("vision-instruction").value, output: $("vision-output").value, language};
+  if (workspace === "storyboard") return storyboardUI.payload();
+  return {imageDataUrl: visionImageDataUrl, imageName: visionImageName, instruction: $("vision-instruction").value, output: $("vision-output").value, language, modelId: $("vision-model").value || "fast"};
 }
 
 function applyWorkspacePayload(workspace, payload = {}) {
@@ -407,15 +462,18 @@ function applyWorkspacePayload(workspace, payload = {}) {
     $("enrich-output").value = payload.output || "";
     $("strength").value = Number.isFinite(Number(payload.strength)) ? payload.strength : 40;
     $("strength-value").value = $("strength").value;
-  } else {
+  } else if (workspace === "vision") {
     visionImageDataUrl = payload.imageDataUrl || "";
     visionImageName = payload.imageName || "";
     $("vision-instruction").value = payload.instruction || "";
     $("vision-output").value = payload.output || "";
+    $("vision-model").value = payload.modelId || "fast";
     const preview = $("vision-preview");
     preview.src = visionImageDataUrl;
     preview.hidden = !visionImageDataUrl;
     $("vision-dropzone").classList.toggle("has-preview", Boolean(visionImageDataUrl));
+  } else {
+    storyboardUI.apply(payload);
   }
 }
 
@@ -441,7 +499,7 @@ async function refreshWorkspaceIndicators(workspace) {
 }
 
 async function restoreWorkspaceDrafts() {
-  for (const workspace of ["h3", "enrich", "vision"]) {
+  for (const workspace of ["h3", "enrich", "vision", "storyboard"]) {
     applyWorkspacePayload(workspace, await workspaceStore.getDraft(workspace));
     await refreshWorkspaceIndicators(workspace);
   }
@@ -453,20 +511,33 @@ function queueInput(workspace) {
   if (workspace === "h3" && !payload.source.trim()) throw new Error(t("enterPrompt"));
   if (workspace === "enrich" && !payload.input.trim()) throw new Error(t("enterPrompt"));
   if (workspace === "vision" && !payload.imageDataUrl) throw new Error(t("selectImage"));
+  if (workspace === "storyboard" && !payload.imageDataUrl) throw new Error(t("selectImage"));
   return payload;
 }
 
 function displayInput(workspace, payload) {
-  if (workspace === "vision") return payload.imageName || t("imageFile");
+  if (workspace === "vision" || workspace === "storyboard") return payload.imageName || t("imageFile");
   return String(workspace === "h3" ? (payload.source || payload.input || "") : (payload.input || payload.source || "")).trim();
 }
 
 async function callWorkspaceTask(workspace, payload) {
   if (workspace === "h3") return api("convert", payload.source, {mode: payload.mode});
   if (workspace === "enrich") return api("enrich", payload.input, {strength: Number(payload.strength)});
+  if (workspace === "storyboard") {
+    const response = await fetch("/api/storyboard/generate", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        image_data_url: payload.imageDataUrl, task_type: payload.taskType, goal: (payload.goal || "").trim(),
+        language: payload.language || language, model_id: payload.modelId || "accurate", panel_boxes: payload.panelBoxes || [],
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+    return data;
+  }
   const response = await fetch("/api/vision/caption", {
     method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({image_data_url: payload.imageDataUrl, instruction: (payload.instruction || "").trim(), language: payload.language || language})
+    body: JSON.stringify({image_data_url: payload.imageDataUrl, instruction: (payload.instruction || "").trim(), language: payload.language || language, model_id: payload.modelId || "fast"})
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.detail || t("requestFailed"));
@@ -476,13 +547,14 @@ async function callWorkspaceTask(workspace, payload) {
 function applyTaskOutput(workspace, payload, output) {
   if (workspace === "h3") $("h3-output").value = output;
   else if (workspace === "enrich") $("enrich-output").value = output;
-  else $("vision-output").value = output;
+  else if (workspace === "vision") $("vision-output").value = output;
+  else storyboardUI.applyGenerated(output);
 }
 
 async function runWorkspaceTask(workspace, payload, queueItem = null) {
   const statusId = workspaceStatusIds[workspace];
   const actionButton = $(workspaceActionIds[workspace]);
-  if (workspace === "vision") applyWorkspacePayload(workspace, payload);
+  if (workspace === "vision" || workspace === "storyboard") applyWorkspacePayload(workspace, payload);
   setStatus(statusId, t("working"), "loading");
   if (actionButton && !queueItem) setWorking(actionButton, true);
   const stopProgress = startProgressMonitor(statusId);
@@ -490,11 +562,12 @@ async function runWorkspaceTask(workspace, payload, queueItem = null) {
     const data = await callWorkspaceTask(workspace, payload);
     const output = data.output || "";
     applyTaskOutput(workspace, payload, output);
-    const historyEntry = {input: displayInput(workspace, payload), output, payload: {...payload, output}};
+    const historyOutput = typeof output === "string" ? output : JSON.stringify(output);
+    const historyEntry = {input: displayInput(workspace, payload), output: historyOutput, payload: {...payload, output}};
     if (queueItem) await workspaceStore.completeQueueItem(workspace, queueItem.id, historyEntry);
     else await workspaceStore.addHistory(workspace, historyEntry);
     await workspaceStore.saveDraft(workspace, {...payload, output});
-    setStatus(statusId, runtimeMessage(data, workspace === "h3" ? t("directConvertDone") : workspace === "enrich" ? t("enrichDone") : t("visionDone")));
+    setStatus(statusId, runtimeMessage(data, workspace === "h3" ? t("directConvertDone") : workspace === "enrich" ? t("enrichDone") : workspace === "storyboard" ? t("storyboardDone") : t("visionDone")));
     await refreshWorkspaceIndicators(workspace);
     return true;
   } catch (error) {
@@ -585,6 +658,12 @@ async function openWorkspaceDialog(type) {
   $("workspace-dialog").showModal();
 }
 
+storyboardUI = FaithfulStoryboardUI.create({
+  t,
+  onDraft: () => scheduleDraftSave("storyboard"),
+  setStatus: (message, type = "") => setStatus("storyboard-status", message, type),
+});
+
 document.querySelectorAll(".segment").forEach(button => button.addEventListener("click", () => {
   mode = button.dataset.mode;
   document.querySelectorAll(".segment").forEach(item => {
@@ -637,11 +716,17 @@ $("vision-analyze").addEventListener("click", async () => {
   try { await runWorkspaceTask("vision", queueInput("vision")); }
   catch (error) { setStatus("vision-status", error.message, "error"); }
 });
+$("storyboard-generate").addEventListener("click", async () => {
+  try { await runWorkspaceTask("storyboard", queueInput("storyboard")); }
+  catch (error) { setStatus("storyboard-status", error.message, "error"); }
+});
 
 ["source-input", "h3-output"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("h3")));
 ["enrich-input", "enrich-output", "strength"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("enrich")));
 $("vision-instruction").addEventListener("input", () => scheduleDraftSave("vision"));
 $("vision-output").addEventListener("input", () => scheduleDraftSave("vision"));
+$("vision-model").addEventListener("change", () => { scheduleDraftSave("vision"); updateVisionStatus(); });
+$("storyboard-model").addEventListener("change", updateVisionStatus);
 
 document.querySelectorAll("[data-workspace-action]").forEach(button => button.addEventListener("click", async () => {
   const workspace = button.closest("[data-workspace-tools]").dataset.workspaceTools;
@@ -706,12 +791,12 @@ async function updateModelStatus() {
     const el = $("model-status");
     $("model-select").value = data.selected_model;
     const backend = data.backend ? ` · ${data.backend.toUpperCase()}` : "";
-    if (currentView !== "vision") {
+    if (currentView !== "vision" && currentView !== "storyboard") {
       el.textContent = (data.downloading ? t("downloading") : data.loaded ? t("modelLoading") : data.ready ? t("modelReady") : t("modelMissing")) + backend;
       el.className = `status ${data.error ? "status-error" : data.ready ? "status-ready" : "status-neutral"}`;
       if (data.error) el.textContent = data.error;
     }
-    const allReady = data.models.every(item => item.ready) && data.vision_ready;
+    const allReady = data.models.every(item => item.ready) && (data.vision_models || []).every(item => item.ready);
     $("download-model").disabled = allReady;
     if (data.any_downloading && !statusTimer) statusTimer = setInterval(() => {
       updateModelStatus();

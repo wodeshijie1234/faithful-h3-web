@@ -3,16 +3,18 @@ const assert = require("node:assert/strict");
 
 const { WorkspaceStore, MemoryWorkspaceBackend } = require("../static/workspace-store.js");
 
-test("drafts are restored independently for all three workspaces", async () => {
+test("drafts are restored independently for all four workspaces", async () => {
   const store = new WorkspaceStore(new MemoryWorkspaceBackend());
 
   await store.saveDraft("h3", { source: "H3 draft" });
   await store.saveDraft("enrich", { source: "Enrich draft" });
   await store.saveDraft("vision", { imageDataUrl: "data:image/png;base64,AA==" });
+  await store.saveDraft("storyboard", { taskType: "comic_panels", shots: [] });
 
   assert.deepEqual(await store.getDraft("h3"), { source: "H3 draft" });
   assert.deepEqual(await store.getDraft("enrich"), { source: "Enrich draft" });
   assert.deepEqual(await store.getDraft("vision"), { imageDataUrl: "data:image/png;base64,AA==" });
+  assert.deepEqual(await store.getDraft("storyboard"), { taskType: "comic_panels", shots: [] });
 });
 
 test("history keeps the newest twenty successful results per workspace", async () => {

@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>liuliu Faithful H3</title>
-  <link rel="stylesheet" href="/static/styles.css?v=1.6.0">
-  <link rel="stylesheet" href="/static/mobile.css?v=1.6.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23147d64'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-family='Arial,sans-serif' font-size='27' font-weight='700' fill='white'%3EH3%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css?v=1.7.0">
+  <link rel="stylesheet" href="/static/mobile.css?v=1.7.0">
 </head>
 <body>
   <section id="resource-monitor" class="resource-strip" aria-label="System resources">
@@ -35,7 +36,7 @@
     </div>
   </section>
   <header class="topbar">
-    <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.6.0</span></div>
+    <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.7.0</span></div>
     <div class="top-actions">
       <span id="model-status" class="status status-neutral">Model not downloaded</span>
       <button class="help" data-help="model" data-h3-control type="button" aria-label="Model help">?</button>
@@ -60,6 +61,7 @@
       <button class="view-tab active" data-view="h3" type="button" role="tab" aria-selected="true" aria-controls="h3-view" data-i18n="h3View">H3</button>
       <button class="view-tab" data-view="enrich" type="button" role="tab" aria-selected="false" aria-controls="enrich-view" data-i18n="enrichView">Prompt enrichment</button>
       <button class="view-tab" data-view="vision" type="button" role="tab" aria-selected="false" aria-controls="vision-view" data-i18n="visionView">Image to prompt</button>
+      <button class="view-tab" data-view="storyboard" type="button" role="tab" aria-selected="false" aria-controls="storyboard-view" data-i18n="storyboardView">Storyboard workspace</button>
     </nav>
 
     <div id="h3-view" class="app-view" role="tabpanel">
@@ -152,6 +154,7 @@
             <img id="vision-preview" class="vision-preview" alt="Selected image preview" hidden>
           </label>
           <label class="vision-instruction"><span data-i18n="visionInstruction">Focus or description requirement</span><textarea id="vision-instruction" rows="3" data-i18n-placeholder="visionInstructionPlaceholder" placeholder="Optional. For example: focus on subject positions and camera angle."></textarea></label>
+          <label class="vision-model-field"><span data-i18n="visionModel">Vision model</span><select id="vision-model"><option value="fast" data-i18n="fastVisionModel">Fast 2B</option><option value="accurate" data-i18n="accurateVisionModel">Accurate 8B</option></select></label>
       <div class="vision-actions"><button id="vision-analyze" class="button button-primary" type="button" data-i18n="analyzeImage" disabled>Analyze image</button></div>
           <div id="vision-status" class="feedback" aria-live="polite"></div>
         </div>
@@ -162,16 +165,82 @@
       </div>
     </section>
     </div>
+
+    <div id="storyboard-view" class="app-view" hidden role="tabpanel">
+      <section class="workspace-tools" data-workspace-tools="storyboard" aria-label="Storyboard workspace data">
+        <span class="draft-state" data-draft-state><span class="draft-dot" aria-hidden="true"></span><span data-i18n="draftSaved">Draft saved</span></span>
+        <div class="workspace-tool-actions">
+          <button class="button button-secondary compact-button" data-workspace-action="enqueue" type="button"><span aria-hidden="true">+</span><span data-i18n="addToQueue">Add to queue</span></button>
+          <button class="button button-secondary compact-button" data-workspace-action="run" type="button"><span aria-hidden="true">&#9654;</span><span data-i18n="runQueue">Run queue</span></button>
+          <button class="button button-secondary compact-button" data-workspace-action="queue" type="button"><span data-i18n="queue">Queue</span><span class="count-badge" data-queue-count>0</span></button>
+          <button class="button button-secondary compact-button" data-workspace-action="history" type="button"><span data-i18n="history">History</span><span class="count-badge" data-history-count>0</span></button>
+        </div>
+      </section>
+
+      <section class="storyboard-workbench" aria-labelledby="storyboard-heading">
+        <h2 id="storyboard-heading" class="sr-only" data-i18n="storyboardView">Storyboard workspace</h2>
+        <aside class="storyboard-source-pane">
+          <div class="workbench-heading"><span class="step">1</span><h3 data-i18n="storySource">Source</h3><button class="help" data-help="storyboard" type="button" aria-label="Storyboard help">?</button></div>
+          <label id="storyboard-dropzone" class="storyboard-dropzone" for="storyboard-file">
+            <input id="storyboard-file" type="file" accept="image/png,image/jpeg,image/webp">
+            <span class="vision-drop-icon" aria-hidden="true">+</span>
+            <strong data-i18n="uploadStoryboardImage">Upload comic page or image</strong>
+            <span data-i18n="imageLimits">PNG, JPEG or WebP, up to 12 MB</span>
+            <div id="storyboard-preview-wrap" class="storyboard-preview-wrap" hidden>
+              <img id="storyboard-preview" alt="Storyboard source preview">
+              <div id="storyboard-panel-layer" class="storyboard-panel-layer" aria-hidden="true"></div>
+            </div>
+          </label>
+          <div class="workbench-field">
+            <span class="field-label" data-i18n="storyTaskType">Task type</span>
+            <div class="segmented story-task-segmented" role="tablist">
+              <button class="segment active" data-story-task="comic_panels" type="button" aria-selected="true" data-i18n="comicPanels">Comic panels</button>
+              <button class="segment" data-story-task="viral_video" type="button" aria-selected="false" data-i18n="viralVideo">Viral video</button>
+            </div>
+          </div>
+          <label class="workbench-field"><span class="field-label" data-i18n="creativeGoal">Creative goal</span><textarea id="storyboard-goal" rows="4" data-i18n-placeholder="storyGoalPlaceholder" placeholder="Describe pacing, audience, platform, or constraints."></textarea></label>
+          <label class="workbench-field"><span class="field-label" data-i18n="outputLanguage">Output language</span><select id="storyboard-language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option></select></label>
+          <div class="panel-detection-summary"><span data-i18n="detectedPanels">Detected panels</span><strong id="storyboard-panel-count">0</strong></div>
+        </aside>
+
+        <section class="storyboard-timeline-pane">
+          <div class="workbench-heading timeline-heading"><span class="step">2</span><h3 data-i18n="shotTimeline">Shot timeline</h3><button id="storyboard-add-shot" class="button button-secondary compact-button" type="button"><span aria-hidden="true">+</span><span data-i18n="addShot">Add shot</span></button></div>
+          <div class="shot-table-head" aria-hidden="true"><span></span><span data-i18n="shotNumber">Shot</span><span data-i18n="startTime">Start</span><span data-i18n="duration">Duration</span><span data-i18n="shotDetails">Shot details</span><span></span></div>
+          <div id="storyboard-shot-list" class="storyboard-shot-list" aria-live="polite"></div>
+          <div id="storyboard-empty-shots" class="storyboard-empty"><strong data-i18n="noShots">No shots yet</strong><span data-i18n="analyzeToBegin">Analyze panels or add a shot to begin.</span></div>
+          <div class="timeline-summary"><span><span data-i18n="totalShots">Total shots</span> <strong id="storyboard-shot-count">0</strong></span><span><span data-i18n="totalDuration">Total duration</span> <strong id="storyboard-total-duration">00:00.0</strong></span></div>
+        </section>
+
+        <aside class="storyboard-inspector-pane">
+          <div class="workbench-heading"><span class="step">3</span><h3 data-i18n="storyDetails">Story details</h3><button class="copy icon-button" data-target="storyboard-json" type="button" title="Copy" aria-label="Copy structured storyboard">&#128203;</button></div>
+          <label class="inspector-field"><span data-i18n="storyTitle">Title</span><input id="storyboard-title" type="text"></label>
+          <label class="inspector-field"><span data-i18n="synopsis">Synopsis</span><textarea id="storyboard-synopsis" rows="4"></textarea></label>
+          <label class="inspector-field"><span data-i18n="characters">Characters</span><textarea id="storyboard-characters" rows="3" data-i18n-placeholder="charactersPlaceholder" placeholder="One character per line"></textarea></label>
+          <label class="inspector-field"><span data-i18n="viralHook">Opening hook</span><textarea id="storyboard-hook" rows="3"></textarea></label>
+          <label class="inspector-field"><span data-i18n="soundDesign">Sound design</span><textarea id="storyboard-sound" rows="3"></textarea></label>
+          <label class="inspector-field"><span data-i18n="ending">Ending</span><textarea id="storyboard-ending" rows="3"></textarea></label>
+          <label class="inspector-field structured-output"><span data-i18n="structuredOutput">Structured output</span><textarea id="storyboard-json" rows="8" readonly></textarea></label>
+        </aside>
+      </section>
+
+      <section class="storyboard-actionbar" aria-label="Storyboard actions">
+        <label><span data-i18n="visionModel">Vision model</span><select id="storyboard-model"><option value="fast" data-i18n="fastVisionModel">Fast 2B</option><option value="accurate" selected data-i18n="accurateVisionModel">Accurate 8B</option></select></label>
+        <button id="storyboard-detect" class="button button-secondary" type="button" disabled data-i18n="analyzePanels">Analyze panels</button>
+        <button id="storyboard-generate" class="button button-primary" type="button" disabled data-i18n="generateStoryboard">Generate storyboard</button>
+        <div id="storyboard-status" class="feedback" aria-live="polite"></div>
+      </section>
+    </div>
   </main>
 
-  <footer class="footer"><span>liuliu Faithful H3 v1.6.0</span><span>@liuliu | 1661204908@qq.com</span></footer>
+  <footer class="footer"><span>liuliu Faithful H3 v1.7.0</span><span>@liuliu | 1661204908@qq.com</span></footer>
   <dialog id="download-dialog">
     <div class="dialog-head"><h3 data-i18n="chooseDownloads">Choose models to download</h3><button id="download-close" class="icon-button" type="button" aria-label="Close">&#215;</button></div>
     <p data-i18n="downloadHint">Select only the models you need. Downloads continue in the background and progress is printed in the startup console.</p>
     <div class="download-options">
       <label class="download-option"><input type="checkbox" value="4b"><span>Qwen3.5 4B</span><small id="download-status-4b"></small></label>
       <label class="download-option"><input type="checkbox" value="9b"><span>Qwen3.5 9B</span><small id="download-status-9b"></small></label>
-      <label class="download-option"><input type="checkbox" value="vision"><span data-i18n="visionModelOption">Image-to-prompt model</span><small id="download-status-vision"></small></label>
+      <label class="download-option"><input type="checkbox" value="vision-fast"><span data-i18n="visionFastOption">Fast vision model (2B)</span><small id="download-status-vision-fast"></small></label>
+      <label class="download-option"><input type="checkbox" value="vision-accurate"><span data-i18n="visionAccurateOption">Accurate vision model (8B)</span><small id="download-status-vision-accurate"></small></label>
     </div>
     <div id="download-feedback" class="feedback" aria-live="polite"></div>
     <div class="dialog-actions"><button id="download-cancel" class="button button-secondary" type="button" data-i18n="cancel">Cancel</button><button id="download-confirm" class="button button-primary" type="button" data-i18n="downloadSelected">Download selected</button></div>
@@ -187,7 +256,10 @@
     <p id="workspace-empty" class="workspace-empty" hidden></p>
   </dialog>
   <div id="release-toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script src="/static/workspace-store.js?v=1.6.0"></script>
-  <script src="/static/app.js?v=1.6.0"></script>
+  <script src="/static/workspace-store.js?v=1.7.0"></script>
+  <script src="/static/panel-detector.js?v=1.7.0"></script>
+  <script src="/static/storyboard.js?v=1.7.0"></script>
+  <script src="/static/storyboard-ui.js?v=1.7.0"></script>
+  <script src="/static/app.js?v=1.7.0"></script>
 </body>
 </html>

@@ -1,11 +1,13 @@
 # liuliu Faithful H3
 
-`liuliu Faithful H3` is a standalone local Web tool with separate H3 conversion, prompt-enrichment, and image-to-prompt workspaces.
+`liuliu Faithful H3` is a standalone local Web tool with separate H3 conversion, prompt-enrichment, image-to-prompt, and storyboard workspaces.
 
 ## Features
 
 - Faithful FL2VA and Ref2VA text conversion on the default H3 page
 - Independent image-to-prompt page with accelerated local preview, factual captioning, and one-click copy
+- Dedicated storyboard workspace for comic-panel analysis and short viral-video planning
+- Local panel detection, sortable shots, editable timing, camera, action, dialogue, sound, transition, hook, and structured JSON
 - Top-level prompt-enrichment page with an independent creative-strength control
 - Enrichment preserves the original prompt as an unchanged prefix; strength 0 is conservative and higher levels append bounded creative detail without altering the faithful-conversion workflow
 - Direct conversion from the original prompt, with an optional arrow to move enriched text into the source field
@@ -17,22 +19,20 @@
 - Official `llama.cpp` GGUF runtime with automatic startup and model residency
 - Live elapsed time and `token/s`, plus the final backend and measured request duration
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
-- Automatic IndexedDB drafts, sortable per-workspace queues, and up to 20 restorable history records across H3, prompt enrichment, and image to prompt
+- Automatic IndexedDB drafts, sortable per-workspace queues, and up to 20 restorable history records across all four workspaces
 - Live CPU, RAM, SSD, GPU, and VRAM monitoring in a separate top resource strip
 - No API key, cloud inference, or host application required
 
 > [!IMPORTANT]
-> Image to prompt uses a compact 2B vision model to keep local deployment lightweight. Its recognition ability is limited: it may miss small details, confuse subject relationships, or simplify complex scenes. Treat its output as a draft reference, verify it against the source image, and revise it before using it for generation.
+> The Fast 2B vision model keeps local deployment lightweight, but its recognition ability is limited: it may miss small details, confuse subject relationships, or simplify complex scenes. Treat its output as a draft reference, verify it against the source image, and revise it before using it for generation. The optional Accurate 8B model improves detailed captioning and storyboard quality at the cost of a larger download and higher memory use.
 
-## What's new in v1.6.0 - Time to Have Fun Again! (2026-08-14)
+## What's new in v1.7.0 - Today We Can Have Fun Again! (2026-08-15)
 
-- Three independent top-level workspaces now cover H3, prompt enrichment, and image to prompt.
-- The optional compact 2B image-to-prompt workflow includes local preview, focus instructions, same-language output, and copy; its limited output is intended as editable reference material.
-- Model downloads are selectable and run in the background for Qwen3.5 4B, Qwen3.5 9B, and the optional image-to-prompt model.
-- H3, prompt enrichment, and image to prompt now preserve independent drafts in IndexedDB, including selected image data and requirements.
-- Every workspace now has its own sortable processing queue and restorable history, with single-item, multi-select, and select-all deletion.
-- Queue and history panels show five records at once and scroll internally; successful history is capped at the newest 20 records.
-- Live elapsed time, `token/s`, memory-release usage summaries, and the top CPU, RAM, SSD read/write, GPU, and VRAM strip provide continuous runtime feedback.
+- A fourth Storyboard workspace adds local comic-panel detection and short viral-video planning.
+- Shots can be added, removed, dragged into order, timed independently, and edited as a cumulative timeline.
+- Story details, characters, camera movement, action, dialogue, sound, transitions, hooks, endings, and structured JSON remain directly editable.
+- Image to prompt and storyboard generation can use either the lightweight Fast 2B model or the more capable Accurate 8B model.
+- Both vision models are optional, selectable, and downloaded independently from the top model dialog.
 
 Full version history remains available in [CHANGELOG.md](CHANGELOG.md).
 
@@ -65,10 +65,11 @@ The default runtime is the official Windows build of `llama.cpp` release `b10375
 - 4B model: <https://huggingface.co/byliuliu/faithful-h3-qwen3.5-4b-abliterated>
 - 9B model: <https://huggingface.co/byliuliu/faithful-h3-qwen3.5-9b-abliterated-v2>
 - Optional vision model: <https://huggingface.co/mradermacher/Qwen2-VL-2B-Abliterated-Caption-it-GGUF>
+- Optional accurate vision model: <https://huggingface.co/mradermacher/Qwen3-VL-8B-Abliterated-Caption-it-GGUF>
 
-The top Download models action offers 4B, 9B, and the vision pair as independent choices. The vision pair consists of `Q4_K_S` plus the `Q8_0` multimodal projector, needs about 1.65 GB of additional disk space, and uses an isolated 4096-token context with a bounded 256-512 image-token budget. Images remain local and are sent only to the local `llama.cpp` process.
+The top Download models action offers 4B, 9B, Fast 2B vision, and Accurate 8B vision as independent choices. Fast 2B consists of `Q4_K_S` plus a `Q8_0` multimodal projector and needs about 1.65 GB. Accurate 8B consists of `Q4_K_M` plus a `Q8_0` projector and needs about 5.78 GB. Both use an isolated 4096-token context with a bounded 256-512 image-token budget. Images remain local and are sent only to the local `llama.cpp` process.
 
-The optional vision model is deliberately small. It is suitable for quickly drafting visible subjects, positions, and camera cues, but it is not a high-accuracy vision system. Small objects, fine appearance details, spatial relationships, text, and complex multi-subject scenes may be incomplete or incorrect. Always compare the result with the image and use it as editable reference material.
+Fast 2B is deliberately small. It is suitable for quickly drafting visible subjects, positions, and camera cues, but it is not a high-accuracy vision system. Small objects, fine appearance details, spatial relationships, text, and complex multi-subject scenes may be incomplete or incorrect. Accurate 8B provides stronger detailed recognition and storyboard planning, but it is larger and slower. Always compare generated content with the source image and keep it as editable material.
 
 Existing Quanto checkpoints remain an optional compatibility path. Install `requirements-quanto.txt` only when that fallback is specifically required.
 
@@ -96,6 +97,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.6.0`<br>
+Version `1.7.0`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

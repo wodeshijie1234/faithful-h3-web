@@ -2,6 +2,16 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.7.0 - 2026-08-15 - Today We Can Have Fun Again!
+
+### Added
+
+- Added a fourth top-level Storyboard workspace with a dedicated source, sortable shot timeline, story inspector, structured JSON output, drafts, queues, and history.
+- Added local comic-panel detection with numbered overlays, editable panel assignments, per-shot durations, automatic cumulative start times, and drag-and-drop shot ordering.
+- Added comic-panel and viral-video storyboard modes with editable shot size, camera movement, visual action, dialogue, sound, transition, hook, and ending fields.
+- Added selectable Fast 2B and Accurate 8B vision models for both image-to-prompt and storyboard generation, with independent on-demand downloads.
+- Added English, Simplified Chinese, and Traditional Chinese storyboard output, including local Traditional Chinese normalization.
+
 ## 1.6.0 - 2026-08-14 - Time to Have Fun Again!
 
 ### Added

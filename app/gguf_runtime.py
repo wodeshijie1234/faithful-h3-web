@@ -162,7 +162,9 @@ class GgufRuntime:
         )
 
     def generate_with_image(self, image_data_url: str, instruction: str, system_text: str, *,
-                            max_new_tokens: int = 900) -> str:
+                            max_new_tokens: int = 900, temperature: float = 0.1,
+                            top_p: float = 0.8, repeat_penalty: float = 1.15,
+                            stop_on_json: bool = False) -> str:
         messages = []
         if system_text:
             messages.append({"role": "system", "content": system_text})
@@ -177,10 +179,11 @@ class GgufRuntime:
         )
         return self._chat_completion(
             messages,
-            temperature=0.1,
-            top_p=0.8,
+            temperature=temperature,
+            top_p=top_p,
             max_new_tokens=max_new_tokens,
-            repeat_penalty=1.15,
+            repeat_penalty=repeat_penalty,
+            stop_on_json=stop_on_json,
         )
 
     def _chat_completion(self, messages: list[dict], *, temperature: float, top_p: float,

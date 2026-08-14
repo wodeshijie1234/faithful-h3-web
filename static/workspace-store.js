@@ -3,7 +3,7 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.FaithfulWorkspace = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
-  const WORKSPACES = new Set(["h3", "enrich", "vision"]);
+  const WORKSPACES = new Set(["h3", "enrich", "vision", "storyboard"]);
 
   function assertWorkspace(workspace) {
     if (!WORKSPACES.has(workspace)) throw new Error(`Unknown workspace: ${workspace}`);

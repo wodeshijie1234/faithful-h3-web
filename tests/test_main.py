@@ -42,22 +42,25 @@ class ApiContractTests(unittest.TestCase):
     def test_top_download_starts_only_the_models_selected_by_the_user(self):
         original_gguf = dict(main.GGUF_PATHS)
         original_vision_root = main.VISION_ROOT
+        original_vision_roots = dict(main.VISION_ROOTS)
         with tempfile.TemporaryDirectory() as directory:
             main.GGUF_PATHS["4b"] = Path(directory) / "missing-4b.gguf"
             main.GGUF_PATHS["9b"] = Path(directory) / "missing-9b.gguf"
             main.VISION_ROOT = Path(directory) / "missing-vision"
+            main.VISION_ROOTS["fast"] = main.VISION_ROOT
             try:
                 with patch.object(main, "_start_daemon") as start_daemon:
                     response = self.client.post("/api/download", json={"models": ["4b", "vision"]})
             finally:
                 main.GGUF_PATHS.update(original_gguf)
                 main.VISION_ROOT = original_vision_root
+                main.VISION_ROOTS.update(original_vision_roots)
 
         self.assertEqual(200, response.status_code)
         self.assertTrue(response.json()["started"])
         self.assertEqual(2, start_daemon.call_count)
         start_daemon.assert_any_call(main._download_worker, "4b")
-        start_daemon.assert_any_call(main._vision_download_worker)
+        start_daemon.assert_any_call(main._vision_download_worker, "fast")
         self.assertNotIn("9b", response.json()["requested"])
 
     def test_unknown_action_returns_safe_client_error(self):
@@ -130,6 +133,33 @@ class ApiContractTests(unittest.TestCase):
             "Focus on subject positions.",
             "en",
         )
+
+    def test_status_lists_fast_and_accurate_vision_models(self):
+        response = self.client.get("/api/status")
+
+        self.assertEqual(200, response.status_code)
+        models = response.json()["vision_models"]
+        self.assertEqual({"fast", "accurate"}, {item["id"] for item in models})
+
+    def test_storyboard_endpoint_uses_the_requested_vision_model(self):
+        expected = {"title": "Test", "shots": [{"number": 1, "start_seconds": 0.0}]}
+        accurate = main.vision_runtimes["accurate"]
+        with patch.object(main.runtime, "release", return_value={"released": True, "loaded": False}) as release, \
+             patch.object(main, "_activate_vision_runtime", return_value=accurate), \
+             patch.object(accurate, "storyboard", return_value=expected) as storyboard:
+            response = self.client.post("/api/storyboard/generate", json={
+                "image_data_url": "data:image/png;base64,iVBORw0KGgo=",
+                "task_type": "comic_panels",
+                "goal": "Keep reading order.",
+                "language": "en",
+                "model_id": "accurate",
+                "panel_boxes": [{"x": 0, "y": 0, "width": 1, "height": 1}],
+            })
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(expected, response.json()["output"])
+        release.assert_called_once_with()
+        storyboard.assert_called_once()
 
     def test_removed_module_actions_are_rejected(self):
         for action in ("decompose", "convert_modules"):

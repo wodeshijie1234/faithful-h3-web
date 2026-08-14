@@ -15,7 +15,7 @@ from .model_files import MODEL_SPECS, download_gguf, missing_files
 from .model_runtime import ModelRuntime
 from .resources import ResourceMonitor
 from .service import PromptService
-from .vision import VISION_MODEL, VisionCaptionRuntime, download_vision_model, vision_ready
+from .vision import VISION_MODEL, VISION_MODELS, VisionCaptionRuntime, download_vision_model, vision_ready
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -28,23 +28,33 @@ GGUF_PATHS = {
     "9b": Path(os.environ.get("FAITHFUL_H3_GGUF_9B_PATH", GGUF_ROOT / MODEL_SPECS["9b"].gguf_filename)),
 }
 VISION_ROOT = Path(os.environ.get("FAITHFUL_H3_VISION_ROOT", GGUF_ROOT / "vision"))
+VISION_ROOTS = {
+    "fast": VISION_ROOT,
+    "accurate": Path(os.environ.get("FAITHFUL_H3_VISION_ACCURATE_ROOT", GGUF_ROOT / "vision-accurate")),
+}
 if os.environ.get("FAITHFUL_H3_MODEL_DIR"):
     MODEL_DIRS["9b"] = Path(os.environ["FAITHFUL_H3_MODEL_DIR"])
 if os.environ.get("FAITHFUL_H3_MODEL_4B_DIR"):
     MODEL_DIRS["4b"] = Path(os.environ["FAITHFUL_H3_MODEL_4B_DIR"])
 runtime = ModelRuntime(MODEL_DIRS, gguf_paths=GGUF_PATHS,
                        gguf_binary=Path(os.environ["FAITHFUL_H3_LLAMA_BIN"]) if os.environ.get("FAITHFUL_H3_LLAMA_BIN") else None)
-vision_runtime = VisionCaptionRuntime(
-    VISION_ROOT,
-    binary=Path(os.environ["FAITHFUL_H3_LLAMA_BIN"]) if os.environ.get("FAITHFUL_H3_LLAMA_BIN") else None,
-    port=int(os.environ.get("FAITHFUL_H3_VISION_PORT", "18766")),
-)
+vision_runtimes = {
+    model_id: VisionCaptionRuntime(
+        VISION_ROOTS[model_id],
+        binary=Path(os.environ["FAITHFUL_H3_LLAMA_BIN"]) if os.environ.get("FAITHFUL_H3_LLAMA_BIN") else None,
+        port=int(os.environ.get("FAITHFUL_H3_VISION_PORT", "18766")),
+        spec=spec,
+    )
+    for model_id, spec in VISION_MODELS.items()
+}
+vision_runtime = vision_runtimes["fast"]
 service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
-vision_download_state = {"running": False, "error": ""}
+vision_download_states = {model_id: {"running": False, "error": ""} for model_id in VISION_MODELS}
+vision_download_state = vision_download_states["fast"]
 resource_monitor = ResourceMonitor()
 
-app = FastAPI(title="liuliu Faithful H3", version="1.6.0")
+app = FastAPI(title="liuliu Faithful H3", version="1.7.0")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -129,18 +139,50 @@ class ModelRequest(BaseModel):
 
 
 class DownloadRequest(BaseModel):
-    models: list[Literal["4b", "9b", "vision"]] = Field(min_length=1)
+    models: list[Literal["4b", "9b", "vision", "vision-fast", "vision-accurate"]] = Field(min_length=1)
 
 
 class VisionCaptionRequest(BaseModel):
     image_data_url: str = Field(min_length=32, max_length=17_000_000)
     instruction: str = Field(default="", max_length=1000)
     language: Literal["en", "zh-CN", "zh-TW"] = "en"
+    model_id: Literal["fast", "accurate"] = "fast"
+
+
+class PanelBox(BaseModel):
+    x: float = Field(ge=0, le=1)
+    y: float = Field(ge=0, le=1)
+    width: float = Field(gt=0, le=1)
+    height: float = Field(gt=0, le=1)
+
+
+class StoryboardRequest(BaseModel):
+    image_data_url: str = Field(min_length=32, max_length=17_000_000)
+    task_type: Literal["comic_panels", "viral_video"] = "comic_panels"
+    goal: str = Field(default="", max_length=1200)
+    language: Literal["en", "zh-CN", "zh-TW"] = "en"
+    model_id: Literal["fast", "accurate"] = "accurate"
+    panel_boxes: list[PanelBox] = Field(default_factory=list, max_length=40)
 
 
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
+
+
+def _vision_model_status(model_id: str) -> dict:
+    spec = VISION_MODELS[model_id]
+    ready = vision_ready(VISION_ROOTS[model_id], spec)
+    state = vision_download_states[model_id]
+    return {
+        "id": model_id,
+        "label": spec.label,
+        "ready": ready,
+        "loaded": vision_runtimes[model_id].loaded if ready else False,
+        "downloading": state["running"],
+        "error": state["error"],
+        "download_bytes": spec.model_size + spec.mmproj_size,
+    }
 
 
 @app.get("/api/status")
@@ -154,7 +196,7 @@ def status():
         "loaded": runtime.loaded,
         "backend": runtime.backend,
         "downloading": model_download["running"],
-        "any_downloading": any(item["running"] for item in download_state.values()) or vision_download_state["running"],
+        "any_downloading": any(item["running"] for item in download_state.values()) or any(item["running"] for item in vision_download_states.values()),
         "vision_ready": vision_ready(VISION_ROOT),
         "vision_downloading": vision_download_state["running"],
         "vision_error": vision_download_state["error"],
@@ -169,6 +211,7 @@ def status():
              "error": download_state[model_id]["error"]}
             for model_id, item in MODEL_SPECS.items()
         ],
+        "vision_models": [_vision_model_status(model_id) for model_id in VISION_MODELS],
         "version": app.version,
     }
 
@@ -197,9 +240,12 @@ def begin_download(request: DownloadRequest):
     requested = list(dict.fromkeys(request.models))
     started = []
     for model_id in requested:
-        if model_id == "vision":
-            if not vision_ready(VISION_ROOT) and not vision_download_state["running"]:
-                _start_daemon(_vision_download_worker)
+        if model_id.startswith("vision"):
+            vision_id = "accurate" if model_id == "vision-accurate" else "fast"
+            spec = VISION_MODELS[vision_id]
+            state = vision_download_states[vision_id]
+            if not vision_ready(VISION_ROOTS[vision_id], spec) and not state["running"]:
+                _start_daemon(_vision_download_worker, vision_id)
                 started.append(model_id)
             continue
         if not GGUF_PATHS[model_id].is_file() and not download_state[model_id]["running"]:
@@ -222,7 +268,7 @@ def select_model(request: ModelRequest):
 def release_memory():
     before = _memory_snapshot()
     text_result = runtime.release()
-    vision_released = vision_runtime.stop()
+    vision_released = any([item.stop() for item in vision_runtimes.values()])
     after = _memory_snapshot()
     return {
         "released": bool(text_result.get("released") or vision_released),
@@ -234,26 +280,29 @@ def release_memory():
 @app.get("/api/progress")
 def inference_progress():
     text_progress = runtime.progress
-    vision_progress = vision_runtime.progress
-    if vision_progress["active"]:
-        return {**vision_progress, "task": "vision"}
+    vision_progresses = [item.progress for item in vision_runtimes.values()]
+    active_vision = next((item for item in vision_progresses if item["active"]), None)
+    if active_vision:
+        return {**active_vision, "task": "vision"}
     if text_progress["active"]:
         return {**text_progress, "task": "text"}
-    latest = max((text_progress, vision_progress), key=lambda item: item["elapsed_seconds"])
+    latest = max((text_progress, *vision_progresses), key=lambda item: item["elapsed_seconds"])
     return {**latest, "task": "idle"}
 
 
-def _vision_download_worker():
-    vision_download_state.update(running=True, error="")
-    print(f"[download] Starting vision model: {VISION_MODEL.label}", flush=True)
+def _vision_download_worker(model_id: str = "fast"):
+    spec = VISION_MODELS[model_id]
+    state = vision_download_states[model_id]
+    state.update(running=True, error="")
+    print(f"[download] Starting vision model: {spec.label}", flush=True)
     try:
-        download_vision_model(VISION_ROOT)
-        print(f"[download] Completed vision model: {VISION_MODEL.label}", flush=True)
+        download_vision_model(VISION_ROOTS[model_id], spec)
+        print(f"[download] Completed vision model: {spec.label}", flush=True)
     except Exception as exc:
-        vision_download_state["error"] = str(exc)
-        print(f"[download] Failed vision model {VISION_MODEL.label}: {exc}", flush=True)
+        state["error"] = str(exc)
+        print(f"[download] Failed vision model {spec.label}: {exc}", flush=True)
     finally:
-        vision_download_state["running"] = False
+        state["running"] = False
 
 
 @app.get("/api/vision/status")
@@ -278,19 +327,54 @@ def begin_vision_download():
     return {"started": True, "ready": False}
 
 
+def _activate_vision_runtime(model_id: str) -> VisionCaptionRuntime:
+    selected = vision_runtimes[model_id]
+    for other_id, other in vision_runtimes.items():
+        if other_id != model_id:
+            other.stop()
+    return selected
+
+
 @app.post("/api/vision/caption")
 def caption_image(request: VisionCaptionRequest):
     started = time.monotonic()
     try:
         runtime.release()
-        output = vision_runtime.caption(request.image_data_url, request.instruction, request.language)
+        selected = _activate_vision_runtime(request.model_id)
+        output = selected.caption(request.image_data_url, request.instruction, request.language)
         return {
             "output": output,
             "runtime": {
                 "backend": "gguf-vision",
-                "model": VISION_MODEL.label,
+                "model": VISION_MODELS[request.model_id].label,
                 "elapsed_seconds": round(time.monotonic() - started, 3),
-                "tokens_per_second": vision_runtime.progress["tokens_per_second"],
+                "tokens_per_second": selected.progress["tokens_per_second"],
+            },
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/storyboard/generate")
+def generate_storyboard(request: StoryboardRequest):
+    started = time.monotonic()
+    try:
+        runtime.release()
+        selected = _activate_vision_runtime(request.model_id)
+        output = selected.storyboard(
+            request.image_data_url,
+            task_type=request.task_type,
+            goal=request.goal,
+            language=request.language,
+            panel_boxes=[box.model_dump() for box in request.panel_boxes],
+        )
+        return {
+            "output": output,
+            "runtime": {
+                "backend": "gguf-vision",
+                "model": VISION_MODELS[request.model_id].label,
+                "elapsed_seconds": round(time.monotonic() - started, 3),
+                "tokens_per_second": selected.progress["tokens_per_second"],
             },
         }
     except Exception as exc:
@@ -301,7 +385,8 @@ def caption_image(request: VisionCaptionRequest):
 def generate(request: GenerateRequest):
     started = time.monotonic()
     try:
-        vision_runtime.stop()
+        for item in vision_runtimes.values():
+            item.stop()
         if request.action == "enrich":
             result = {"output": service.enrich(request.text, request.strength)}
         elif request.action == "convert":
