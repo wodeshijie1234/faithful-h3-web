@@ -21,16 +21,39 @@ class PromptService:
             return source
         temperature = round(0.15 + 0.75 * strength / 100, 3)
         top_p = round(0.35 + 0.60 * strength / 100, 3)
-        additions = self.runtime.generate(
+        enriched = self.runtime.generate(
             source,
             h3.enrichment_system(strength),
             temperature=temperature,
             top_p=top_p,
             max_new_tokens=h3.enrichment_token_limit(strength),
         ).strip()
-        if not additions or (_contains_cjk(source) and not _contains_cjk(additions)):
+        if not enriched or (_contains_cjk(source) and not _contains_cjk(enriched)):
             return source
-        return f"{source}\n\n{additions}"
+        enriched = h3.restore_enrichment_protected_facts(source, enriched)
+        review = self.runtime.generate(
+            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{enriched}",
+            h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
+        ).strip().upper()
+        needs_integration = enriched.startswith(source) and "\n\n" in enriched
+        if review == "PASS" and not needs_integration:
+            return enriched
+
+        repaired = self.runtime.generate(
+            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHMENT:\n{enriched}",
+            h3.enrichment_repair_system(strength), temperature=temperature, top_p=top_p,
+            max_new_tokens=h3.enrichment_token_limit(strength),
+        ).strip()
+        if not repaired or (_contains_cjk(source) and not _contains_cjk(repaired)):
+            return source
+        repaired = h3.restore_enrichment_protected_facts(source, repaired)
+        review = self.runtime.generate(
+            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{repaired}",
+            h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
+        ).strip().upper()
+        if review != "PASS" or (repaired.startswith(source) and "\n\n" in repaired):
+            return source
+        return repaired
 
     def convert(self, text: str, mode: str) -> dict:
         source = h3.canonicalize_picture_references(text) if h3.normalize_mode(mode) == "ref2va" else text

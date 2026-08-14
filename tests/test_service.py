@@ -15,28 +15,35 @@ class FakeRuntime:
 
 class PromptServiceTests(unittest.TestCase):
     def test_enrichment_maps_all_requested_strength_levels(self):
-        runtime = FakeRuntime(["extra30", "extra50", "extra80", "extra100"])
+        runtime = FakeRuntime([
+            "integrated30", "PASS",
+            "integrated50", "PASS",
+            "integrated80", "PASS",
+            "integrated100", "PASS",
+        ])
         service = PromptService(runtime)
 
         outputs = [service.enrich("source", strength) for strength in (0, 30, 50, 80, 100)]
 
         self.assertEqual(
-            ["source", "source\n\nextra30", "source\n\nextra50", "source\n\nextra80", "source\n\nextra100"],
+            ["source", "integrated30", "integrated50", "integrated80", "integrated100"],
             outputs,
         )
         self.assertEqual(
             [(0.375, 0.53), (0.525, 0.65), (0.75, 0.83), (0.9, 0.95)],
-            [(call[2]["temperature"], call[2]["top_p"]) for call in runtime.calls],
+            [(call[2]["temperature"], call[2]["top_p"]) for call in runtime.calls[::2]],
         )
 
-    def test_enrichment_keeps_the_original_prompt_and_appends_only_new_detail(self):
-        runtime = FakeRuntime(["Additional camera detail."])
+    def test_enrichment_returns_one_integrated_prompt_instead_of_an_appended_afterword(self):
+        runtime = FakeRuntime(["Source facts with integrated camera detail.", "PASS"])
 
         result = PromptService(runtime).enrich("source facts", 50)
 
-        self.assertEqual("source facts\n\nAdditional camera detail.", result)
-        self.assertEqual(1, len(runtime.calls))
-        self.assertIn("additions only", runtime.calls[0][1])
+        self.assertEqual("Source facts with integrated camera detail.", result)
+        self.assertNotIn("\n\n", result)
+        self.assertEqual(2, len(runtime.calls))
+        self.assertIn("not additions", runtime.calls[0][1])
+        self.assertIn("Return exactly PASS", runtime.calls[1][1])
 
     def test_zero_strength_enrichment_returns_the_source_without_inventing_details(self):
         runtime = FakeRuntime([])
@@ -54,6 +61,52 @@ class PromptServiceTests(unittest.TestCase):
 
         self.assertEqual("人物按下遥控器。", result)
         self.assertEqual(1, len(runtime.calls))
+
+    def test_enrichment_repairs_a_new_plot_before_returning_it(self):
+        runtime = FakeRuntime([
+            "人物按下遥控器，陌生人进入房间并开始说话。",
+            "FAIL",
+            "人物按下遥控器，镜头短暂聚焦于按键动作。",
+            "PASS",
+        ])
+
+        result = PromptService(runtime).enrich("人物按下遥控器。", 80)
+
+        self.assertEqual("人物按下遥控器，镜头短暂聚焦于按键动作。", result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("new character", runtime.calls[1][1])
+        self.assertIn("ORIGINAL SOURCE", runtime.calls[2][0])
+
+    def test_enrichment_repairs_a_source_plus_afterword_even_when_the_content_review_passes(self):
+        source = "人物按下遥控器。"
+        runtime = FakeRuntime([
+            f"{source}\n\n镜头短暂聚焦于按键动作。",
+            "PASS",
+            "人物按下遥控器时，镜头短暂聚焦于按键动作。",
+            "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, 50)
+
+        self.assertEqual("人物按下遥控器时，镜头短暂聚焦于按键动作。", result)
+        self.assertNotIn("\n\n", result)
+        self.assertEqual(4, len(runtime.calls))
+
+    def test_enrichment_restores_missing_picture_identity_and_starting_reference(self):
+        source = (
+            "图1是男生，图2是女生，视频场景是开始于图2。"
+            "男生突然出现在女生后面，他拿着遥控器。"
+        )
+        runtime = FakeRuntime([
+            "男生突然出现在女生后面，镜头跟随他手中的遥控器。",
+            "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, 50)
+
+        self.assertTrue(result.startswith("图1是男生，图2是女生，视频场景是开始于图2，"))
+        self.assertIn("男生突然出现在女生后面", result)
+        self.assertNotIn("\n\n", result)
 
     def test_decompose_returns_editable_modules(self):
         runtime = FakeRuntime([

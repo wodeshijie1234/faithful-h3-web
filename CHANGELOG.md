@@ -2,6 +2,14 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.7 - 2026-08-14
+
+### Fixed
+
+- Prompt enrichment now returns one cohesive, same-language prompt with additions integrated beside the source action they support; it no longer appends a disconnected afterword to unchanged source text.
+- Added an enrichment review and one repair pass that reject new characters, props, locations, dialogue, plot events, unsupported actions, and unsupported camera cuts before returning an enriched prompt.
+- Explicit Chinese picture identities and video starting-reference facts are restored deterministically when an enrichment model omits them.
+
 ## 1.3.6 - 2026-08-14
 
 ### Fixed

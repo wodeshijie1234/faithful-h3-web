@@ -448,25 +448,59 @@ def translation_repair_system(mode: str) -> str:
 
 def enrichment_system(strength: int) -> str:
     strength = max(0, min(100, int(strength)))
-    detail = "one concise continuity or camera sentence" if strength <= 30 else "two concise filmable detail sentences" if strength <= 50 else "three to four filmable visual, camera, atmosphere, or sound sentences" if strength <= 80 else "four to six rich filmable visual, camera, atmosphere, and sound sentences"
-    return f"""Write additions only for the supplied short video prompt. Do not repeat, translate, paraphrase, summarize, replace, or reorder any source fact; the application keeps the original prompt separately. Return only {detail} in exactly the same language as the input; Chinese input must produce Chinese output. Creative strength is {strength}/100. The additions may enrich visual continuity, camera, lighting, atmosphere, motion, or sound, but must not contradict the source identities, reference IDs, counts, positions, actions, boundaries, or dialogue. No headings, labels, markdown, or explanations."""
+    detail = "a minimal continuity or framing refinement" if strength <= 30 else "one or two concise, filmable refinements" if strength <= 50 else "two to four restrained, filmable refinements" if strength <= 80 else "three to five rich but bounded filmable refinements"
+    return f"""Return one complete enriched video prompt, not additions and not an afterword. Keep every source fact, identity, reference ID, count, position, action, camera change, sequence, continuity condition, and dialogue in the original order. Write in exactly the same language as the input; Chinese input must produce Chinese output. Creative strength is {strength}/100: add {detail} only where it directly supports an existing action or explicit shot. Integrate additions beside the relevant source action in one cohesive paragraph. Never append an extra paragraph, repeat the source unchanged before adding text, or add a new character, prop, location, time, weather, clothing, appearance, dialogue, relationship, intention, plot event, action, or camera cut. Permitted additions are only bounded framing, focus, physically continuous motion, and directly supported ambience or sound. No headings, labels, markdown, explanations, or H3 fields."""
 
 
 def enrichment_token_limit(strength: int) -> int:
     strength = max(0, min(100, int(strength)))
     if strength <= 30:
-        return 96
+        return 256
     if strength <= 50:
-        return 192
+        return 384
     if strength <= 80:
-        return 320
-    return 480
+        return 576
+    return 768
 
 
 def enrichment_repair_system(strength: int) -> str:
     strength = max(0, min(100, int(strength)))
-    additions = "Delete every visual addition not explicitly stated in the source." if strength <= 30 else "You may retain additional filmable detail only when it does not replace, contradict, obscure, or reorder any source fact."
-    return f"""Repair the PROPOSED ENRICHMENT against the ORIGINAL SOURCE. Return only the repaired enriched prompt in exactly the same language as the ORIGINAL SOURCE; Chinese source must produce Chinese output. Preserve every explicit source identity, reference ID, count, position, action, prop, camera direction, sequence, continuity statement, and dialogue. Never replace a source action with a different action. Creative strength is {strength}/100. {additions} Do not add comments, headings, or explanations."""
+    detail = "minimal framing or continuity detail" if strength <= 30 else "restrained filmable detail" if strength <= 80 else "richer but bounded filmable detail"
+    return f"""Repair the PROPOSED ENRICHMENT against the ORIGINAL SOURCE. Return one complete, single-paragraph enriched prompt in exactly the same language as the ORIGINAL SOURCE; Chinese source must produce Chinese output. Preserve every explicit source identity, reference ID, count, position, action, prop, camera direction, sequence, continuity statement, and dialogue in the original order. Integrate only {detail} beside the action it supports. Delete source-plus-afterword formatting and delete every unsupported character, prop, setting, time, weather, appearance, clothing, dialogue, relationship, intention, plot event, action, or camera cut. Never replace a source action with a different action. Return only the repaired prompt, without headings, labels, markdown, or explanations."""
+
+
+def enrichment_review_system() -> str:
+    return """Review the PROPOSED ENRICHED PROMPT against the ORIGINAL SOURCE. Return exactly PASS only when the proposal preserves every source fact in the same order and all additions directly elaborate an existing action or explicit shot. Return FAIL for any new character, prop, location, time, weather, clothing, appearance, dialogue, relationship, intention, plot event, action, camera cut, contradiction, omission, reordering, or a disconnected afterword. Audio and ambience are allowed only when directly supported by source actions or dialogue. Return only PASS or FAIL."""
+
+
+def enrichment_protected_facts(source: str) -> list[str]:
+    """Return explicit Chinese reference identities and starting-reference facts once each."""
+    value = str(source or "")
+    patterns = (
+        r"\u56fe\s*\d+\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(?:\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)",
+        r"\u89c6\u9891(?:\u573a\u666f)?(?:\u662f)?(?:\u5f00\u59cb\u4e8e|\u4ece)\s*\u56fe\s*\d+",
+    )
+    facts: list[str] = []
+    seen = set()
+    for pattern in patterns:
+        for match in re.findall(pattern, value, flags=re.I):
+            fact = re.sub(r"\s+", "", match)
+            if fact and fact not in seen:
+                facts.append(fact)
+                seen.add(fact)
+    return facts
+
+
+def restore_enrichment_protected_facts(source: str, candidate: str) -> str:
+    """Keep reference identities and the concrete start anchor even when enrichment omits them."""
+    value = str(candidate or "").strip()
+    if not value:
+        return value
+    compact = re.sub(r"\s+", "", value)
+    missing = [fact for fact in enrichment_protected_facts(source) if fact not in compact]
+    if not missing:
+        return value
+    return "\uff0c".join([*missing, value.lstrip("\uff0c,\u3002\uff1b; \n")])
 
 
 def chinese_preview_system(mode: str) -> str:
