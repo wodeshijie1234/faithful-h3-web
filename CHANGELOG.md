@@ -2,6 +2,12 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.9 - 2026-08-14
+
+### Fixed
+
+- Prompt enrichment now preserves reference metadata written as `图片1/图片2`, including explicit identity assignments and phrases such as `视频开始于图片2的场景`, even at creative strength `100`.
+
 ## 1.3.8 - 2026-08-14
 
 ### Reverted

@@ -108,6 +108,17 @@ class PromptServiceTests(unittest.TestCase):
         self.assertIn("男生突然出现在女生后面", result)
         self.assertNotIn("\n\n", result)
 
+    def test_enrichment_restores_image_spelled_identity_and_start_scene_anchor(self):
+        source = "图片1是男人，图片2是女人，视频开始于图片2的场景，男人出现在女人的画面中。"
+        runtime = FakeRuntime([
+            "画面始于女人的背影，男人从身后出现。",
+            "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, 100)
+
+        self.assertTrue(result.startswith("图片1是男人，图片2是女人，视频开始于图片2的场景，"))
+
     def test_decompose_returns_editable_modules(self):
         runtime = FakeRuntime([
             '{"scene":"原场景","shots":[{"duration_seconds":3,"action":"动作1","camera":""},{"duration_seconds":3,"action":"动作2","camera":""},{"duration_seconds":3,"action":"动作3","camera":""}],"overall_soundscape":"","non_diegetic_music":""}'

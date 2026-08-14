@@ -477,8 +477,8 @@ def enrichment_protected_facts(source: str) -> list[str]:
     """Return explicit Chinese reference identities and starting-reference facts once each."""
     value = str(source or "")
     patterns = (
-        r"\u56fe\s*\d+\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(?:\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)",
-        r"\u89c6\u9891(?:\u573a\u666f)?(?:\u662f)?(?:\u5f00\u59cb\u4e8e|\u4ece)\s*\u56fe\s*\d+",
+        r"(?:\u56fe|\u56fe\u7247)\s*\d+\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(?:\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)",
+        r"\u89c6\u9891(?:\u573a\u666f)?(?:\u662f)?(?:\u5f00\u59cb\u4e8e|\u4ece)\s*(?:\u56fe|\u56fe\u7247)\s*\d+(?:\u7684\u573a\u666f)?",
     )
     facts: list[str] = []
     seen = set()

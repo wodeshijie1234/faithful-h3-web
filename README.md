@@ -21,7 +21,11 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.8 (2026-08-14)
+## What's new in v1.3.9 (2026-08-14)
+
+- Prompt enrichment now protects Chinese reference metadata written with either `图` or `图片`, including identity assignments and the explicit starting-scene reference.
+
+## v1.3.8 (2026-08-14)
 
 - Restored the previous model-driven prompt-enrichment behavior after feedback that the fixed high-strength scene restrictions were too rigid.
 - The rollback affects prompt enrichment only; faithful conversion, Ref2VA timeline handling, model selection, and local runtime behavior are unchanged.
