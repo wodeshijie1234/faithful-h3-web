@@ -55,14 +55,42 @@ class H3ContractTests(unittest.TestCase):
 
         self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
         self.assertIn("retention_analysis: <Subject 1> (appears in [Shot 1]): fully_preserved", output)
-        self.assertIn("[Shot 1] The man suddenly appears behind the woman", output)
+        self.assertIn("[Shot 1] At 00:00.000, The man suddenly appears behind the woman", output)
         self.assertNotIn("[Shot 1] <Picture 1> is a man", output)
         self.assertNotIn("<Picture 2> is a woman. [Shot", output)
-        self.assertNotIn("[Shot 1] At 00:00.000", output)
+        self.assertIn("[Shot 1] At 00:00.000", output)
         self.assertIn("[Shot 2] At 00:02.500, Close-up on him pressing the remote.", output)
         self.assertIn("[Shot 3] At 00:04.500, Cut to medium shot.", output)
         self.assertIn("[Shot 4] At 00:07.500, Cut to an extremely low-angle shot", output)
         self.assertTrue(h3.audit(output, "ref2va")["valid"])
+
+    def test_fl2va_numbered_shots_keep_their_boundaries_and_infer_timing(self):
+        source = "镜头1：一个人走入画面。镜头2：他停下。"
+        translation = "Shot 1: A person walks into frame. Shot 2: He stops."
+
+        output = h3.fl2va_timeline_wrap(translation, source)
+
+        self.assertIn("[Shot 1] At 00:00.000, A person walks into frame.", output)
+        self.assertIn("[Shot 2] At 00:02.000, He stops.", output)
+        self.assertEqual(2, output.count("[Shot "))
+
+    def test_fl2va_explicit_shot_time_ranges_override_inferred_timing(self):
+        source = "镜头1（0-4秒）：一个人走入画面。镜头2（4-7秒）：他停下。"
+        translation = "Shot 1: A person walks into frame. Shot 2: He stops."
+
+        output = h3.fl2va_timeline_wrap(translation, source)
+
+        self.assertIn("[Shot 1] At 00:00.000, A person walks into frame.", output)
+        self.assertIn("[Shot 2] At 00:04.000, He stops.", output)
+
+    def test_ref2va_explicit_shot_time_ranges_override_inferred_timing(self):
+        source = "图1是男生，视频从图1开始。镜头1（0-4秒）：男生走入画面。镜头2（4-7秒）：他停下。"
+        translation = "<Picture 1> is a man. The video begins with <Picture 1>. Shot 1: The man walks into frame. Shot 2: He stops."
+
+        output = h3.ref2va_timeline_wrap(translation, source)
+
+        self.assertIn("[Shot 1] At 00:00.000, The man walks into frame.", output)
+        self.assertIn("[Shot 2] At 00:04.000, He stops.", output)
 
     def test_unmentioned_vocalizations_are_detected(self):
         self.assertTrue(h3.has_unsupported_vocalization("A person remains still.", "The person moans."))
@@ -104,7 +132,7 @@ class H3ContractTests(unittest.TestCase):
         modules["shots"][1].update(duration_seconds=2.5, action="The man crouches.", camera="Medium shot.")
         modules["overall_soundscape"] = "Breathing and fabric movement."
         output = h3.build_h3(modules, "fl2va")
-        self.assertIn("[Shot 1] The woman raises one leg.", output)
+        self.assertIn("[Shot 1] At 00:00.000, The woman raises one leg.", output)
         self.assertIn("[Shot 2] At 00:03.500, The man crouches. Medium shot.", output)
         self.assertIn("overall_soundscape: Breathing and fabric movement.", output)
 

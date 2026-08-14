@@ -274,7 +274,7 @@ class PromptServiceTests(unittest.TestCase):
         self.assertTrue(result["output"].startswith(
             "For the target video, at 0.00 seconds into the target video, <Picture 2> (from [Shot 1]) is fully referenced."
         ))
-        self.assertIn("integrated_multimodal_description: [Shot 1] Continue directly from <Picture 2>", result["output"])
+        self.assertIn("integrated_multimodal_description: [Shot 1] At 00:00.000, Continue directly from <Picture 2>", result["output"])
         self.assertIn("[Shot 2] At 00:02.500, Close-up on him pressing the remote.", result["output"])
         self.assertIn("[Shot 4] At 00:07.500, Cut to an extremely low-angle shot", result["output"])
         self.assertIn("overall_soundscape: a remote-control click and light movement", result["output"])
@@ -292,7 +292,7 @@ class PromptServiceTests(unittest.TestCase):
 
         self.assertNotIn("<Picture", result["output"])
         self.assertNotIn("fully referenced", result["output"])
-        self.assertIn("integrated_multimodal_description: [Shot 1] A person runs.", result["output"])
+        self.assertIn("integrated_multimodal_description: [Shot 1] At 00:00.000, A person runs.", result["output"])
         self.assertTrue(result["audit"]["valid"])
 
     def test_fl2va_conversion_preserves_explicit_chinese_dialogue_untranslated(self):

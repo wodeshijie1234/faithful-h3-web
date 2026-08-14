@@ -223,6 +223,27 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
     return shots
 
 
+def _numbered_shot_actions(translation: str) -> list[str]:
+    """Preserve explicit Shot N boundaries before semantic camera splitting."""
+    value = canonicalize_picture_references(translation).strip()
+    marker = re.compile(r"(?:\[Shot\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))\s*[:\uff1a]?", re.I)
+    matches = list(marker.finditer(value))
+    if not matches:
+        return []
+
+    prefix = value[:matches[0].start()].strip()
+    actions = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(value)
+        segment = value[match.end():end].strip()
+        if index == 0 and prefix:
+            segment = f"{prefix} {segment}".strip()
+        cleaned = " ".join(_ref2va_action_sentences(segment))
+        if cleaned:
+            actions.append(cleaned)
+    return actions
+
+
 def _ref2va_semantic_duration(action: str) -> float:
     """Estimate a shot length from explicit action density without generating new content."""
     value = str(action or "")
@@ -240,6 +261,73 @@ def _ref2va_semantic_duration(action: str) -> float:
     elif action_count == 0 and re.search(r"\b(?:cut|camera|shot|angle)\b|\u5207\u6362|\u955c\u5934|\u89c6\u89d2", value, flags=re.I):
         duration = 1.5
     return round(max(1.5, min(6.0, duration)) * 2) / 2
+
+
+def _shot_timing_hints(text: str) -> dict[int, dict[str, float]]:
+    """Extract explicit per-shot starts and durations from common Chinese or English notation."""
+    value = str(text or "")
+    marker = re.compile(r"(?:\[Shot\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))", re.I)
+    matches = list(marker.finditer(value))
+    hints: dict[int, dict[str, float]] = {}
+    for index, match in enumerate(matches):
+        shot_number = int(match.group(1) or match.group(2))
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(value)
+        header = value[match.end():min(end, match.end() + 80)]
+        hint: dict[str, float] = {}
+
+        timestamp = re.search(r"\bAt\s+(\d{1,3}):(\d{2}(?:\.\d{1,3})?)", header, flags=re.I)
+        if timestamp:
+            hint["start"] = int(timestamp.group(1)) * 60 + float(timestamp.group(2))
+
+        time_range = re.search(
+            r"(?:\u7b2c)?\s*(\d+(?:\.\d+)?)\s*(?:\u79d2|s|seconds?)?\s*"
+            r"(?:-|\u2013|\u2014|~|\u81f3|\u5230)\s*(?:\u7b2c)?\s*(\d+(?:\.\d+)?)\s*(?:\u79d2|s|seconds?)",
+            header,
+            flags=re.I,
+        )
+        if time_range:
+            start, end_time = float(time_range.group(1)), float(time_range.group(2))
+            hint.update(start=start, duration=max(0.0, end_time - start))
+
+        duration = re.search(
+            r"(?:\u6301\u7eed|\u65f6\u957f|duration(?:\s+of)?|lasts?)\s*[:\uff1a]?\s*"
+            r"(\d+(?:\.\d+)?)\s*(?:\u79d2|s|seconds?)",
+            header,
+            flags=re.I,
+        )
+        if duration:
+            hint["duration"] = float(duration.group(1))
+
+        start_second = re.search(
+            r"(?:\u4ece|\u7b2c|at)\s*(\d+(?:\.\d+)?)\s*(?:\u79d2|s|seconds?)(?:\u5f00\u59cb)?",
+            header,
+            flags=re.I,
+        )
+        if start_second and "start" not in hint:
+            hint["start"] = float(start_second.group(1))
+        if hint:
+            hints[shot_number] = hint
+    return hints
+
+
+def _timeline_durations(actions: list[str], source_text: str, translation: str) -> list[float]:
+    hints = _shot_timing_hints(source_text) or _shot_timing_hints(translation)
+    durations = []
+    elapsed = 0.0
+    for index, action in enumerate(actions, start=1):
+        current = hints.get(index, {})
+        following = hints.get(index + 1, {})
+        explicit_next = following.get("start")
+        if explicit_next is not None and explicit_next > elapsed:
+            duration = explicit_next - elapsed
+        elif current.get("duration", 0) > 0:
+            duration = current["duration"]
+        else:
+            duration = _ref2va_semantic_duration(action)
+        duration = round(max(0.5, min(30.0, duration)) * 2) / 2
+        durations.append(duration)
+        elapsed += duration
+    return durations
 
 
 def ref2va_timeline_wrap(
@@ -268,15 +356,16 @@ def ref2va_timeline_wrap(
         for picture_id, gender in subjects
     ) or "N/A"
 
-    shot_actions = _ref2va_action_sentences(value)
+    shot_actions = _numbered_shot_actions(value) or _ref2va_action_sentences(value)
+    durations = _timeline_durations(shot_actions, source_text, translation)
     modules = {
         "subject_definitions": subject_definitions,
         "summary": summary,
         "retention_analysis": retention_analysis,
         "scene": f"The target video begins with <Picture {start_picture}>." if start_picture else "",
         "shots": [
-            {"duration_seconds": _ref2va_semantic_duration(action), "action": action, "camera": ""}
-            for action in shot_actions
+            {"duration_seconds": duration, "action": action, "camera": ""}
+            for action, duration in zip(shot_actions, durations)
         ],
         "overall_soundscape": str(soundscape or "N/A").strip() or "N/A",
         "non_diegetic_music": str(music or "N/A").strip() or "N/A",
@@ -308,7 +397,7 @@ def fl2va_timeline_wrap(
     subjects, start_picture = _ref2va_reference_metadata(reference_source)
     explicit_pictures = re.findall(r"<Picture\s+(\d+)>", reference_source, flags=re.I)
     reference_picture = start_picture or (explicit_pictures[0] if explicit_pictures else None)
-    shot_actions = _ref2va_action_sentences(value) or [value]
+    shot_actions = _numbered_shot_actions(value) or _ref2va_action_sentences(value) or [value]
     subject_facts = " ".join(
         f"<Picture {picture_id}> is {gender}." for picture_id, gender in subjects
     )
@@ -319,15 +408,14 @@ def fl2va_timeline_wrap(
             shot_actions[0],
         ) if item
     )
+    durations = _timeline_durations(shot_actions, source_text, translation)
 
     shot_parts = []
     elapsed = 0.0
     for index, action in enumerate([first_action, *shot_actions[1:]], start=1):
-        marker = f"[Shot {index}]"
-        if index > 1:
-            marker += f" At {format_timestamp(elapsed)},"
+        marker = f"[Shot {index}] At {format_timestamp(elapsed)},"
         shot_parts.append(f"{marker} {action}")
-        elapsed += _ref2va_semantic_duration(shot_actions[index - 1])
+        elapsed += durations[index - 1]
 
     sound = str(soundscape or "N/A").strip() or "N/A"
     score = str(music or "N/A").strip() or "N/A"
@@ -425,9 +513,7 @@ def build_h3(modules: dict, mode: str) -> str:
         if not content:
             elapsed += shot["duration_seconds"]
             continue
-        marker = f"[Shot {index}]"
-        if index > 1:
-            marker += f" At {format_timestamp(elapsed)},"
+        marker = f"[Shot {index}] At {format_timestamp(elapsed)},"
         shot_parts.append(f"{marker} {content}")
         elapsed += shot["duration_seconds"]
     detailed = " ".join(value for value in (modules["scene"], " ".join(shot_parts)) if value).strip() or "N/A"
@@ -521,13 +607,13 @@ def visual_review_system(mode: str) -> str:
 def conversion_system(mode: str) -> str:
     mode = normalize_mode(mode)
     if mode == "fl2va":
-        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate each source clause exactly once and in the original order. Preserve every explicit person, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, resolve ambiguity, or continue anything. Never infer appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, props, lighting, mood, camera movement, body details, relationships, intentions, or transitions. If the source does not specify a fact, omit it. Return only the English translation."""
-    return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
+        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate each source clause exactly once and in the original order. Preserve every explicit person, count, left/right position, action, shot number, timestamp, time range, duration, camera direction, continuity fact, and dialogue. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, resolve ambiguity, or continue anything. Never infer appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, props, lighting, mood, camera movement, body details, relationships, intentions, or transitions. If the source does not specify a fact, omit it. Return only the English translation."""
+    return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, timestamp, time range, duration, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
 
 
 def translation_repair_system(mode: str) -> str:
     normalize_mode(mode)
-    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, camera movement, or non-dialogue vocalizations. Return only the corrected English translation, not H3 formatting or commentary."""
+    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, timestamps, time ranges, durations, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, camera movement, or non-dialogue vocalizations. Return only the corrected English translation, not H3 formatting or commentary."""
 
 
 def enrichment_system(strength: int) -> str:

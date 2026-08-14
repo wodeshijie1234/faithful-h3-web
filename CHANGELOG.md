@@ -2,6 +2,14 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.5.3 - 2026-08-14
+
+### Fixed
+
+- Every FL2VA and Ref2VA shot now includes an explicit `At` timestamp; the first shot always starts at `00:00.000`.
+- Explicit `Shot N` or `\u955c\u5934 N` boundaries now take priority over semantic camera splitting and can no longer be merged.
+- Explicit time ranges, absolute starts, and durations from the source prompt override inferred timing; otherwise shot length is inferred from action density and camera semantics.
+
 ## 1.5.2 - 2026-08-14
 
 ### Fixed
