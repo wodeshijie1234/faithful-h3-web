@@ -19,6 +19,11 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
+## What's new in v1.5.4 (2026-08-14)
+
+- Closing the Windows launcher now terminates the complete local server process tree instead of leaving the port occupied.
+- The shared model status now refreshes after every completed or failed request and no longer remains on `Loading model...`.
+
 ## What's new in v1.5.3 (2026-08-14)
 
 - Every FL2VA and Ref2VA shot now carries an explicit timeline timestamp, beginning at `00:00.000`.
@@ -151,6 +156,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.5.3`<br>
+Version `1.5.4`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

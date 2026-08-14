@@ -122,6 +122,14 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn('/static/mobile.css?v=', html)
         self.assertIn('Object.prototype.hasOwnProperty.call(I18N, storedLanguage)', script)
 
+    def test_frontend_restores_model_status_after_progress_monitor_stops(self):
+        script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+
+        cleanup = script[script.index("return async () => {"):script.index("function setWorking")]
+        self.assertIn("await updateModelStatus();", cleanup)
+        self.assertIn("await updateVisionStatus();", cleanup)
+        self.assertEqual(3, script.count("await stopProgress();"))
+
     def test_one_click_entrypoints_and_readme_exist(self):
         self.assertTrue((ROOT / "install-and-run.bat").is_file())
         self.assertTrue((ROOT / "run.bat").is_file())
@@ -129,6 +137,8 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn("PYTHONNOUSERSITE=1", launcher)
         self.assertIn('if exist "local-settings.bat" call "local-settings.bat"', launcher)
         self.assertIn("FAITHFUL_H3_LLAMA_BIN", launcher)
+        self.assertIn('scripts\\run_server.py', launcher)
+        self.assertNotIn('-m uvicorn app.main:app', launcher)
         self.assertNotIn("import torch", launcher)
         requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
         self.assertIn("huggingface-hub==1.3.7", requirements)

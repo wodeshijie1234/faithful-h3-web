@@ -2,6 +2,13 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.5.4 - 2026-08-14
+
+### Fixed
+
+- Added a Windows Job Object launcher so closing the startup console terminates Uvicorn and all descendant Python processes instead of leaving the Web port occupied.
+- Refreshed the shared model status after text conversion, prompt enrichment, and image captioning complete or fail, preventing a stale `Loading model...` label after the backend has returned to idle.
+
 ## 1.5.3 - 2026-08-14
 
 ### Fixed

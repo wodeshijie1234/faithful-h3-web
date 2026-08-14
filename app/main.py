@@ -42,7 +42,7 @@ service = PromptService(runtime)
 download_state = {model_id: {"running": False, "error": ""} for model_id in MODEL_SPECS}
 vision_download_state = {"running": False, "error": ""}
 
-app = FastAPI(title="liuliu Faithful H3", version="1.5.3")
+app = FastAPI(title="liuliu Faithful H3", version="1.5.4")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

@@ -235,9 +235,11 @@ function startProgressMonitor(statusId) {
   if (progressTimer) clearInterval(progressTimer);
   update();
   progressTimer = setInterval(update, 500);
-  return () => {
+  return async () => {
     if (progressTimer) clearInterval(progressTimer);
     progressTimer = null;
+    if (currentView === "vision") await updateVisionStatus();
+    else await updateModelStatus();
   };
 }
 
@@ -360,7 +362,7 @@ $("convert-source").addEventListener("click", async () => {
   } catch (error) {
     setStatus("source-status", error.message, "error");
   } finally {
-    stopProgress();
+    await stopProgress();
     setWorking($("convert-source"), false);
   }
 });
@@ -378,7 +380,7 @@ $("enrich").addEventListener("click", async () => {
   } catch (error) {
     setStatus("enrich-status", error.message, "error");
   } finally {
-    stopProgress();
+    await stopProgress();
     setWorking($("enrich"), false);
   }
 });
@@ -416,7 +418,7 @@ $("vision-analyze").addEventListener("click", async () => {
   } catch (error) {
     setStatus("vision-status", error.message, "error");
   } finally {
-    stopProgress();
+    await stopProgress();
     setWorking($("vision-analyze"), false);
   }
 });
