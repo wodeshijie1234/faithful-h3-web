@@ -2,6 +2,14 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.5.2 - 2026-08-14
+
+### Fixed
+
+- Aligned the image-to-prompt input and output titles by placing both headings in the same two-column grid row.
+- Removed the copy button's height from the output heading flow so both title baselines and content top edges remain aligned.
+- Added versioned CSS URLs so browsers cannot retain the previous misaligned layout after an update.
+
 ## 1.5.1 - 2026-08-14
 
 ### Added

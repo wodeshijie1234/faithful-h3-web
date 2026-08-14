@@ -106,11 +106,20 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn(".output-head { align-items: flex-start;", styles)
         self.assertIn(".toast {", styles)
 
+        vision_markup = html[html.index('id="vision-section"'):html.index('</section>', html.index('id="vision-section"'))]
+        left_pane = vision_markup[vision_markup.index('class="vision-input-pane"'):vision_markup.index('class="vision-output-pane"')]
+        right_pane = vision_markup[vision_markup.index('class="vision-output-pane"'):]
+        self.assertIn('id="vision-heading"', left_pane)
+        self.assertIn('class="section-heading compact-heading vision-output-heading"', right_pane)
+        self.assertIn(".vision-output-heading {", styles)
+
     def test_frontend_recovers_from_stale_client_state_and_uses_a_versioned_script(self):
         html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
         script = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
 
         self.assertIn('/static/app.js?v=', html)
+        self.assertIn('/static/styles.css?v=', html)
+        self.assertIn('/static/mobile.css?v=', html)
         self.assertIn('Object.prototype.hasOwnProperty.call(I18N, storedLanguage)', script)
 
     def test_one_click_entrypoints_and_readme_exist(self):

@@ -122,6 +122,9 @@ button, input, select, textarea { letter-spacing: 0; }
 .optional-label { border-radius: 4px; padding: 3px 7px; background: #eef2f0; color: var(--muted); font-size: 11px; font-weight: 700; }
 .vision-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 32px; }
 .vision-input-pane, .vision-output-pane { min-width: 0; }
+.vision-output-heading { position: relative; min-height: 25px; padding-right: 44px; }
+.vision-output-heading > div { position: absolute; top: -6px; right: 0; display: flex; gap: 6px; }
+.vision-output-heading h2 label { color: inherit; font: inherit; }
 .vision-dropzone {
   min-height: 210px;
   border: 1px dashed var(--border-strong);

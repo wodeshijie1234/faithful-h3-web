@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>liuliu Faithful H3</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <link rel="stylesheet" href="/static/mobile.css">
+  <link rel="stylesheet" href="/static/styles.css?v=1.5.2">
+  <link rel="stylesheet" href="/static/mobile.css?v=1.5.2">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.5.1</span></div>
+    <div class="brand" aria-label="liuliu Faithful H3"><span class="brand-mark" aria-hidden="true">LS</span><span>Faithful H3</span><span class="version">v1.5.2</span></div>
     <div class="top-actions">
       <span id="model-status" class="status status-neutral">Model not downloaded</span>
       <button class="help" data-help="model" data-h3-control type="button" aria-label="Model help">?</button>
@@ -88,9 +88,9 @@
 
     <div id="vision-view" class="app-view" hidden role="tabpanel">
     <section id="vision-section" class="vision-section" aria-labelledby="vision-heading">
-      <div class="section-heading compact-heading"><h2 id="vision-heading" data-i18n="visionTitle">Image to prompt</h2><span class="optional-label" data-i18n="optional">Optional</span><button class="help" data-help="vision" type="button" aria-label="Image to prompt help">?</button></div>
       <div class="vision-grid">
         <div class="vision-input-pane">
+          <div class="section-heading compact-heading"><h2 id="vision-heading" data-i18n="visionTitle">Image to prompt</h2><span class="optional-label" data-i18n="optional">Optional</span><button class="help" data-help="vision" type="button" aria-label="Image to prompt help">?</button></div>
           <label id="vision-dropzone" class="vision-dropzone" for="vision-file">
             <input id="vision-file" type="file" accept="image/png,image/jpeg,image/webp">
             <span class="vision-drop-icon" aria-hidden="true">+</span>
@@ -103,7 +103,7 @@
           <div id="vision-status" class="feedback" aria-live="polite"></div>
         </div>
         <div class="vision-output-pane">
-          <div class="field-head output-head"><label for="vision-output" data-i18n="visionOutput">Reconstructed prompt</label><div><button class="copy icon-button" data-target="vision-output" type="button" title="Copy" aria-label="Copy reconstructed prompt">&#128203;</button></div></div>
+          <div class="section-heading compact-heading vision-output-heading"><h2><label for="vision-output" data-i18n="visionOutput">Reconstructed prompt</label></h2><div><button class="copy icon-button" data-target="vision-output" type="button" title="Copy" aria-label="Copy reconstructed prompt">&#128203;</button></div></div>
           <textarea id="vision-output" rows="12" readonly data-i18n-placeholder="visionOutputPlaceholder" placeholder="The literal image description will appear here."></textarea>
         </div>
       </div>
@@ -111,7 +111,7 @@
     </div>
   </main>
 
-  <footer class="footer"><span>liuliu Faithful H3 v1.5.1</span><span>@liuliu | 1661204908@qq.com</span></footer>
+  <footer class="footer"><span>liuliu Faithful H3 v1.5.2</span><span>@liuliu | 1661204908@qq.com</span></footer>
   <dialog id="download-dialog">
     <div class="dialog-head"><h3 data-i18n="chooseDownloads">Choose models to download</h3><button id="download-close" class="icon-button" type="button" aria-label="Close">&#215;</button></div>
     <p data-i18n="downloadHint">Select only the models you need. Downloads continue in the background and progress is printed in the startup console.</p>
@@ -125,6 +125,6 @@
   </dialog>
   <dialog id="help-dialog"><div class="dialog-head"><h3 id="help-title"></h3><button id="help-close" class="icon-button" type="button" aria-label="Close">&#215;</button></div><p id="help-body"></p></dialog>
   <div id="release-toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script src="/static/app.js?v=1.5.1"></script>
+  <script src="/static/app.js?v=1.5.2"></script>
 </body>
 </html>
