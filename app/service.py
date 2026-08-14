@@ -15,45 +15,19 @@ class PromptService:
 
     def enrich(self, text: str, strength: int) -> str:
         strength = max(0, min(100, int(strength)))
-        source = text.strip()
-        if strength == 0:
-            # Zero is the conservative preset: retain every supplied fact exactly.
-            return source
-        temperature = round(0.15 + 0.75 * strength / 100, 3)
-        top_p = round(0.35 + 0.60 * strength / 100, 3)
-        enriched = self.runtime.generate(
-            source,
-            h3.enrichment_system(strength),
-            temperature=temperature,
-            top_p=top_p,
-            max_new_tokens=h3.enrichment_token_limit(strength),
+        output = h3.bounded_enrich_prompt(text, strength)
+        if strength < 60 or not output:
+            return output
+        scene = self.runtime.generate(
+            str(text or "").strip(), h3.scene_enrichment_system(strength),
+            temperature=round(0.25 + 0.55 * strength / 100, 3),
+            top_p=round(0.45 + 0.45 * strength / 100, 3),
+            max_new_tokens=h3.scene_enrichment_token_limit(strength),
         ).strip()
-        if not enriched or (_contains_cjk(source) and not _contains_cjk(enriched)):
-            return source
-        enriched = h3.restore_enrichment_protected_facts(source, enriched)
-        review = self.runtime.generate(
-            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{enriched}",
-            h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
-        ).strip().upper()
-        needs_integration = enriched.startswith(source) and "\n\n" in enriched
-        if review == "PASS" and not needs_integration:
-            return enriched
-
-        repaired = self.runtime.generate(
-            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHMENT:\n{enriched}",
-            h3.enrichment_repair_system(strength), temperature=temperature, top_p=top_p,
-            max_new_tokens=h3.enrichment_token_limit(strength),
-        ).strip()
-        if not repaired or (_contains_cjk(source) and not _contains_cjk(repaired)):
-            return source
-        repaired = h3.restore_enrichment_protected_facts(source, repaired)
-        review = self.runtime.generate(
-            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{repaired}",
-            h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
-        ).strip().upper()
-        if review != "PASS" or (repaired.startswith(source) and "\n\n" in repaired):
-            return source
-        return repaired
+        use_cjk = _contains_cjk(text)
+        if (use_cjk and not _contains_cjk(scene)) or not h3.is_safe_scene_enrichment(scene):
+            scene = h3.fallback_scene_enrichment(strength, use_cjk=use_cjk)
+        return h3.integrate_scene_enrichment(output, scene)
 
     def convert(self, text: str, mode: str) -> dict:
         source = h3.canonicalize_picture_references(text) if h3.normalize_mode(mode) == "ref2va" else text

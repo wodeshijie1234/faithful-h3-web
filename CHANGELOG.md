@@ -6,9 +6,9 @@ All notable changes to liuliu Faithful H3 are documented here.
 
 ### Fixed
 
-- Prompt enrichment now returns one cohesive, same-language prompt with additions integrated beside the source action they support; it no longer appends a disconnected afterword to unchanged source text.
-- Added an enrichment review and one repair pass that reject new characters, props, locations, dialogue, plot events, unsupported actions, and unsupported camera cuts before returning an enriched prompt.
-- Explicit Chinese picture identities and video starting-reference facts are restored deterministically when an enrichment model omits them.
+- Prompt enrichment now retains the original prompt and action order. Strengths `0-50` add only bounded continuity or focus refinements, while strengths `60-100` may add a separate static environment clause.
+- Higher strengths now increase the permitted environmental creativity: restrained indoor mood at `60`, weather and stronger light contrast at `80`, and richer space, weather, and atmosphere at `100`.
+- High-strength scene candidates are rejected when they introduce people, actions, dialogue, camera language, or new props. Chinese source prompts also reject English-only scene output and fall back to a same-language safe scene clause.
 
 ## 1.3.6 - 2026-08-14
 
