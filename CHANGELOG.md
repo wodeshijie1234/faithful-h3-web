@@ -2,6 +2,25 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.4.0 - 2026-08-14
+
+### Added
+
+- Added an independent image-to-prompt module using `Qwen2-VL-2B-Abliterated-Caption-it` with local image preview, optional focus instructions, localized output, copy, and transfer to the source prompt.
+- Added on-demand, resumable download and SHA256 verification for the 940,312,704-byte `Q4_K_S` model and 712,895,168-byte `Q8_0` vision projector.
+- Added PNG, JPEG, and WebP validation with a 12 MB request limit.
+- Added standalone vision download and real-inference self-check scripts.
+
+### Changed
+
+- Text and vision inference now release each other before loading so they do not compete for VRAM.
+- The release-memory endpoint now stops both runtimes.
+- Vision inference uses an isolated 8192-token context with at least 1024 image tokens.
+
+### Verification
+
+- Real CUDA inference on a 496 KB JPEG completed in `7.641s`, including cold model startup, and returned a coherent Simplified Chinese description of the visible subjects, positions, clothing, beach, waves, and warm sky.
+
 ## 1.3.9 - 2026-08-14
 
 ### Fixed

@@ -97,6 +97,37 @@ button, input, select, textarea { letter-spacing: 0; }
 }
 
 .workspace { max-width: 1280px; margin: 0 auto; padding: 24px 30px 68px; }
+.vision-section { border-bottom: 1px solid var(--border); padding: 0 0 28px; margin-bottom: 24px; }
+.optional-label { border-radius: 4px; padding: 3px 7px; background: #eef2f0; color: var(--muted); font-size: 11px; font-weight: 700; }
+.vision-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 32px; }
+.vision-input-pane, .vision-output-pane { min-width: 0; }
+.vision-dropzone {
+  min-height: 210px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 14px;
+  color: var(--muted);
+  background: var(--surface);
+  cursor: pointer;
+  overflow: hidden;
+}
+.vision-dropzone:hover, .vision-dropzone.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+.vision-dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.vision-dropzone strong { color: var(--text); font-size: 14px; }
+.vision-dropzone > span:last-of-type { font-size: 12px; }
+.vision-dropzone.has-preview > :not(input):not(img) { display: none; }
+.vision-drop-icon { width: 36px; height: 36px; border: 1px solid var(--accent); color: var(--accent); border-radius: 50%; display: grid; place-items: center; font-size: 22px; line-height: 1; }
+.vision-preview { display: block; width: 100%; height: 210px; object-fit: contain; }
+.vision-preview[hidden] { display: none; }
+.vision-instruction { display: grid; gap: 7px; margin-top: 14px; }
+.vision-instruction > span { font-size: 13px; font-weight: 720; color: #35403b; }
+.vision-actions { display: flex; gap: 8px; margin-top: 12px; }
+.vision-actions .button-primary { margin-left: auto; }
+.vision-output-pane textarea { min-height: 336px; }
 .mode-row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
 .mode-label { font-weight: 750; font-size: 14px; }
 .segmented { display: flex; width: 300px; }

@@ -75,14 +75,50 @@ const I18N = {
   }
 };
 
+Object.assign(I18N.en, {
+  visionTitle: "Image to prompt", optional: "Optional", chooseImage: "Choose an image",
+  imageLimits: "PNG, JPEG or WebP, up to 12 MB", visionInstruction: "Focus or description requirement",
+  visionInstructionPlaceholder: "Optional. For example: focus on subject positions and camera angle.",
+  downloadVision: "Download vision model", analyzeImage: "Analyze image", visionOutput: "Reconstructed prompt",
+  visionOutputPlaceholder: "The literal image description will appear here.", visionMissing: "Vision model not downloaded",
+  visionReady: "Vision model ready", visionLoaded: "Vision model loaded", visionDownloading: "Downloading vision model...",
+  visionSelected: "Image selected", visionDone: "Image analysis complete", visionToSource: "Placed in source prompt",
+  invalidImage: "Choose a PNG, JPEG, or WebP image up to 12 MB.", selectImage: "Choose an image first.",
+  emptyVisionOutput: "Analyze an image first."
+});
+I18N.en.help.vision = ["Image to prompt", "Uses a separate 2B abliterated vision model to describe only visible image facts. The result stays independent until you place it in the source prompt."];
+I18N.en.help.mode = ["H3 mode", "FL2VA and Ref2VA expose their official module structures. H3 conversion is text-only; optional image analysis stays in its separate module."];
+
 Object.assign(I18N["zh-CN"], {
   directConvert: "\u76f4\u63a5\u8f6c\u4e3a H3",
-  directConvertDone: "\u5df2\u6839\u636e\u539f\u59cb\u63d0\u793a\u8bcd\u751f\u6210 H3"
+  directConvertDone: "\u5df2\u6839\u636e\u539f\u59cb\u63d0\u793a\u8bcd\u751f\u6210 H3",
+  visionTitle: "\u8bc6\u56fe\u53cd\u63a8\u63d0\u793a\u8bcd", optional: "\u53ef\u9009", chooseImage: "\u9009\u62e9\u56fe\u7247",
+  imageLimits: "PNG\u3001JPEG \u6216 WebP\uff0c\u6700\u5927 12 MB", visionInstruction: "\u5173\u6ce8\u70b9\u6216\u63cf\u8ff0\u8981\u6c42",
+  visionInstructionPlaceholder: "\u53ef\u9009\uff0c\u4f8b\u5982\uff1a\u91cd\u70b9\u63cf\u8ff0\u4eba\u7269\u7ad9\u4f4d\u548c\u955c\u5934\u89d2\u5ea6\u3002",
+  downloadVision: "\u4e0b\u8f7d\u8bc6\u56fe\u6a21\u578b", analyzeImage: "\u5206\u6790\u56fe\u7247", visionOutput: "\u53cd\u63a8\u63d0\u793a\u8bcd",
+  visionOutputPlaceholder: "\u5fe0\u5b9e\u7684\u56fe\u7247\u63cf\u8ff0\u5c06\u663e\u793a\u5728\u8fd9\u91cc\u3002", visionMissing: "\u8bc6\u56fe\u6a21\u578b\u672a\u4e0b\u8f7d",
+  visionReady: "\u8bc6\u56fe\u6a21\u578b\u5df2\u5c31\u7eea", visionLoaded: "\u8bc6\u56fe\u6a21\u578b\u5df2\u52a0\u8f7d", visionDownloading: "\u6b63\u5728\u4e0b\u8f7d\u8bc6\u56fe\u6a21\u578b...",
+  visionSelected: "\u56fe\u7247\u5df2\u9009\u62e9", visionDone: "\u56fe\u7247\u5206\u6790\u5b8c\u6210", visionToSource: "\u5df2\u586b\u5165\u539f\u59cb\u63d0\u793a\u8bcd",
+  invalidImage: "\u8bf7\u9009\u62e9 12 MB \u4ee5\u5185\u7684 PNG\u3001JPEG \u6216 WebP \u56fe\u7247\u3002", selectImage: "\u8bf7\u5148\u9009\u62e9\u56fe\u7247\u3002",
+  emptyVisionOutput: "\u8bf7\u5148\u5206\u6790\u56fe\u7247\u3002"
 });
+I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u72ec\u7acb\u7684 2B \u65e0\u9650\u5236\u89c6\u89c9\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u56fe\u7247\u4e2d\u771f\u5b9e\u53ef\u89c1\u7684\u4e8b\u5b9e\u3002\u7ed3\u679c\u5728\u4f60\u4e3b\u52a8\u586b\u5165\u539f\u59cb\u63d0\u793a\u8bcd\u524d\u4e0e H3 \u6d41\u7a0b\u72ec\u7acb\u3002"];
+I18N["zh-CN"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u522b\u663e\u793a\u5bf9\u5e94\u7684\u5b98\u65b9\u6a21\u5757\u3002H3 \u8f6c\u6362\u4ecd\u4e3a\u7eaf\u6587\u672c\u6d41\u7a0b\uff1b\u53ef\u9009\u8bc6\u56fe\u4fdd\u6301\u5728\u72ec\u7acb\u6a21\u5757\u4e2d\u3002"];
 Object.assign(I18N["zh-TW"], {
   directConvert: "\u76f4\u63a5\u8f49\u70ba H3",
-  directConvertDone: "\u5df2\u6839\u64da\u539f\u59cb\u63d0\u793a\u8a5e\u751f\u6210 H3"
+  directConvertDone: "\u5df2\u6839\u64da\u539f\u59cb\u63d0\u793a\u8a5e\u751f\u6210 H3",
+  visionTitle: "\u8b58\u5716\u53cd\u63a8\u63d0\u793a\u8a5e", optional: "\u53ef\u9078", chooseImage: "\u9078\u64c7\u5716\u7247",
+  imageLimits: "PNG\u3001JPEG \u6216 WebP\uff0c\u6700\u5927 12 MB", visionInstruction: "\u95dc\u6ce8\u9ede\u6216\u63cf\u8ff0\u8981\u6c42",
+  visionInstructionPlaceholder: "\u53ef\u9078\uff0c\u4f8b\u5982\uff1a\u91cd\u9ede\u63cf\u8ff0\u4eba\u7269\u7ad9\u4f4d\u548c\u93e1\u982d\u89d2\u5ea6\u3002",
+  downloadVision: "\u4e0b\u8f09\u8b58\u5716\u6a21\u578b", analyzeImage: "\u5206\u6790\u5716\u7247", visionOutput: "\u53cd\u63a8\u63d0\u793a\u8a5e",
+  visionOutputPlaceholder: "\u5fe0\u5be6\u7684\u5716\u7247\u63cf\u8ff0\u5c07\u986f\u793a\u5728\u9019\u88e1\u3002", visionMissing: "\u8b58\u5716\u6a21\u578b\u672a\u4e0b\u8f09",
+  visionReady: "\u8b58\u5716\u6a21\u578b\u5df2\u5c31\u7dd2", visionLoaded: "\u8b58\u5716\u6a21\u578b\u5df2\u8f09\u5165", visionDownloading: "\u6b63\u5728\u4e0b\u8f09\u8b58\u5716\u6a21\u578b...",
+  visionSelected: "\u5716\u7247\u5df2\u9078\u64c7", visionDone: "\u5716\u7247\u5206\u6790\u5b8c\u6210", visionToSource: "\u5df2\u586b\u5165\u539f\u59cb\u63d0\u793a\u8a5e",
+  invalidImage: "\u8acb\u9078\u64c7 12 MB \u4ee5\u5167\u7684 PNG\u3001JPEG \u6216 WebP \u5716\u7247\u3002", selectImage: "\u8acb\u5148\u9078\u64c7\u5716\u7247\u3002",
+  emptyVisionOutput: "\u8acb\u5148\u5206\u6790\u5716\u7247\u3002"
 });
+I18N["zh-TW"].help.vision = ["\u8b58\u5716\u53cd\u63a8", "\u4f7f\u7528\u7368\u7acb\u7684 2B \u7121\u9650\u5236\u8996\u89ba\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u5716\u7247\u4e2d\u771f\u5be6\u53ef\u898b\u7684\u4e8b\u5be6\u3002\u7d50\u679c\u5728\u4f60\u4e3b\u52d5\u586b\u5165\u539f\u59cb\u63d0\u793a\u8a5e\u524d\u8207 H3 \u6d41\u7a0b\u7368\u7acb\u3002"];
+I18N["zh-TW"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u5225\u986f\u793a\u5c0d\u61c9\u7684\u5b98\u65b9\u6a21\u7d44\u3002H3 \u8f49\u63db\u4ecd\u70ba\u7d14\u6587\u5b57\u6d41\u7a0b\uff1b\u53ef\u9078\u8b58\u5716\u4fdd\u6301\u5728\u7368\u7acb\u6a21\u7d44\u4e2d\u3002"];
 
 const storedLanguage = localStorage.getItem("faithful-h3-language");
 let language = Object.prototype.hasOwnProperty.call(I18N, storedLanguage) ? storedLanguage : "en";
@@ -90,6 +126,8 @@ let mode = "fl2va";
 let shotCount = 3;
 let busyCount = 0;
 let statusTimer = null;
+let visionStatusTimer = null;
+let visionImageDataUrl = "";
 const $ = id => document.getElementById(id);
 const t = key => I18N[language][key] || I18N.en[key] || key;
 
@@ -221,6 +259,42 @@ function applyLanguage() {
   $("language").value = language;
   renderShots(currentShots);
   updateModelStatus();
+  updateVisionStatus();
+}
+
+function loadVisionFile(file) {
+  const allowed = ["image/png", "image/jpeg", "image/webp"];
+  if (!file || !allowed.includes(file.type) || file.size < 1 || file.size > 12 * 1024 * 1024) {
+    return setStatus("vision-status", t("invalidImage"), "error");
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    visionImageDataUrl = String(reader.result || "");
+    $("vision-preview").src = visionImageDataUrl;
+    $("vision-preview").hidden = false;
+    $("vision-dropzone").classList.add("has-preview");
+    setStatus("vision-status", t("visionSelected"));
+    updateVisionStatus();
+  });
+  reader.addEventListener("error", () => setStatus("vision-status", t("invalidImage"), "error"));
+  reader.readAsDataURL(file);
+}
+
+async function updateVisionStatus() {
+  try {
+    const data = await fetch("/api/vision/status").then(response => response.json());
+    const message = data.downloading ? t("visionDownloading") : data.loaded ? t("visionLoaded") : data.ready ? t("visionReady") : t("visionMissing");
+    setStatus("vision-status", data.error || message, data.error ? "error" : data.downloading ? "loading" : "");
+    $("vision-download").disabled = data.downloading || data.ready;
+    $("vision-analyze").disabled = data.downloading || !data.ready || !visionImageDataUrl;
+    if (data.downloading && !visionStatusTimer) visionStatusTimer = setInterval(updateVisionStatus, 2000);
+    if (!data.downloading && visionStatusTimer) {
+      clearInterval(visionStatusTimer);
+      visionStatusTimer = null;
+    }
+  } catch (error) {
+    setStatus("vision-status", error.message, "error");
+  }
 }
 
 async function importToModules(text, statusId, button) {
@@ -356,6 +430,60 @@ $("convert-modules").addEventListener("click", async () => {
   } finally {
     setWorking($("convert-modules"), false);
   }
+});
+
+$("vision-file").addEventListener("change", event => loadVisionFile(event.target.files[0]));
+$("vision-dropzone").addEventListener("dragover", event => {
+  event.preventDefault();
+  $("vision-dropzone").classList.add("drag-over");
+});
+$("vision-dropzone").addEventListener("dragleave", () => $("vision-dropzone").classList.remove("drag-over"));
+$("vision-dropzone").addEventListener("drop", event => {
+  event.preventDefault();
+  $("vision-dropzone").classList.remove("drag-over");
+  loadVisionFile(event.dataTransfer.files[0]);
+});
+$("vision-download").addEventListener("click", async () => {
+  try {
+    const response = await fetch("/api/vision/download", {method: "POST"});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+    updateVisionStatus();
+  } catch (error) {
+    setStatus("vision-status", error.message, "error");
+  }
+});
+$("vision-analyze").addEventListener("click", async () => {
+  if (!visionImageDataUrl) return setStatus("vision-status", t("selectImage"), "error");
+  setStatus("vision-status", t("working"), "loading");
+  setWorking($("vision-analyze"), true);
+  try {
+    const response = await fetch("/api/vision/caption", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        image_data_url: visionImageDataUrl,
+        instruction: $("vision-instruction").value.trim(),
+        language,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || t("requestFailed"));
+    $("vision-output").value = data.output;
+    setStatus("vision-status", runtimeMessage(data, t("visionDone")));
+  } catch (error) {
+    setStatus("vision-status", error.message, "error");
+  } finally {
+    setWorking($("vision-analyze"), false);
+  }
+});
+$("vision-to-source").addEventListener("click", () => {
+  const text = $("vision-output").value.trim();
+  if (!text) return setStatus("vision-status", t("emptyVisionOutput"), "error");
+  $("source-input").value = text;
+  setStatus("vision-status", t("visionToSource"));
+  $("source-heading").scrollIntoView({behavior: "smooth", block: "start"});
+  $("source-input").focus();
 });
 
 document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {

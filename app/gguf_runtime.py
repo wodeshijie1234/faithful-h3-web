@@ -12,11 +12,14 @@ from urllib.request import Request, urlopen
 
 
 class GgufRuntime:
-    def __init__(self, model_path: Path, *, binary: Path | None = None, port: int = 0):
+    def __init__(self, model_path: Path, *, binary: Path | None = None, port: int = 0,
+                 mmproj_path: Path | None = None, context_size: int | None = None):
         self.model_path = Path(model_path)
+        self.mmproj_path = Path(mmproj_path) if mmproj_path else None
         self.binary = Path(binary or os.environ.get("FAITHFUL_H3_LLAMA_BIN", "llama-server.exe"))
         self.port = int(port or os.environ.get("FAITHFUL_H3_LLAMA_PORT", "18765"))
         self.host = os.environ.get("FAITHFUL_H3_LLAMA_HOST", "127.0.0.1")
+        self.context_size = int(context_size or os.environ.get("FAITHFUL_H3_LLAMA_CONTEXT", "4096"))
         self.process: subprocess.Popen | None = None
         self.started_at: float | None = None
 
@@ -50,13 +53,17 @@ class GgufRuntime:
             raise RuntimeError(f"llama-server.exe was not found: {self.binary}")
         if not self.model_path.is_file():
             raise RuntimeError(f"GGUF model was not found: {self.model_path}")
+        if self.mmproj_path and not self.mmproj_path.is_file():
+            raise RuntimeError(f"Vision projector was not found: {self.mmproj_path}")
         if self.process and self.process.poll() is not None:
             self.process = None
         command = [
             str(self.binary), "-m", str(self.model_path), "-ngl", os.environ.get("FAITHFUL_H3_LLAMA_GPU_LAYERS", "99"),
-            "-c", os.environ.get("FAITHFUL_H3_LLAMA_CONTEXT", "4096"), "--host", self.host,
+            "-c", str(self.context_size), "--host", self.host,
             "--port", str(self.port), "--log-disable",
         ]
+        if self.mmproj_path:
+            command.extend(("--mmproj", str(self.mmproj_path), "--image-min-tokens", "1024"))
         self.process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.started_at = time.monotonic()
         deadline = time.monotonic() + float(os.environ.get("FAITHFUL_H3_LLAMA_START_TIMEOUT", "90"))
@@ -71,10 +78,42 @@ class GgufRuntime:
 
     def generate(self, user_text: str, system_text: str, *, temperature: float, top_p: float,
                  max_new_tokens: int = 1400, stop_on_json: bool = False) -> str:
+        messages = [{"role": "system", "content": system_text}, {"role": "user", "content": user_text}]
+        return self._chat_completion(
+            messages,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+            stop_on_json=stop_on_json,
+        )
+
+    def generate_with_image(self, image_data_url: str, instruction: str, system_text: str, *,
+                            max_new_tokens: int = 900) -> str:
+        messages = []
+        if system_text:
+            messages.append({"role": "system", "content": system_text})
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": image_data_url}},
+                    {"type": "text", "text": instruction},
+                ],
+            }
+        )
+        return self._chat_completion(
+            messages,
+            temperature=0.1,
+            top_p=0.8,
+            max_new_tokens=max_new_tokens,
+        )
+
+    def _chat_completion(self, messages: list[dict], *, temperature: float, top_p: float,
+                         max_new_tokens: int, stop_on_json: bool = False) -> str:
         self.ensure_started()
         payload = {
             "model": "local",
-            "messages": [{"role": "system", "content": system_text}, {"role": "user", "content": user_text}],
+            "messages": messages,
             "temperature": max(0.01, float(temperature)), "top_p": float(top_p),
             "max_tokens": int(max_new_tokens), "stream": False,
             "chat_template_kwargs": {"enable_thinking": False},

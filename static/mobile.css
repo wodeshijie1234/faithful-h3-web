@@ -3,6 +3,7 @@
   .top-actions { width: 100%; justify-content: flex-start; }
   .workspace { padding: 20px 20px 52px; }
   .source-grid { grid-template-columns: 1fr; gap: 22px; }
+  .vision-grid { grid-template-columns: 1fr; gap: 22px; }
   .ref-modules { grid-template-columns: 1fr; }
 }
 
@@ -18,6 +19,8 @@
   .language-select { grid-column: 3; width: 100%; min-width: 0; }
   .top-actions .button-secondary { width: 100%; min-height: 44px; padding: 8px; white-space: normal; }
   .workspace { padding: 18px 14px 44px; }
+  .vision-actions { flex-wrap: wrap; }
+  .vision-actions .button { flex: 1 1 180px; }
   .mode-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; }
   .segmented { width: 100%; min-width: 0; }
   .segment { padding: 9px 6px; }

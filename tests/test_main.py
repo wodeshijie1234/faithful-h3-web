@@ -52,6 +52,27 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"released": True, "loaded": False}, response.json())
 
+    def test_vision_caption_releases_the_text_model_before_analysis(self):
+        with patch.object(main.runtime, "release", return_value={"released": True, "loaded": False}) as release:
+            with patch.object(main.vision_runtime, "caption", return_value="Only visible facts.") as caption:
+                response = self.client.post(
+                    "/api/vision/caption",
+                    json={
+                        "image_data_url": "data:image/png;base64,iVBORw0KGgo=",
+                        "instruction": "Focus on subject positions.",
+                        "language": "en",
+                    },
+                )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("Only visible facts.", response.json()["output"])
+        release.assert_called_once_with()
+        caption.assert_called_once_with(
+            "data:image/png;base64,iVBORw0KGgo=",
+            "Focus on subject positions.",
+            "en",
+        )
+
     def test_convert_modules_requires_no_plain_text_contract_change(self):
         from app.main import service
 

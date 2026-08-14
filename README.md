@@ -4,7 +4,8 @@
 
 ## Features
 
-- Faithful FL2VA and Ref2VA conversion without image recognition
+- Faithful FL2VA and Ref2VA text conversion, isolated from optional image analysis
+- Independent image-to-prompt reconstruction with local preview, factual captioning, copy, and one-click transfer to the source prompt
 - Prompt enrichment with an independent creative-strength control
 - Enrichment preserves the original prompt as an unchanged prefix; strength 0 is conservative and higher levels append bounded creative detail without altering the faithful-conversion workflow
 - Semantic import from either an original prompt or an enriched result into editable H3 modules
@@ -20,6 +21,15 @@
 - Active backend and measured request duration shown after each operation
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
+
+## What's new in v1.4.0 (2026-08-14)
+
+- Added a separate image-to-prompt module powered by the uncensored `Qwen2-VL-2B-Abliterated-Caption-it` vision model.
+- Added local PNG, JPEG, and WebP selection with a stable preview, optional focus instruction, same-language output, copy, and one-click transfer to the source prompt.
+- Added on-demand download and SHA256 verification for a `Q4_K_S` model plus `Q8_0` vision projector, totaling about 1.65 GB.
+- Text and vision runtimes now release each other before inference so the optional vision model cannot silently compete with the 4B or 9B text model for VRAM.
+- The existing release-memory action now unloads either runtime.
+- A real NVIDIA CUDA test described a 496 KB reference image in Simplified Chinese in `7.641s`, including cold model startup.
 
 ## What's new in v1.3.9 (2026-08-14)
 
@@ -88,6 +98,9 @@ The default runtime is the official Windows build of `llama.cpp` release `b10375
 
 - 4B model: <https://huggingface.co/byliuliu/faithful-h3-qwen3.5-4b-abliterated>
 - 9B model: <https://huggingface.co/byliuliu/faithful-h3-qwen3.5-9b-abliterated-v2>
+- Optional vision model: <https://huggingface.co/mradermacher/Qwen2-VL-2B-Abliterated-Caption-it-GGUF>
+
+The optional vision module downloads `Q4_K_S` plus the `Q8_0` multimodal projector on demand. It needs about 1.65 GB of additional disk space and uses an isolated 8192-token context. Images remain local and are sent only to the local `llama.cpp` process.
 
 Existing Quanto checkpoints remain an optional compatibility path. Install `requirements-quanto.txt` only when that fallback is specifically required.
 
