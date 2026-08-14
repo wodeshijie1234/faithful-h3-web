@@ -1,9 +1,31 @@
+import json
+import re
 import unittest
+from pathlib import Path
 
 from app import h3
 
 
 class H3ContractTests(unittest.TestCase):
+    def test_chinese_timeline_sample_set_uses_standard_h3_timestamps(self):
+        cases = json.loads((Path(__file__).with_name("timeline_cn_cases.json")).read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len(cases), 10)
+
+        for case in cases:
+            with self.subTest(case=case["id"]):
+                wrapper = h3.ref2va_timeline_wrap if case["mode"] == "ref2va" else h3.fl2va_timeline_wrap
+                output = wrapper(case["translation"], case["source"])
+                description = output.split("detailed_description:", 1)[-1] if case["mode"] == "ref2va" else output.split("integrated_multimodal_description:", 1)[-1]
+                description = description.split("\noverall_soundscape:", 1)[0]
+                timestamps = re.findall(r"\[Shot\s+\d+\]\s+At\s+(\d{2}:\d{2}\.\d{3}),", description)
+
+                self.assertEqual(case["timestamps"], timestamps)
+                self.assertIsNone(re.search(
+                    r"\bAt\s+(?:the\s+)?\d+(?:\.\d+)?(?:\s*-\s*|\s+)(?:seconds?|secs?|s)\b",
+                    description,
+                    flags=re.I,
+                ))
+
     def test_mode_names_are_only_fl2va_and_ref2va(self):
         self.assertEqual("fl2va", h3.normalize_mode("FL2VA"))
         self.assertEqual("ref2va", h3.normalize_mode("Ref2VA"))
@@ -91,6 +113,32 @@ class H3ContractTests(unittest.TestCase):
 
         self.assertIn("[Shot 1] At 00:00.000, The man walks into frame.", output)
         self.assertIn("[Shot 2] At 00:04.000, He stops.", output)
+
+    def test_ref2va_unnumbered_explicit_times_create_standard_timed_shots(self):
+        source = (
+            "图1是男生，图2是女生，视频场景是开始于图2，视频开场于图2的场景。"
+            "突然，男生从画面外悄无声息地出现在她身后，手里攥着一个黑色遥控器，"
+            "镜头缓慢推进他的侧脸，他嘴角噙着一丝玩味的笑。"
+            "2秒的时候，他按下遥控器，画面瞬间切换为中景，女生像被按下了暂停键。"
+            "3秒，男生从她身后绕到正面。"
+        )
+        translation = (
+            "<Picture 1> is male. <Picture 2> is female. The target video begins with <Picture 2>. "
+            "Suddenly, the man appears silently behind her from off-screen, clutching a black remote control. "
+            "The camera slowly pushes in on his profile as a smile plays on his lips. "
+            "At 2 seconds, he presses the remote and the scene instantly cuts to a medium shot. "
+            "The woman freezes in place. At 3 seconds, he moves around her to the front."
+        )
+
+        output = h3.ref2va_timeline_wrap(translation, source)
+
+        detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
+        self.assertEqual(3, detailed.count("[Shot "))
+        self.assertIn("[Shot 1] At 00:00.000, Suddenly", output)
+        self.assertIn("[Shot 2] At 00:02.000, he presses the remote", output)
+        self.assertIn("[Shot 3] At 00:03.000, he moves around her to the front.", output)
+        self.assertNotIn("At 2 seconds", output)
+        self.assertNotIn("At 3 seconds", output)
 
     def test_unmentioned_vocalizations_are_detected(self):
         self.assertTrue(h3.has_unsupported_vocalization("A person remains still.", "The person moans."))

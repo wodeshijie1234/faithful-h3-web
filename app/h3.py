@@ -157,6 +157,39 @@ def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]],
     return subjects, None
 
 
+_EXPLICIT_TIME_PREFIX = re.compile(
+    r"^(?:At\s+(?:the\s+)?(?P<english>\d+(?:\.\d+)?)\s*(?:-\s*)?(?:seconds?|secs?|s)(?:\s+mark)?|"
+    r"(?:\u7b2c\s*)?(?P<chinese>\d+(?:\.\d+)?)\s*\u79d2(?:\u7684\u65f6\u5019|\u65f6|\u5904)?)"
+    r"\s*[,\uff0c:\uff1a-]?\s*",
+    re.I,
+)
+
+
+def _explicit_time_value(match: re.Match) -> float:
+    return float(match.group("english") or match.group("chinese"))
+
+
+def _unnumbered_timing_hints(text: str) -> dict[int, dict[str, float]]:
+    value = str(text or "")
+    sentence_starts = re.compile(
+        r"(?:^|(?<=[!?\u3002\uff01\uff1f;\uff1b])|(?<=\.)(?!\d))\s*"
+    )
+    starts: list[float] = []
+    for boundary in sentence_starts.finditer(value):
+        match = _EXPLICIT_TIME_PREFIX.match(value[boundary.end():])
+        if match:
+            starts.append(_explicit_time_value(match))
+    if not starts:
+        return {}
+
+    shot_number = 1 if starts[0] <= 0 else 2
+    hints = {}
+    for start in starts:
+        hints[shot_number] = {"start": start}
+        shot_number += 1
+    return hints
+
+
 def _ref2va_action_sentences(translation: str) -> list[str]:
     """Split only explicit cuts and camera cues; all other action clauses stay together."""
     value = canonicalize_picture_references(translation).strip()
@@ -191,7 +224,7 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
         ". ",
         value,
     )
-    sentences = re.findall(r"[^.!?]+(?:[.!?]+(?=\s|$)|$)", value)
+    sentences = re.split(r"(?<=[.!?])\s+", value)
     intro_patterns = (
         r"^<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\.?$",
         r"^(?:The\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+<Picture\s+\d+>\.?$",
@@ -213,8 +246,15 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
         if not item or any(re.match(pattern, item, flags=re.I) for pattern in intro_patterns):
             continue
         item = re.sub(r"^\[Shot\s+\d+\]\s*", "", item, flags=re.I).strip()
-        if boundary.match(item) and current:
+        explicit_time = _EXPLICIT_TIME_PREFIX.match(item)
+        if (boundary.match(item) or explicit_time) and current:
             shots.append(" ".join(current))
+            current = []
+        if explicit_time:
+            item = item[explicit_time.end():].strip()
+        if not item:
+            continue
+        if not current:
             current = [item]
         else:
             current.append(item)
@@ -268,6 +308,8 @@ def _shot_timing_hints(text: str) -> dict[int, dict[str, float]]:
     value = str(text or "")
     marker = re.compile(r"(?:\[Shot\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))", re.I)
     matches = list(marker.finditer(value))
+    if not matches:
+        return _unnumbered_timing_hints(value)
     hints: dict[int, dict[str, float]] = {}
     for index, match in enumerate(matches):
         shot_number = int(match.group(1) or match.group(2))
@@ -318,13 +360,17 @@ def _timeline_durations(actions: list[str], source_text: str, translation: str) 
         current = hints.get(index, {})
         following = hints.get(index + 1, {})
         explicit_next = following.get("start")
+        explicit_timing = False
         if explicit_next is not None and explicit_next > elapsed:
             duration = explicit_next - elapsed
+            explicit_timing = True
         elif current.get("duration", 0) > 0:
             duration = current["duration"]
+            explicit_timing = True
         else:
             duration = _ref2va_semantic_duration(action)
-        duration = round(max(0.5, min(30.0, duration)) * 2) / 2
+        duration = max(0.001 if explicit_timing else 0.5, min(30.0, duration))
+        duration = round(duration, 3) if explicit_timing else round(duration * 2) / 2
         durations.append(duration)
         elapsed += duration
     return durations
@@ -370,7 +416,7 @@ def ref2va_timeline_wrap(
         "overall_soundscape": str(soundscape or "N/A").strip() or "N/A",
         "non_diegetic_music": str(music or "N/A").strip() or "N/A",
     }
-    return build_h3(modules, "ref2va")
+    return build_h3(modules, "ref2va", preserve_timing=True)
 
 
 def _fl2va_header(picture_id: str | None) -> str:
@@ -449,7 +495,7 @@ def empty_modules(mode: str, shot_count: int = 3) -> dict:
     return modules
 
 
-def normalize_modules(raw: dict, mode: str) -> dict:
+def normalize_modules(raw: dict, mode: str, preserve_timing: bool = False) -> dict:
     if not isinstance(raw, dict):
         raise ValueError("H3 modules must be an object.")
     mode = normalize_mode(mode)
@@ -468,7 +514,8 @@ def normalize_modules(raw: dict, mode: str) -> dict:
         if not isinstance(item, dict):
             continue
         duration = float(item.get("duration_seconds", 3.0) or 3.0)
-        duration = round(max(0.5, min(30.0, duration)) * 2) / 2
+        duration = max(0.001 if preserve_timing else 0.5, min(30.0, duration))
+        duration = round(duration, 3) if preserve_timing else round(duration * 2) / 2
         modules["shots"].append({
             "duration_seconds": duration,
             "action": str(item.get("action", "") or "").strip(),
@@ -503,9 +550,9 @@ def module_source_text(modules: dict, mode: str, include_audio: bool = False) ->
     return "\n".join(parts).strip()
 
 
-def build_h3(modules: dict, mode: str) -> str:
+def build_h3(modules: dict, mode: str, preserve_timing: bool = False) -> str:
     mode = normalize_mode(mode)
-    modules = normalize_modules(modules, mode)
+    modules = normalize_modules(modules, mode, preserve_timing=preserve_timing)
     shot_parts = []
     elapsed = 0.0
     for index, shot in enumerate(modules["shots"], start=1):

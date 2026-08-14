@@ -12,6 +12,9 @@ All notable changes to liuliu Faithful H3 are documented here.
 ### Changed
 
 - The resource strip refreshes every two seconds and keeps a stable single-row layout without consuming space inside the existing model controls or workspaces.
+- Unnumbered explicit time cues now define separate FL2VA and Ref2VA shots and are emitted as standard H3 `At mm:ss.mmm` timestamps.
+- Explicit integer and decimal source times retain millisecond precision; untimed actions continue to use semantic duration inference.
+- The documentation now prominently identifies the optional 2B vision model as a lightweight drafting aid with limited recognition accuracy; image-to-prompt output should be checked against the source image and used as editable reference material.
 
 ## 1.5.4 - 2026-08-14
 

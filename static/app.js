@@ -90,7 +90,7 @@ Object.assign(I18N.en, {
   invalidImage: "Choose a PNG, JPEG, or WebP image up to 12 MB.", selectImage: "Choose an image first.",
   emptyVisionOutput: "Analyze an image first."
 });
-I18N.en.help.vision = ["Image to prompt", "Uses a separate 2B abliterated vision model to describe only visible image facts. The result stays independent until you place it in the source prompt."];
+I18N.en.help.vision = ["Image to prompt", "Uses a compact 2B vision model for fast local drafting. Its recognition ability is limited and may miss details or relationships. Treat the result as a reference, compare it with the source image, and revise it before generation."];
 I18N.en.help.mode = ["H3 mode", "Choose FL2VA or Ref2VA. H3 conversion is text-only; optional image analysis stays in its separate view."];
 
 Object.assign(I18N["zh-CN"], {
@@ -110,7 +110,7 @@ Object.assign(I18N["zh-CN"], {
   invalidImage: "\u8bf7\u9009\u62e9 12 MB \u4ee5\u5185\u7684 PNG\u3001JPEG \u6216 WebP \u56fe\u7247\u3002", selectImage: "\u8bf7\u5148\u9009\u62e9\u56fe\u7247\u3002",
   emptyVisionOutput: "\u8bf7\u5148\u5206\u6790\u56fe\u7247\u3002"
 });
-I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u72ec\u7acb\u7684 2B \u65e0\u9650\u5236\u89c6\u89c9\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u56fe\u7247\u4e2d\u771f\u5b9e\u53ef\u89c1\u7684\u4e8b\u5b9e\u3002\u7ed3\u679c\u5728\u4f60\u4e3b\u52a8\u586b\u5165\u539f\u59cb\u63d0\u793a\u8bcd\u524d\u4e0e H3 \u6d41\u7a0b\u72ec\u7acb\u3002"];
+I18N["zh-CN"].help.vision = ["\u8bc6\u56fe\u53cd\u63a8", "\u4f7f\u7528\u4f53\u79ef\u8f83\u5c0f\u7684 2B \u8bc6\u56fe\u6a21\u578b\u5feb\u901f\u751f\u6210\u672c\u5730\u8349\u7a3f\u3002\u6a21\u578b\u80fd\u529b\u6709\u9650\uff0c\u53ef\u80fd\u9057\u6f0f\u7ec6\u8282\u6216\u8bef\u5224\u4eba\u7269\u5173\u7cfb\u3002\u8bf7\u5c06\u7ed3\u679c\u4ec5\u4f5c\u53c2\u8003\uff0c\u5bf9\u7167\u539f\u56fe\u68c0\u67e5\u5e76\u4fee\u6539\u540e\u518d\u7528\u4e8e\u751f\u6210\u3002"];
 I18N["zh-CN"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u522b\u663e\u793a\u5bf9\u5e94\u7684\u5b98\u65b9\u6a21\u5757\u3002H3 \u8f6c\u6362\u4ecd\u4e3a\u7eaf\u6587\u672c\u6d41\u7a0b\uff1b\u53ef\u9009\u8bc6\u56fe\u4fdd\u6301\u5728\u72ec\u7acb\u6a21\u5757\u4e2d\u3002"];
 Object.assign(I18N["zh-TW"], {
   h3View: "H3", enrichView: "豐富提示詞", visionView: "圖片反推", enrichTitle: "豐富提示詞",
@@ -129,7 +129,7 @@ Object.assign(I18N["zh-TW"], {
   invalidImage: "\u8acb\u9078\u64c7 12 MB \u4ee5\u5167\u7684 PNG\u3001JPEG \u6216 WebP \u5716\u7247\u3002", selectImage: "\u8acb\u5148\u9078\u64c7\u5716\u7247\u3002",
   emptyVisionOutput: "\u8acb\u5148\u5206\u6790\u5716\u7247\u3002"
 });
-I18N["zh-TW"].help.vision = ["\u8b58\u5716\u53cd\u63a8", "\u4f7f\u7528\u7368\u7acb\u7684 2B \u7121\u9650\u5236\u8996\u89ba\u6a21\u578b\uff0c\u53ea\u63cf\u8ff0\u5716\u7247\u4e2d\u771f\u5be6\u53ef\u898b\u7684\u4e8b\u5be6\u3002\u7d50\u679c\u5728\u4f60\u4e3b\u52d5\u586b\u5165\u539f\u59cb\u63d0\u793a\u8a5e\u524d\u8207 H3 \u6d41\u7a0b\u7368\u7acb\u3002"];
+I18N["zh-TW"].help.vision = ["\u8b58\u5716\u53cd\u63a8", "\u4f7f\u7528\u9ad4\u7a4d\u8f03\u5c0f\u7684 2B \u8b58\u5716\u6a21\u578b\u5feb\u901f\u7522\u751f\u672c\u6a5f\u8349\u7a3f\u3002\u6a21\u578b\u80fd\u529b\u6709\u9650\uff0c\u53ef\u80fd\u907a\u6f0f\u7d30\u7bc0\u6216\u8aa4\u5224\u4eba\u7269\u95dc\u4fc2\u3002\u8acb\u5c07\u7d50\u679c\u50c5\u4f5c\u53c3\u8003\uff0c\u5c0d\u7167\u539f\u5716\u6aa2\u67e5\u4e26\u4fee\u6539\u5f8c\u518d\u7528\u65bc\u751f\u6210\u3002"];
 I18N["zh-TW"].help.mode = ["H3 \u6a21\u5f0f", "FL2VA \u548c Ref2VA \u5206\u5225\u986f\u793a\u5c0d\u61c9\u7684\u5b98\u65b9\u6a21\u7d44\u3002H3 \u8f49\u63db\u4ecd\u70ba\u7d14\u6587\u5b57\u6d41\u7a0b\uff1b\u53ef\u9078\u8b58\u5716\u4fdd\u6301\u5728\u7368\u7acb\u6a21\u7d44\u4e2d\u3002"];
 
 const storedLanguage = localStorage.getItem("faithful-h3-language");

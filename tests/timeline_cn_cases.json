@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ref_remote_freeze",
+    "mode": "ref2va",
+    "source": "图1是男生，图2是女生，视频开始于图2。男生突然出现在女生身后。2秒的时候，他按下遥控器，画面切为中景，女生静止。3秒，男生绕到她正面。",
+    "translation": "<Picture 1> is male. <Picture 2> is female. The video begins with <Picture 2>. The man suddenly appears behind the woman. At 2 seconds, he presses the remote, the scene cuts to a medium shot, and the woman freezes. At 3 seconds, he moves around her to the front.",
+    "timestamps": ["00:00.000", "00:02.000", "00:03.000"]
+  },
+  {
+    "id": "fl_cafe_cup",
+    "mode": "fl2va",
+    "source": "画面从咖啡杯特写开始，蒸汽缓慢上升。1.5秒时，一只手拿起杯子。4秒时，镜头转向窗外的雨。",
+    "translation": "The scene begins with a close-up of a coffee cup as steam rises slowly. At 1.5 seconds, a hand lifts the cup. At 4 seconds, the camera turns toward the rain outside the window.",
+    "timestamps": ["00:00.000", "00:01.500", "00:04.000"]
+  },
+  {
+    "id": "ref_train_platform",
+    "mode": "ref2va",
+    "source": "图1是乘客，视频从图1开始。乘客站在站台边。2秒的时候，列车门打开。5秒，乘客走进车厢。",
+    "translation": "<Picture 1> is a passenger. The video begins with <Picture 1>. The passenger stands beside the platform. At 2 seconds, the train door opens. At 5 seconds, the passenger walks into the carriage.",
+    "timestamps": ["00:00.000", "00:02.000", "00:05.000"]
+  },
+  {
+    "id": "fl_running_start",
+    "mode": "fl2va",
+    "source": "运动员蹲在起跑线上。1秒时，发令枪响，他开始冲刺。2.5秒时，镜头切换为侧面跟拍。",
+    "translation": "The athlete crouches at the starting line. At 1 second, the starting gun fires and he begins sprinting. At 2.5 seconds, the camera cuts to a side tracking shot.",
+    "timestamps": ["00:00.000", "00:01.000", "00:02.500"]
+  },
+  {
+    "id": "ref_studio_lights",
+    "mode": "ref2va",
+    "source": "图1是模特，视频从图1开始。模特站在摄影棚中央。第2秒，主灯亮起。第6秒，镜头拉远展示整个摄影棚。",
+    "translation": "<Picture 1> is a model. The video begins with <Picture 1>. The model stands at the center of the studio. At 2 seconds, the key light turns on. At 6 seconds, the camera pulls back to show the entire studio.",
+    "timestamps": ["00:00.000", "00:02.000", "00:06.000"]
+  },
+  {
+    "id": "fl_cat_window",
+    "mode": "fl2va",
+    "source": "小猫坐在窗台上看向外面。0.5秒时，它转动耳朵。3.5秒时，它跳下窗台。",
+    "translation": "A cat sits on the windowsill and looks outside. At 0.5 seconds, it turns its ears. At 3.5 seconds, it jumps down from the windowsill.",
+    "timestamps": ["00:00.000", "00:00.500", "00:03.500"]
+  },
+  {
+    "id": "ref_dance_turn",
+    "mode": "ref2va",
+    "source": "图1是舞者，视频从图1开始。舞者保持站立姿势。3秒时，她开始旋转。5.5秒的时候，镜头切到脚步特写。",
+    "translation": "<Picture 1> is a dancer. The video begins with <Picture 1>. The dancer holds a standing pose. At the 3-second mark, she begins to spin. At the 5.5-second mark, the camera cuts to a close-up of her footwork.",
+    "timestamps": ["00:00.000", "00:03.000", "00:05.500"]
+  },
+  {
+    "id": "fl_intersection",
+    "mode": "fl2va",
+    "source": "路口的信号灯为红色，车辆停在斑马线前。2秒时，绿灯亮起。4秒，第一辆车驶过路口。7秒时，镜头升高展示车流。",
+    "translation": "The traffic light is red and vehicles wait before the crosswalk. At 2 seconds, the light turns green. At 4 seconds, the first car crosses the intersection. At 7 seconds, the camera rises to show the traffic flow.",
+    "timestamps": ["00:00.000", "00:02.000", "00:04.000", "00:07.000"]
+  },
+  {
+    "id": "ref_rain_umbrella",
+    "mode": "ref2va",
+    "source": "图1是行人，视频从图1开始。行人在雨中行走。1.25秒时，他撑开雨伞。3.75秒时，镜头切到水面倒影。",
+    "translation": "<Picture 1> is a pedestrian. The video begins with <Picture 1>. The pedestrian walks in the rain. At 1.25 seconds, he opens an umbrella. At 3.75 seconds, the camera cuts to the reflection on the wet ground.",
+    "timestamps": ["00:00.000", "00:01.250", "00:03.750"]
+  },
+  {
+    "id": "fl_lab_alarm",
+    "mode": "fl2va",
+    "source": "研究员观察玻璃容器里的液体。5秒的时候，液体开始冒泡。8秒时，警报灯闪烁，镜头切换到控制面板。",
+    "translation": "A researcher watches the liquid inside a glass container. At 5 seconds, the liquid begins to bubble. At 8 seconds, the alarm light flashes and the camera cuts to the control panel.",
+    "timestamps": ["00:00.000", "00:05.000", "00:08.000"]
+  }
+]

@@ -19,10 +19,16 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
+> [!IMPORTANT]
+> Image to prompt uses a compact 2B vision model to keep local deployment lightweight. Its recognition ability is limited: it may miss small details, confuse subject relationships, or simplify complex scenes. Treat its output as a draft reference, verify it against the source image, and revise it before using it for generation.
+
 ## What's new in v1.5.5 (2026-08-14)
 
 - Added a full-width live resource strip above the existing header for CPU, RAM, SSD read/write throughput, GPU utilization, and VRAM usage.
 - Resource sampling runs in a lightweight backend cache and refreshes in the browser every two seconds without shifting the existing workspaces.
+- Unnumbered explicit time cues such as `2秒`, `3秒时`, and `At the 5.5-second mark` now create separate shots with standard H3 timestamps such as `At 00:02.000`.
+- Explicit source timing retains millisecond precision, while prompts without timing continue to use natural semantic duration inference.
+- Clarified that the optional compact vision model is intended for reference-assisted drafting rather than authoritative image understanding.
 
 ## What's new in v1.5.4 (2026-08-14)
 
@@ -134,6 +140,8 @@ The default runtime is the official Windows build of `llama.cpp` release `b10375
 - Optional vision model: <https://huggingface.co/mradermacher/Qwen2-VL-2B-Abliterated-Caption-it-GGUF>
 
 The top Download models action offers 4B, 9B, and the vision pair as independent choices. The vision pair consists of `Q4_K_S` plus the `Q8_0` multimodal projector, needs about 1.65 GB of additional disk space, and uses an isolated 4096-token context with a bounded 256-512 image-token budget. Images remain local and are sent only to the local `llama.cpp` process.
+
+The optional vision model is deliberately small. It is suitable for quickly drafting visible subjects, positions, and camera cues, but it is not a high-accuracy vision system. Small objects, fine appearance details, spatial relationships, text, and complex multi-subject scenes may be incomplete or incorrect. Always compare the result with the image and use it as editable reference material.
 
 Existing Quanto checkpoints remain an optional compatibility path. Install `requirements-quanto.txt` only when that fallback is specifically required.
 
