@@ -61,6 +61,9 @@ class ModelMappingTests(unittest.TestCase):
         self.assertEqual(4844829456, MODEL_SPECS["4b"].size)
         self.assertEqual("3563d71540c755b3004dd4d514a2478c96d5f5e7ff29b4162a391b2d79a0071a", MODEL_SPECS["4b"].sha256)
 
+    def test_4b_gguf_filename_matches_the_published_artifact(self):
+        self.assertEqual("Qwen3.5-4B-Abliterated-standard-Q4_K_M.gguf", MODEL_SPECS["4b"].gguf_filename)
+
     def test_checkpoint_verifier_rejects_wrong_size_before_hashing(self):
         with tempfile.TemporaryDirectory() as directory:
             checkpoint = Path(directory) / "checkpoint.safetensors"
