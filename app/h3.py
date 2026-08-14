@@ -128,6 +128,154 @@ def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A
     )
 
 
+def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]], str | None]:
+    """Extract only explicit identity and starting-reference facts from a Ref source."""
+    source = canonicalize_picture_references(source_text)
+    subjects: list[tuple[str, str]] = []
+    seen_ids = set()
+
+    patterns = (
+        r"<Picture\s+(\d+)>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)",
+        r"<Picture\s+(\d+)>\s+is\s+(?:a\s+)?(man|male|boy|woman|female|girl)\b",
+    )
+    for pattern in patterns:
+        for picture_id, label in re.findall(pattern, source, flags=re.I):
+            if picture_id in seen_ids:
+                continue
+            gender = "male" if label.lower().startswith(("\u7537", "man", "male", "boy")) else "female"
+            subjects.append((picture_id, gender))
+            seen_ids.add(picture_id)
+
+    start_patterns = (
+        r"(?:\u5f00\u59cb\u4e8e|\u4ece)\s*<Picture\s+(\d+)>",
+        r"(?:the\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+<Picture\s+(\d+)>",
+    )
+    for pattern in start_patterns:
+        match = re.search(pattern, source, flags=re.I)
+        if match:
+            return subjects, match.group(1)
+    return subjects, None
+
+
+def _ref2va_action_sentences(translation: str) -> list[str]:
+    """Split only explicit cuts and camera cues; all other action clauses stay together."""
+    value = canonicalize_picture_references(translation).strip()
+    value = re.sub(r"(?im)(?<!\[)\bshot\s+\d+\s*:\s*", "", value)
+    value = re.sub(
+        r"<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\s*[,.;]?\s*",
+        "",
+        value,
+        flags=re.I,
+    )
+    value = re.sub(
+        r"<Picture\s+\d+>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*"
+        r"(?:\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)\s*[,\uff0c\u3002]?\s*",
+        "",
+        value,
+    )
+    value = re.sub(
+        r"(?:\u89c6\u9891(?:\u573a\u666f)?(?:\u662f)?(?:\u5f00\u59cb\u4e8e|\u4ece)|\u89c6\u9891\u573a\u666f\u5f00\u59cb\u4e8e)\s*"
+        r"<Picture\s+\d+>\s*[,\uff0c\u3002]?\s*",
+        "",
+        value,
+    )
+    value = re.sub(
+        r"[,\uff0c]\s*(?=(?:\u7279\u5199|\u5207\u6362(?:\u4e3a|\u5230)?(?:\u4e2d|\u8fd1|\u8fdc|\u5168)\u666f|\u955c\u5934(?:\u5207\u6362|\u8f6c(?:\u4e3a|\u5230)?)))",
+        ". ",
+        value,
+    )
+    sentences = re.findall(r"[^.!?]+(?:[.!?]+(?=\s|$)|$)", value)
+    intro_patterns = (
+        r"^<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\.?$",
+        r"^(?:The\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+<Picture\s+\d+>\.?$",
+    )
+    boundary = re.compile(
+        r"^(?:\[Shot\s+\d+\]\s*)?(?:"
+        r"cut\s+to\b|(?:the\s+)?camera\s+(?:cuts|switches)\b|switch(?:es)?\s+to\b|"
+        r"close[- ]up\b|(?:an?\s+)?(?:medium|wide|full|long|over[- ]the[- ]shoulder)\s+shot\b|"
+        r"(?:an?\s+)?(?:extreme(?:ly)?\s+|very\s+)?(?:low|high)[- ]angle\b|"
+        r"\u7279\u5199|\u5207\u6362(?:\u4e3a|\u5230)?(?:\u4e2d|\u8fd1|\u8fdc|\u5168)\u666f|\u955c\u5934(?:\u5207\u6362|\u8f6c(?:\u4e3a|\u5230)?))",
+        flags=re.I,
+    )
+
+    shots: list[str] = []
+    current: list[str] = []
+    for sentence in sentences:
+        item = sentence.strip()
+        if not item or any(re.match(pattern, item, flags=re.I) for pattern in intro_patterns):
+            continue
+        item = re.sub(r"^\[Shot\s+\d+\]\s*", "", item, flags=re.I).strip()
+        if boundary.match(item) and current:
+            shots.append(" ".join(current))
+            current = [item]
+        else:
+            current.append(item)
+    if current:
+        shots.append(" ".join(current))
+    return shots
+
+
+def _ref2va_semantic_duration(action: str) -> float:
+    """Estimate a shot length from explicit action density without generating new content."""
+    value = str(action or "")
+    event_pattern = (
+        r"\b(?:appear(?:s|ed|ing)?|enter(?:s|ed|ing)?|hold(?:s|ing)?|press(?:es|ed|ing)?|"
+        r"freez(?:es|ing)?|tap(?:s|ped|ping)?|run(?:s|ning)?\s+(?:his|her|their)\s+fingers|"
+        r"crouch(?:es|ed|ing)?|hug(?:s|ged|ging)?|rub(?:s|bed|bing)?|raise(?:s|d|ing)?|"
+        r"walk(?:s|ed|ing)?|look(?:s|ed|ing)?|turn(?:s|ed|ing)?|move(?:s|d|ing)?)\b|"
+        r"(?:\u51fa\u73b0|\u8fdb\u5165|\u62ff(?:\u8d77|\u7740)?|\u6309(?:\u4e0b)?|\u9759\u6b62|\u51dd\u56fa|\u62cd|\u6478|\u8e72|\u62b1|\u8e6d|\u62ac|\u8d70|\u8dd1|\u770b|\u8f6c\u8eab|\u79fb\u52a8)"
+    )
+    action_count = len(re.findall(event_pattern, value, flags=re.I))
+    duration = 2.0 + 0.5 * min(6, max(0, action_count - 1))
+    if re.search(r"\bclose[- ]up\b|\u7279\u5199", value, flags=re.I):
+        duration = min(duration, 2.0)
+    elif action_count == 0 and re.search(r"\b(?:cut|camera|shot|angle)\b|\u5207\u6362|\u955c\u5934|\u89c6\u89d2", value, flags=re.I):
+        duration = 1.5
+    return round(max(1.5, min(6.0, duration)) * 2) / 2
+
+
+def ref2va_timeline_wrap(
+    translation: str,
+    source_text: str,
+    soundscape: str = "N/A",
+    music: str = "N/A",
+) -> str:
+    """Apply the Ref2VA contract without adding visual facts to a reviewed translation."""
+    value = canonicalize_picture_references(translation).strip()
+    if not value:
+        raise ValueError("Source prompt cannot be empty.")
+
+    subjects, start_picture = _ref2va_reference_metadata(source_text or translation)
+    subject_definitions = " ".join(
+        f"<Subject {picture_id}> (<Picture {picture_id}>) is {gender}."
+        for picture_id, gender in subjects
+    ) or "N/A"
+    summary = (
+        f"[reference generation] The target video begins with <Picture {start_picture}>."
+        if start_picture else "[reference generation]"
+    )
+    retention_analysis = " ".join(
+        f"<Subject {picture_id}> (appears in [Shot 1]): fully_preserved - "
+        f"the {gender} subject from <Picture {picture_id}> is retained."
+        for picture_id, gender in subjects
+    ) or "N/A"
+
+    shot_actions = _ref2va_action_sentences(value)
+    modules = {
+        "subject_definitions": subject_definitions,
+        "summary": summary,
+        "retention_analysis": retention_analysis,
+        "scene": f"The target video begins with <Picture {start_picture}>." if start_picture else "",
+        "shots": [
+            {"duration_seconds": _ref2va_semantic_duration(action), "action": action, "camera": ""}
+            for action in shot_actions
+        ],
+        "overall_soundscape": str(soundscape or "N/A").strip() or "N/A",
+        "non_diegetic_music": str(music or "N/A").strip() or "N/A",
+    }
+    return build_h3(modules, "ref2va")
+
+
 def empty_modules(mode: str, shot_count: int = 3) -> dict:
     mode = normalize_mode(mode)
     modules = {

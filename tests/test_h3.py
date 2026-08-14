@@ -41,6 +41,29 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
         self.assertIn("summary: The video begins with <Picture 2>.", output)
 
+    def test_ref2va_timeline_wrap_splits_explicit_camera_cuts(self):
+        source = "图1是男生，图2是女生，视频场景开始于图2。"
+        translation = (
+            "<Picture 1> is a man, <Picture 2> is a woman. The video begins with <Picture 2>. "
+            "The man suddenly appears behind the woman, holding a remote control. "
+            "Close-up on him pressing the remote. Cut to medium shot. "
+            "The woman freezes with vacant eyes and a slightly open mouth. He taps her shoulder from behind and runs his fingers through her hair. "
+            "Cut to an extremely low-angle shot as he crouches in front of her, hugging her thighs and rubbing his face against her thigh."
+        )
+
+        output = h3.ref2va_timeline_wrap(translation, source)
+
+        self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
+        self.assertIn("retention_analysis: <Subject 1> (appears in [Shot 1]): fully_preserved", output)
+        self.assertIn("[Shot 1] The man suddenly appears behind the woman", output)
+        self.assertNotIn("[Shot 1] <Picture 1> is a man", output)
+        self.assertNotIn("<Picture 2> is a woman. [Shot", output)
+        self.assertNotIn("[Shot 1] At 00:00.000", output)
+        self.assertIn("[Shot 2] At 00:02.500, Close-up on him pressing the remote.", output)
+        self.assertIn("[Shot 3] At 00:04.500, Cut to medium shot.", output)
+        self.assertIn("[Shot 4] At 00:07.500, Cut to an extremely low-angle shot", output)
+        self.assertTrue(h3.audit(output, "ref2va")["valid"])
+
     def test_unmentioned_vocalizations_are_detected(self):
         self.assertTrue(h3.has_unsupported_vocalization("A person remains still.", "The person moans."))
         self.assertFalse(h3.has_unsupported_vocalization("The person moans.", "The person moans."))

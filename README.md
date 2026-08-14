@@ -21,8 +21,12 @@
 - One-click release of this tool's loaded model, Python memory, and CUDA cache
 - No API key, cloud inference, or host application required
 
-## What's new in v1.3.4 (2026-08-14)
+## What's new in v1.3.6 (2026-08-14)
 
+- Ref2VA faithful conversion now turns explicit close-ups and cuts into timestamped H3 timeline shots rather than one translated paragraph.
+- Ref2VA starts from the implicit `00:00.000` first shot and estimates later cut times from the number and type of explicit actions instead of using fixed three-second slots.
+- Preserve explicit picture identities, the starting reference, and retention fields without creating new visual details.
+- Keep Ref2VA timeline structure in the local Chinese-preview fallback when model output is unreadable.
 - v1.3.5 recovers from stale browser state and refreshes the application script after updates.
 - Preserve explicit Chinese picture identities and starting-reference facts in Ref2VA output.
 - Remove unsupported vocalizations from faithful H3 conversion through an additional correction gate.
@@ -100,6 +104,6 @@ Prompts and generated text remain on the local computer. The application only co
 
 The source code in this repository is licensed under the MIT License. The model is a separate third-party artifact. Its inclusion in, or download through, this project does not transfer ownership or grant additional rights. Review the Qwen and applicable base-model license terms before redistribution or commercial use. This project does not claim authorship of the model.
 
-Version `1.3.4`<br>
+Version `1.3.6`<br>
 Copyright `@liuliu`<br>
 Contact: `1661204908@qq.com`

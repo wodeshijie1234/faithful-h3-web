@@ -2,6 +2,15 @@
 
 All notable changes to liuliu Faithful H3 are documented here.
 
+## 1.3.6 - 2026-08-14
+
+### Fixed
+
+- Ref2VA faithful conversion now turns explicit close-ups, camera cuts, and shot changes into sequential H3 timeline shots with cumulative timestamps instead of placing the whole translation in one paragraph.
+- Ref2VA now derives explicit picture identity, starting-reference, and retention fields from the source prompt without adding visual details.
+- The readable Chinese-preview fallback preserves the same Ref2VA shot boundaries when an inference backend returns corrupt preview text.
+- Ref2VA starts its first shot at `00:00.000` and derives later cut times from explicit action density rather than assigning every shot a fixed three-second duration.
+
 ## 1.3.5 - 2026-08-14
 
 ### Fixed

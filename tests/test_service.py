@@ -148,6 +148,35 @@ class PromptServiceTests(unittest.TestCase):
         )
         self.assertTrue(all(stage["elapsed_seconds"] >= 0 for stage in result["_stages"]))
 
+    def test_ref2va_conversion_emits_timeline_after_faithful_review(self):
+        source = (
+            "\u56fe1\u662f\u7537\u751f\uff0c\u56fe2\u662f\u5973\u751f\uff0c\u89c6\u9891\u5f00\u59cb\u4e8e\u56fe2\u3002"
+            "\u7537\u751f\u7a81\u7136\u51fa\u73b0\u5728\u5973\u751f\u8eab\u540e\uff0c\u4ed6\u62ff\u7740\u9065\u63a7\u5668\uff0c\u7279\u5199\u4ed6\u6309\u4e0b\u9065\u63a7\u5668\uff0c\u5207\u6362\u4e2d\u666f\uff0c"
+            "\u5973\u751f\u7a81\u7136\u9759\u6b62\u4e0d\u52a8\uff0c\u773c\u795e\u7a7a\u6d1e\uff0c\u5634\u5df4\u5fae\u5f20\uff0c\u7537\u751f\u4ece\u540e\u9762\u62cd\u5979\u7684\u80a9\u8180\uff0c"
+            "\u955c\u5934\u5207\u6362\uff0c\u6781\u4f4e\u89c6\u89d2\u4ef0\u62cd\uff0c\u4ed6\u9762\u5bf9\u5973\u751f\u8e72\u4e0b\u3002"
+        )
+        translation = (
+            "<Picture 1> is a man. <Picture 2> is a woman. The video begins with <Picture 2>. "
+            "The man suddenly appears behind the woman, holding a remote control. "
+            "Close-up on him pressing the remote. Cut to medium shot. "
+            "The woman freezes with vacant eyes and a slightly open mouth. He taps her shoulder from behind and runs his fingers through her hair. "
+            "Cut to an extremely low-angle shot as he crouches in front of her."
+        )
+        runtime = FakeRuntime([
+            translation,
+            "PASS",
+            "overall_soundscape: a remote-control click and light movement\nnon_diegetic_music: N/A",
+            "????????",
+        ])
+
+        result = PromptService(runtime).convert(source, "ref2va")
+
+        self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", result["output"])
+        self.assertIn("[Shot 2] At 00:02.500, Close-up on him pressing the remote.", result["output"])
+        self.assertIn("[Shot 4] At 00:07.500, Cut to an extremely low-angle shot", result["output"])
+        self.assertIn("[Shot 1]", result["chinese"])
+        self.assertIn("[Shot 2] At 00:02.500", result["chinese"])
+
     def test_conversion_rejects_visual_invention(self):
         runtime = FakeRuntime([
             "[Shot 1] A person runs in a red coat.",

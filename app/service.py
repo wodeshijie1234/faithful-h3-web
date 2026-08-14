@@ -77,7 +77,10 @@ class PromptService:
             self._timed_generate(stages, "audio", source, h3.audio_system(), temperature=0.01, top_p=0.1,
                                  max_new_tokens=160)
         )
-        output = h3.strict_wrap(translation, mode, soundscape, music, source_text=source)
+        if h3.normalize_mode(mode) == "ref2va":
+            output = h3.ref2va_timeline_wrap(translation, source, soundscape, music)
+        else:
+            output = h3.strict_wrap(translation, mode, soundscape, music, source_text=source)
         check = h3.audit(output, mode)
         chinese = self._timed_generate(stages, "chinese_preview",
             output, h3.chinese_preview_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=900
@@ -85,7 +88,10 @@ class PromptService:
         if _contains_cjk(source) and not _contains_cjk(chinese):
             # GGUF variants can occasionally emit literal question marks for Chinese.
             # Keep the source facts editable instead of returning corrupt text.
-            chinese = h3.strict_wrap(source, mode, source_text=source)
+            if h3.normalize_mode(mode) == "ref2va":
+                chinese = h3.ref2va_timeline_wrap(source, source)
+            else:
+                chinese = h3.strict_wrap(source, mode, source_text=source)
         elif "\ufffd" in chinese or chinese.count("?") > 3:
             raise RuntimeError("The Chinese preview was unreadable; no corrupt preview was returned.")
         return {"output": output, "chinese": chinese, "audit": check, "_stages": stages}
