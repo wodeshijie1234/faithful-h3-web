@@ -335,6 +335,33 @@ class PromptServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "no-invention review"):
             PromptService(runtime).convert("一个人奔跑", "fl2va")
 
+    def test_conversion_accepts_a_punctuated_pass_verdict(self):
+        runtime = FakeRuntime([
+            "[Shot 1] A person runs.",
+            "PASS.",
+            "overall_soundscape: running footsteps\nnon_diegetic_music: N/A",
+            "integrated_multimodal_description: [Shot 1] 一个人奔跑。\noverall_soundscape: running footsteps\nnon_diegetic_music: N/A",
+        ])
+
+        result = PromptService(runtime).convert("一个人奔跑。", "fl2va")
+
+        self.assertIn("A person runs.", result["output"])
+        self.assertEqual(
+            ["translate", "visual_review", "audio", "chinese_preview"],
+            [stage["name"] for stage in result["_stages"]],
+        )
+
+    def test_conversion_rejects_an_ambiguous_pass_explanation(self):
+        runtime = FakeRuntime([
+            "[Shot 1] A person runs in a red coat.",
+            "PASS because most details match.",
+            "[Shot 1] A person runs in a red coat.",
+            "FAIL",
+        ])
+
+        with self.assertRaisesRegex(RuntimeError, "no-invention review"):
+            PromptService(runtime).convert("一个人奔跑。", "fl2va")
+
     def test_conversion_retries_a_failed_visual_review_without_relaxing_the_guard(self):
         runtime = FakeRuntime([
             "[Shot 1] A person runs in a red coat.",

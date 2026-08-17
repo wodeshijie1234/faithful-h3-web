@@ -8,6 +8,13 @@ def _contains_cjk(text: str) -> bool:
     return bool(re.search(r"[\u3400-\u4dbf\u4e00-\u9fff]", str(text or "")))
 
 
+def _is_pass_verdict(text: str) -> bool:
+    value = str(text or "").strip()
+    value = re.sub(r"^```(?:text)?\s*|\s*```$", "", value, flags=re.I).strip()
+    value = value.strip("`*_\"'")
+    return re.fullmatch(r"PASS[.!:]?", value, flags=re.I) is not None
+
+
 class PromptService:
     def __init__(self, runtime):
         self.runtime = runtime
@@ -35,7 +42,7 @@ class PromptService:
             h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
         ).strip().upper()
         needs_integration = enriched.startswith(source) and "\n\n" in enriched
-        if review == "PASS" and not needs_integration:
+        if _is_pass_verdict(review) and not needs_integration:
             return enriched
 
         repaired = self.runtime.generate(
@@ -50,7 +57,7 @@ class PromptService:
             f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{repaired}",
             h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
         ).strip().upper()
-        if review != "PASS" or (repaired.startswith(source) and "\n\n" in repaired):
+        if not _is_pass_verdict(review) or (repaired.startswith(source) and "\n\n" in repaired):
             return source
         return repaired
 
@@ -68,7 +75,7 @@ class PromptService:
             top_p=0.1,
             max_new_tokens=8,
         ).strip().upper()
-        if review != "PASS":
+        if not _is_pass_verdict(review):
             translation = self._timed_generate(
                 stages, "translation_retry",
                 f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
@@ -80,7 +87,7 @@ class PromptService:
                 f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
                 h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
             ).strip().upper()
-            if review != "PASS":
+            if not _is_pass_verdict(review):
                 raise RuntimeError("The visual translation failed the strict no-invention review after automatic correction; no H3 output was returned.")
         if h3.has_unsupported_vocalization(source, translation):
             translation = self._timed_generate(
@@ -93,7 +100,7 @@ class PromptService:
                 f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
                 h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
             ).strip().upper()
-            if review != "PASS" or h3.has_unsupported_vocalization(source, translation):
+            if not _is_pass_verdict(review) or h3.has_unsupported_vocalization(source, translation):
                 raise RuntimeError("The visual translation contains an unsupported vocalization after automatic correction; no H3 output was returned.")
         soundscape, music = h3.parse_audio_output(
             self._timed_generate(stages, "audio", source, h3.audio_system(), temperature=0.01, top_p=0.1,
