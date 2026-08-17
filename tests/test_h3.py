@@ -105,6 +105,25 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("[Shot 1] At 00:00.000, A person walks into frame.", output)
         self.assertIn("[Shot 2] At 00:04.000, He stops.", output)
 
+    def test_english_seconds_later_becomes_a_new_timed_shot(self):
+        translation = (
+            "The umbrella is blown away. Four seconds later, the girl looks down and searches."
+        )
+
+        output = h3.fl2va_timeline_wrap(translation, "女孩的雨伞被吹走。4秒后，她低头寻找。")
+
+        self.assertIn("[Shot 1] At 00:00.000, The umbrella is blown away.", output)
+        self.assertIn("[Shot 2] At 00:04.000, the girl looks down and searches.", output)
+        self.assertNotIn("Four seconds later", output)
+
+    def test_at_seconds_prefix_remains_supported(self):
+        translation = "The person waits. At 4 seconds, the person turns."
+
+        output = h3.fl2va_timeline_wrap(translation, "一个人等待。4秒时，他转身。")
+
+        self.assertIn("[Shot 2] At 00:04.000, the person turns.", output)
+        self.assertNotIn("At 4 seconds", output)
+
     def test_ref2va_explicit_shot_time_ranges_override_inferred_timing(self):
         source = "图1是男生，视频从图1开始。镜头1（0-4秒）：男生走入画面。镜头2（4-7秒）：他停下。"
         translation = "<Picture 1> is a man. The video begins with <Picture 1>. Shot 1: The man walks into frame. Shot 2: He stops."

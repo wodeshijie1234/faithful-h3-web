@@ -157,16 +157,36 @@ def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]],
     return subjects, None
 
 
+_ENGLISH_TIME_WORDS = (
+    "zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+    "eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
+    "eighteen|nineteen|twenty|thirty|forty|fifty|sixty"
+)
 _EXPLICIT_TIME_PREFIX = re.compile(
-    r"^(?:At\s+(?:the\s+)?(?P<english>\d+(?:\.\d+)?)\s*(?:-\s*)?(?:seconds?|secs?|s)(?:\s+mark)?|"
-    r"(?:\u7b2c\s*)?(?P<chinese>\d+(?:\.\d+)?)\s*\u79d2(?:\u7684\u65f6\u5019|\u65f6|\u5904)?)"
-    r"\s*[,\uff0c:\uff1a-]?\s*",
+    r"^(?:"
+    r"At\s+(?:the\s+)?(?P<english>\d+(?:\.\d+)?)\s*(?:-\s*)?(?:seconds?|secs?|s)(?:\s+mark)?|"
+    r"(?P<english_later>\d+(?:\.\d+)?|(?:" + _ENGLISH_TIME_WORDS + r"))\s*(?:seconds?|secs?|s)\s+later|"
+    r"(?:\u7b2c\s*)?(?P<chinese>\d+(?:\.\d+)?)\s*\u79d2(?:\u4e4b?后|\u4ee5后|\u7684\u65f6\u5019|\u65f6|\u5904)?)"
+    r"\s*[，,：: -]?\s*",
     re.I,
 )
 
+_ENGLISH_NUMBER_VALUES = {
+    "zero": 0.0, "one": 1.0, "two": 2.0, "three": 3.0,
+    "four": 4.0, "five": 5.0, "six": 6.0, "seven": 7.0,
+    "eight": 8.0, "nine": 9.0, "ten": 10.0, "eleven": 11.0,
+    "twelve": 12.0, "thirteen": 13.0, "fourteen": 14.0,
+    "fifteen": 15.0, "sixteen": 16.0, "seventeen": 17.0,
+    "eighteen": 18.0, "nineteen": 19.0, "twenty": 20.0,
+    "thirty": 30.0, "forty": 40.0, "fifty": 50.0, "sixty": 60.0,
+}
+
 
 def _explicit_time_value(match: re.Match) -> float:
-    return float(match.group("english") or match.group("chinese"))
+    numeric = match.group("english") or match.group("chinese")
+    if numeric is not None:
+        return float(numeric)
+    return _ENGLISH_NUMBER_VALUES[match.group("english_later").lower()]
 
 
 def _unnumbered_timing_hints(text: str) -> dict[int, dict[str, float]]:
@@ -642,6 +662,13 @@ def infer_soundscape(source: str, translation: str = "") -> str:
     add_if(r"(?:\brain\b|\u4e0b\u96e8|\u96e8\u6c34)", "rainfall")
     add_if(r"(?:\b(?:open|close)(?:s|d|ing)?\s+(?:the\s+)?door\b|\u5f00\u95e8|\u5173\u95e8)", "a door moving")
     add_if(r"(?:\bsplash(?:es|ed|ing)?\b|\u6c34\u82b1|\u6e85\u8d77)", "water splashing")
+    add_if(r"(?:\b(?:strong\s+)?(?:wind|gusts?)\b|\u98ce|\u5f3a\u98ce|\u5927\u98ce|\u9635\u98ce)", "strong wind")
+    add_if(
+        r"(?:\b(?:umbrella)\b.{0,48}\b(?:blown|blow|blowing|buffet(?:ed|s|ing)?|away)\b|"
+        r"\b(?:blown|blow|blowing|buffet(?:ed|s|ing)?|away)\b.{0,48}\bumbrella\b|"
+        r"(?:\u96e8\u4f1e).{0,48}(?:\u5439\u8d70|\u5439\u98de|\u88ab\u5439|\u98ce))",
+        "an umbrella buffeted by the wind",
+    )
 
     return ", ".join(cues) if cues else "N/A"
 

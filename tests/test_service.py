@@ -325,6 +325,27 @@ class PromptServiceTests(unittest.TestCase):
             self.assertNotEqual("overall_soundscape: N/A", result["output"].splitlines()[-2])
             self.assertIn("remote-control click", result["output"])
 
+    def test_fl2va_maps_seconds_later_and_infers_wind_and_umbrella_sounds(self):
+        source = "女孩被一阵强风吹得头发飞扬，手里的雨伞被吹走。4秒后，女孩低头发现雨伞不见了，迅速四处查看。"
+        translation = (
+            "The girl's hair flies in a strong gust of wind and the umbrella in her hand is blown away. "
+            "Four seconds later, the girl looks down, realizes the umbrella is gone, and quickly looks around."
+        )
+        runtime = FakeRuntime([
+            translation,
+            "PASS",
+            "overall_soundscape: N/A\nnon_diegetic_music: N/A",
+            "integrated_multimodal_description: 中文预览\noverall_soundscape: 强风和雨伞拍打声\nnon_diegetic_music: N/A",
+        ])
+
+        result = PromptService(runtime).convert(source, "fl2va")
+
+        self.assertIn("[Shot 1] At 00:00.000", result["output"])
+        self.assertIn("[Shot 2] At 00:04.000, the girl looks down", result["output"])
+        self.assertNotIn("Four seconds later", result["output"])
+        self.assertIn("overall_soundscape: strong wind", result["output"])
+        self.assertIn("an umbrella buffeted by the wind", result["output"])
+
     def test_conversion_rejects_visual_invention(self):
         runtime = FakeRuntime([
             "[Shot 1] A person runs in a red coat.",
