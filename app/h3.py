@@ -36,6 +36,18 @@ def has_untranslated_chinese(text: str) -> bool:
 
 def canonicalize_picture_references(text: str) -> str:
     value = str(text or "")
+    # Users commonly write Chinese numerals (图一/图片二); normalize them before
+    # extracting identities and start references so Ref2VA keeps the anchors.
+    chinese_numerals = {
+        "一": "1", "二": "2", "三": "3", "四": "4", "五": "5",
+        "六": "6", "七": "7", "八": "8", "九": "9", "十": "10",
+    }
+    numeral_pattern = "|".join(chinese_numerals)
+    value = re.sub(
+        rf"(?<!<)(?:图片|图)\s*({numeral_pattern})(?![一二三四五六七八九十])",
+        lambda match: f"<Picture {chinese_numerals[match.group(1)]}>",
+        value,
+    )
     value = re.sub(r"(?<!<)(?:\u56fe\u7247|\u56fe)\s*(\d+)", r"<Picture \1>", value)
     return re.sub(r"(?<!<)\b(?:picture|image)\s*(\d+)\b", r"<Picture \1>", value, flags=re.I)
 

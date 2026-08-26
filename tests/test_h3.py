@@ -265,6 +265,13 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("do not pad", prompt)
         self.assertIn("semantic", prompt)
 
+    def test_ref2va_supports_chinese_numeral_picture_identity_and_start(self):
+        source = "图一为男生参考图，图二为女生参考图，视频场景开始于图二。女生站在房间里。"
+        output = h3.ref2va_timeline_wrap("The girl stands in the room.", source)
+        self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
+        self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
+        self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
+
 
 if __name__ == "__main__":
     unittest.main()
