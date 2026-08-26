@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -55,6 +55,17 @@ vision_download_state = vision_download_states["fast"]
 resource_monitor = ResourceMonitor()
 
 app = FastAPI(title="liuliu Faithful H3", version="1.7.0")
+
+
+@app.middleware("http")
+async def prevent_stale_static_assets(request: Request, call_next):
+    """Force the browser to revalidate UI code after an in-place desktop update."""
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

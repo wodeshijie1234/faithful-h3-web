@@ -28,6 +28,12 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual({"4b", "9b"}, {item["id"] for item in payload["models"]})
             self.assertIn("Qwen3.5-9B-Abliterated_v2_quanto_bf16_int8.safetensors", payload["missing"])
 
+    def test_static_assets_are_not_served_from_a_stale_browser_cache(self):
+        response = self.client.get("/static/app.js?v=1.7.0")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("no-store", response.headers.get("cache-control"))
+
     def test_model_can_be_selected_without_loading_it(self):
         with patch.object(main.runtime, "select") as select:
             response = self.client.post("/api/model", json={"model_id": "4b"})
