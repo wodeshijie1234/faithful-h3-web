@@ -121,6 +121,8 @@
           <textarea id="enrich-input" rows="9" data-i18n-placeholder="simplePlaceholder" placeholder="Enter a short prompt in any language."></textarea>
           <div class="slider-row"><label for="strength" data-i18n="creativeStrength">Creative strength</label><output id="strength-value">40</output></div>
           <input id="strength" type="range" min="0" max="100" step="5" value="40">
+          <div class="slider-row"><label for="target-length" data-i18n="targetLength">Target length</label><output id="target-length-value">500</output></div>
+          <input id="target-length" type="range" min="100" max="2000" step="100" value="500">
           <button id="enrich" class="button button-primary" type="button" data-i18n="enrichButton">Enrich prompt</button>
           <div id="enrich-status" class="feedback" aria-live="polite"></div>
         </div>

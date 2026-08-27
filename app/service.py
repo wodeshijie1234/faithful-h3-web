@@ -19,8 +19,9 @@ class PromptService:
     def __init__(self, runtime):
         self.runtime = runtime
 
-    def enrich(self, text: str, strength: int) -> str:
+    def enrich(self, text: str, strength: int, target_length: int = 500) -> str:
         strength = max(0, min(100, int(strength)))
+        target_length = max(100, min(2000, int(target_length)))
         source = text.strip()
         if strength == 0:
             # Zero is the conservative preset: retain every supplied fact exactly.
@@ -29,10 +30,10 @@ class PromptService:
         top_p = round(0.35 + 0.60 * strength / 100, 3)
         enriched = self.runtime.generate(
             source,
-            h3.enrichment_system(strength),
+            h3.enrichment_system(strength, target_length),
             temperature=temperature,
             top_p=top_p,
-            max_new_tokens=h3.enrichment_token_limit(strength),
+            max_new_tokens=h3.enrichment_token_limit(strength, target_length),
         ).strip()
         if not enriched or (_contains_cjk(source) and not _contains_cjk(enriched)):
             return source
@@ -47,8 +48,8 @@ class PromptService:
 
         repaired = self.runtime.generate(
             f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHMENT:\n{enriched}",
-            h3.enrichment_repair_system(strength), temperature=temperature, top_p=top_p,
-            max_new_tokens=h3.enrichment_token_limit(strength),
+            h3.enrichment_repair_system(strength, target_length), temperature=temperature, top_p=top_p,
+            max_new_tokens=h3.enrichment_token_limit(strength, target_length),
         ).strip()
         if not repaired or (_contains_cjk(source) and not _contains_cjk(repaired)):
             return source

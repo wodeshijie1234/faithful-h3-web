@@ -2,7 +2,7 @@ const I18N = {
   en: {
     language: "Language", mode: "Mode", sourceArea: "Prompt sources", sourcePrompt: "Source prompt",
     sourcePlaceholder: "Enter the original facts, shots, positions, actions, and dialogue to preserve.",
-    simplePrompt: "Simple prompt", simplePlaceholder: "Enter a short prompt in any language.", creativeStrength: "Creative strength",
+    simplePrompt: "Simple prompt", simplePlaceholder: "Enter a short prompt in any language.", creativeStrength: "Creative strength", targetLength: "Target length",
     enrichButton: "Enrich prompt", enrichedOutput: "Enriched prompt",
     subjects: "Subject definitions", summary: "Summary", retention: "Retention analysis", scene: "Scene & continuity",
     scenePlaceholder: "Only facts that apply across shots.", shots: "Shot", duration: "Duration", startsAt: "Starts at",
@@ -28,7 +28,7 @@ const I18N = {
   "zh-CN": {
     language: "语言", mode: "模式", sourceArea: "提示词来源", sourcePrompt: "原始提示词",
     sourcePlaceholder: "输入必须保留的人物、镜头、站位、动作和对白。", simplePrompt: "简单提示词",
-    simplePlaceholder: "输入任意语言的简短提示词。", creativeStrength: "创作强度", enrichButton: "丰富提示词",
+    simplePlaceholder: "输入任意语言的简短提示词。", creativeStrength: "创作强度", targetLength: "目标字数", enrichButton: "丰富提示词",
     enrichedOutput: "丰富结果",
     scene: "场景与连续性", scenePlaceholder: "只填写跨镜头持续成立的事实。", shots: "镜头", duration: "持续时长",
     startsAt: "起始时间", totalDuration: "总时长", action: "动作与对白", camera: "镜头机位", soundscape: "整体声音环境",
@@ -52,7 +52,7 @@ const I18N = {
   "zh-TW": {
     language: "語言", mode: "模式", sourceArea: "提示詞來源", sourcePrompt: "原始提示詞",
     sourcePlaceholder: "輸入必須保留的人物、鏡頭、站位、動作和對白。", simplePrompt: "簡單提示詞",
-    simplePlaceholder: "輸入任意語言的簡短提示詞。", creativeStrength: "創作強度", enrichButton: "豐富提示詞",
+    simplePlaceholder: "輸入任意語言的簡短提示詞。", creativeStrength: "創作強度", targetLength: "目標字數", enrichButton: "豐富提示詞",
     enrichedOutput: "豐富結果",
     scene: "場景與連續性", scenePlaceholder: "只填寫跨鏡頭持續成立的事實。", shots: "鏡頭", duration: "持續時長",
     startsAt: "起始時間", totalDuration: "總時長", action: "動作與對白", camera: "鏡頭機位", soundscape: "整體聲音環境",
@@ -442,7 +442,7 @@ const workspaceActionIds = {h3: "convert-source", enrich: "enrich", vision: "vis
 
 function workspacePayload(workspace) {
   if (workspace === "h3") return {mode, source: $("source-input").value, output: $("h3-output").value};
-  if (workspace === "enrich") return {input: $("enrich-input").value, output: $("enrich-output").value, strength: Number($("strength").value)};
+  if (workspace === "enrich") return {input: $("enrich-input").value, output: $("enrich-output").value, strength: Number($("strength").value), targetLength: Number($("target-length").value)};
   if (workspace === "storyboard") return storyboardUI.payload();
   return {imageDataUrl: visionImageDataUrl, imageName: visionImageName, instruction: $("vision-instruction").value, output: $("vision-output").value, language, modelId: $("vision-model").value || "fast"};
 }
@@ -462,6 +462,8 @@ function applyWorkspacePayload(workspace, payload = {}) {
     $("enrich-output").value = payload.output || "";
     $("strength").value = Number.isFinite(Number(payload.strength)) ? payload.strength : 40;
     $("strength-value").value = $("strength").value;
+    $("target-length").value = Number.isFinite(Number(payload.targetLength)) ? payload.targetLength : 500;
+    $("target-length-value").value = $("target-length").value;
   } else if (workspace === "vision") {
     visionImageDataUrl = payload.imageDataUrl || "";
     visionImageName = payload.imageName || "";
@@ -522,7 +524,7 @@ function displayInput(workspace, payload) {
 
 async function callWorkspaceTask(workspace, payload) {
   if (workspace === "h3") return api("convert", payload.source, {mode: payload.mode});
-  if (workspace === "enrich") return api("enrich", payload.input, {strength: Number(payload.strength)});
+  if (workspace === "enrich") return api("enrich", payload.input, {strength: Number(payload.strength), target_length: Number(payload.targetLength)});
   if (workspace === "storyboard") {
     const response = await fetch("/api/storyboard/generate", {
       method: "POST", headers: {"Content-Type": "application/json"},
@@ -681,6 +683,7 @@ document.querySelectorAll(".view-tab").forEach(button => button.addEventListener
 window.addEventListener("hashchange", () => setView(location.hash.slice(1), false));
 
 $("strength").addEventListener("input", event => $("strength-value").value = event.target.value);
+$("target-length").addEventListener("input", event => $("target-length-value").value = event.target.value);
 $("use-enriched").addEventListener("click", () => {
   const text = $("enrich-output").value.trim();
   if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
@@ -722,7 +725,7 @@ $("storyboard-generate").addEventListener("click", async () => {
 });
 
 ["source-input", "h3-output"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("h3")));
-["enrich-input", "enrich-output", "strength"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("enrich")));
+["enrich-input", "enrich-output", "strength", "target-length"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("enrich")));
 $("vision-instruction").addEventListener("input", () => scheduleDraftSave("vision"));
 $("vision-output").addEventListener("input", () => scheduleDraftSave("vision"));
 $("vision-model").addEventListener("change", () => { scheduleDraftSave("vision"); updateVisionStatus(); });

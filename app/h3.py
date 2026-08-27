@@ -702,27 +702,29 @@ def translation_repair_system(mode: str) -> str:
     return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, timestamps, time ranges, durations, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, camera movement, or non-dialogue vocalizations. Return only the corrected English translation, not H3 formatting or commentary."""
 
 
-def enrichment_system(strength: int) -> str:
+def enrichment_system(strength: int, target_length: int = 500) -> str:
     strength = max(0, min(100, int(strength)))
+    target_length = max(100, min(2000, int(target_length)))
+    lower_bound = round(target_length * 0.9)
+    upper_bound = round(target_length * 1.1)
     detail = "a minimal continuity or framing refinement" if strength <= 30 else "one or two concise, filmable refinements" if strength <= 50 else "two to four restrained, filmable refinements" if strength <= 80 else "three to five rich but bounded filmable refinements"
-    return f"""Return one complete enriched video prompt, not additions and not an afterword. Keep every source fact, identity, reference ID, count, position, action, camera change, sequence, continuity condition, and dialogue in the original order. Write in exactly the same language as the input; Chinese input must produce Chinese output. Creative strength is {strength}/100: add {detail} only where it directly supports an existing action or explicit shot. Integrate additions beside the relevant source action in one cohesive paragraph. Never append an extra paragraph, repeat the source unchanged before adding text, or add a new character, prop, location, time, weather, clothing, appearance, dialogue, relationship, intention, plot event, action, or camera cut. Permitted additions are only bounded framing, focus, physically continuous motion, and directly supported ambience or sound. No headings, labels, markdown, explanations, or H3 fields."""
+    return f"""Return one complete enriched video prompt, not additions and not an afterword. Target output length is {target_length} characters; keep the complete result between {lower_bound} and {upper_bound} characters whenever the source itself fits that range. Never truncate, omit, or rewrite source facts merely to meet the target. Keep every source fact, identity, reference ID, count, position, action, camera change, sequence, continuity condition, and dialogue in the original order. Write in exactly the same language as the input; Chinese input must produce Chinese output. Creative strength is {strength}/100: add {detail} only where it directly supports an existing action or explicit shot. Integrate additions beside the relevant source action in one cohesive paragraph. Never append an extra paragraph, repeat the source unchanged before adding text, or add a new character, prop, location, time, weather, clothing, appearance, dialogue, relationship, intention, plot event, action, or camera cut. Permitted additions are only bounded framing, focus, physically continuous motion, and directly supported ambience or sound. No headings, labels, markdown, explanations, or H3 fields."""
 
 
-def enrichment_token_limit(strength: int) -> int:
+def enrichment_token_limit(strength: int, target_length: int = 500) -> int:
     strength = max(0, min(100, int(strength)))
-    if strength <= 30:
-        return 256
-    if strength <= 50:
-        return 384
-    if strength <= 80:
-        return 576
-    return 768
+    target_length = max(100, min(2000, int(target_length)))
+    strength_limit = 256 if strength <= 30 else 384 if strength <= 50 else 576 if strength <= 80 else 768
+    return max(strength_limit, round(target_length * 1.2))
 
 
-def enrichment_repair_system(strength: int) -> str:
+def enrichment_repair_system(strength: int, target_length: int = 500) -> str:
     strength = max(0, min(100, int(strength)))
+    target_length = max(100, min(2000, int(target_length)))
+    lower_bound = round(target_length * 0.9)
+    upper_bound = round(target_length * 1.1)
     detail = "minimal framing or continuity detail" if strength <= 30 else "restrained filmable detail" if strength <= 80 else "richer but bounded filmable detail"
-    return f"""Repair the PROPOSED ENRICHMENT against the ORIGINAL SOURCE. Return one complete, single-paragraph enriched prompt in exactly the same language as the ORIGINAL SOURCE; Chinese source must produce Chinese output. Preserve every explicit source identity, reference ID, count, position, action, prop, camera direction, sequence, continuity statement, and dialogue in the original order. Integrate only {detail} beside the action it supports. Delete source-plus-afterword formatting and delete every unsupported character, prop, setting, time, weather, appearance, clothing, dialogue, relationship, intention, plot event, action, or camera cut. Never replace a source action with a different action. Return only the repaired prompt, without headings, labels, markdown, or explanations."""
+    return f"""Repair the PROPOSED ENRICHMENT against the ORIGINAL SOURCE. Return one complete, single-paragraph enriched prompt in exactly the same language as the ORIGINAL SOURCE; Chinese source must produce Chinese output. Target output length is {target_length} characters; keep the result between {lower_bound} and {upper_bound} characters whenever preserving the complete source permits it. Preserve every explicit source identity, reference ID, count, position, action, prop, camera direction, sequence, continuity statement, and dialogue in the original order. Integrate only {detail} beside the action it supports. Delete source-plus-afterword formatting and delete every unsupported character, prop, setting, time, weather, appearance, clothing, dialogue, relationship, intention, plot event, action, or camera cut. Never replace a source action with a different action. Return only the repaired prompt, without headings, labels, markdown, or explanations."""
 
 
 def enrichment_review_system() -> str:

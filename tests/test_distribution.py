@@ -96,6 +96,9 @@ class DistributionContractTests(unittest.TestCase):
         h3_view = html[html.index('id="h3-view"'):html.index('id="enrich-view"')]
         self.assertIn('id="enrich-input"', enrich_view)
         self.assertIn('id="enrich-output"', enrich_view)
+        self.assertIn('id="target-length"', enrich_view)
+        self.assertIn('id="target-length-value"', enrich_view)
+        self.assertIn('target_length', script)
         self.assertNotIn('id="enrich-input"', h3_view)
         self.assertIn('location.hash', script)
         self.assertIn('id="vision-file"', html)

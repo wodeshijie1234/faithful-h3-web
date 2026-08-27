@@ -142,6 +142,7 @@ class GenerateRequest(BaseModel):
     mode: str = "fl2va"
     text: str = Field(min_length=1)
     strength: int = Field(default=40, ge=0, le=100)
+    target_length: int = Field(default=500, ge=100, le=2000)
     original: str = ""
 
 
@@ -399,7 +400,7 @@ def generate(request: GenerateRequest):
         for item in vision_runtimes.values():
             item.stop()
         if request.action == "enrich":
-            result = {"output": service.enrich(request.text, request.strength)}
+            result = {"output": service.enrich(request.text, request.strength, request.target_length)}
         elif request.action == "convert":
             result = service.convert(request.text, request.mode)
         elif request.action == "micro":

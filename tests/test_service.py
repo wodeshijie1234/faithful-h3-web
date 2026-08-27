@@ -54,6 +54,14 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(source, result)
         self.assertEqual([], runtime.calls)
 
+    def test_enrichment_uses_the_requested_target_length(self):
+        runtime = FakeRuntime(["A concise enriched prompt.", "PASS"])
+
+        PromptService(runtime).enrich("A concise prompt.", strength=50, target_length=1200)
+
+        self.assertIn("1200 characters", runtime.calls[0][1])
+        self.assertEqual(1440, runtime.calls[0][2]["max_new_tokens"])
+
     def test_enrichment_retries_when_chinese_input_is_returned_in_english(self):
         runtime = FakeRuntime(["The person presses the remote."])
 

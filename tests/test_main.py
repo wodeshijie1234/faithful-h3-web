@@ -74,6 +74,22 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(400, response.status_code)
         self.assertEqual("Unknown action.", response.json()["detail"])
 
+    def test_enrichment_api_accepts_a_target_length_within_the_supported_range(self):
+        with patch.object(main.service, "enrich", return_value="Enriched.") as enrich:
+            response = self.client.post("/api/generate", json={
+                "action": "enrich", "text": "Prompt", "strength": 50, "target_length": 1200,
+            })
+
+        self.assertEqual(200, response.status_code)
+        enrich.assert_called_once_with("Prompt", 50, 1200)
+
+    def test_enrichment_api_rejects_a_target_length_above_two_thousand(self):
+        response = self.client.post("/api/generate", json={
+            "action": "enrich", "text": "Prompt", "target_length": 2001,
+        })
+
+        self.assertEqual(422, response.status_code)
+
     def test_release_endpoint_reports_runtime_result(self):
         original_release = runtime.release
         runtime.release = lambda: {"released": True, "loaded": False}
