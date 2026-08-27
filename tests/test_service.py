@@ -55,12 +55,24 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual([], runtime.calls)
 
     def test_enrichment_uses_the_requested_target_length(self):
-        runtime = FakeRuntime(["A concise enriched prompt.", "PASS"])
+        runtime = FakeRuntime(["A" * 1100, "PASS"])
 
         PromptService(runtime).enrich("A concise prompt.", strength=50, target_length=1200)
 
         self.assertIn("1200 characters", runtime.calls[0][1])
         self.assertEqual(1440, runtime.calls[0][2]["max_new_tokens"])
+
+    def test_enrichment_repairs_an_output_that_exceeds_the_target_length_tolerance(self):
+        source = "A woman opens a blue umbrella."
+        too_long = "A " * 200
+        repaired = "A woman slowly opens a blue umbrella in light rain, keeping the camera focused on her hands and the unfolding fabric on a quiet street."
+        runtime = FakeRuntime([too_long, "PASS", repaired, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=30, target_length=120)
+
+        self.assertEqual(repaired, result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("Target output length is 120 characters", runtime.calls[2][1])
 
     def test_enrichment_retries_when_chinese_input_is_returned_in_english(self):
         runtime = FakeRuntime(["The person presses the remote."])

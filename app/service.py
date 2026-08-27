@@ -8,6 +8,19 @@ def _contains_cjk(text: str) -> bool:
     return bool(re.search(r"[\u3400-\u4dbf\u4e00-\u9fff]", str(text or "")))
 
 
+def _is_within_enrichment_target(source: str, candidate: str, target_length: int | None) -> bool:
+    """Honor the requested result length without ever shortening a longer source."""
+    if target_length is None:
+        return True
+    compact_length = lambda value: len(re.sub(r"\s+", "", str(value or "")))
+    lower_bound = round(target_length * 0.9)
+    upper_bound = round(target_length * 1.1)
+    if compact_length(source) > upper_bound:
+        return True
+    length = compact_length(candidate)
+    return lower_bound <= length <= upper_bound
+
+
 def _is_pass_verdict(text: str) -> bool:
     value = str(text or "").strip()
     value = re.sub(r"^```(?:text)?\s*|\s*```$", "", value, flags=re.I).strip()
@@ -19,9 +32,10 @@ class PromptService:
     def __init__(self, runtime):
         self.runtime = runtime
 
-    def enrich(self, text: str, strength: int, target_length: int = 500) -> str:
+    def enrich(self, text: str, strength: int, target_length: int | None = None) -> str:
         strength = max(0, min(100, int(strength)))
-        target_length = max(100, min(2000, int(target_length)))
+        requested_target_length = target_length
+        target_length = max(100, min(2000, int(target_length or 500)))
         source = text.strip()
         if strength == 0:
             # Zero is the conservative preset: retain every supplied fact exactly.
@@ -43,7 +57,7 @@ class PromptService:
             h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
         ).strip().upper()
         needs_integration = enriched.startswith(source) and "\n\n" in enriched
-        if _is_pass_verdict(review) and not needs_integration:
+        if _is_pass_verdict(review) and not needs_integration and _is_within_enrichment_target(source, enriched, requested_target_length):
             return enriched
 
         repaired = self.runtime.generate(
@@ -58,7 +72,11 @@ class PromptService:
             f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{repaired}",
             h3.enrichment_review_system(), temperature=0.01, top_p=0.1, max_new_tokens=8,
         ).strip().upper()
-        if not _is_pass_verdict(review) or (repaired.startswith(source) and "\n\n" in repaired):
+        if (
+            not _is_pass_verdict(review)
+            or (repaired.startswith(source) and "\n\n" in repaired)
+            or not _is_within_enrichment_target(source, repaired, requested_target_length)
+        ):
             return source
         return repaired
 
