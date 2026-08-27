@@ -45,11 +45,11 @@ class PromptServiceTests(unittest.TestCase):
         self.assertIn("not additions", runtime.calls[0][1])
         self.assertIn("Return exactly PASS", runtime.calls[1][1])
 
-    def test_zero_strength_enrichment_returns_the_source_without_inventing_details(self):
+    def test_zero_strength_enrichment_returns_the_source_without_inventing_details_or_length_rewrite(self):
         runtime = FakeRuntime([])
         source = "A person enters from behind and presses a remote."
 
-        result = PromptService(runtime).enrich(source, 0)
+        result = PromptService(runtime).enrich(source, 0, target_length=2000)
 
         self.assertEqual(source, result)
         self.assertEqual([], runtime.calls)

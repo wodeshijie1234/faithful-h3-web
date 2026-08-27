@@ -99,6 +99,8 @@ class DistributionContractTests(unittest.TestCase):
         self.assertIn('id="target-length"', enrich_view)
         self.assertIn('id="target-length-value"', enrich_view)
         self.assertIn('target_length', script)
+        self.assertIn('lengthCustomized', script)
+        self.assertIn('syncEnrichmentLength', script)
         self.assertNotIn('id="enrich-input"', h3_view)
         self.assertIn('location.hash', script)
         self.assertIn('id="vision-file"', html)

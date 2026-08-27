@@ -211,6 +211,7 @@ let toastTimer = null;
 let visionImageDataUrl = "";
 let visionImageName = "";
 let currentView = "h3";
+let enrichLengthCustomized = false;
 const workspaceStore = new FaithfulWorkspace.WorkspaceStore(new FaithfulWorkspace.IndexedDbWorkspaceBackend());
 const draftTimers = new Map();
 let workspaceDialogType = "queue";
@@ -442,7 +443,7 @@ const workspaceActionIds = {h3: "convert-source", enrich: "enrich", vision: "vis
 
 function workspacePayload(workspace) {
   if (workspace === "h3") return {mode, source: $("source-input").value, output: $("h3-output").value};
-  if (workspace === "enrich") return {input: $("enrich-input").value, output: $("enrich-output").value, strength: Number($("strength").value), targetLength: Number($("target-length").value)};
+  if (workspace === "enrich") return {input: $("enrich-input").value, output: $("enrich-output").value, strength: Number($("strength").value), targetLength: Number($("target-length").value), lengthCustomized: enrichLengthCustomized};
   if (workspace === "storyboard") return storyboardUI.payload();
   return {imageDataUrl: visionImageDataUrl, imageName: visionImageName, instruction: $("vision-instruction").value, output: $("vision-output").value, language, modelId: $("vision-model").value || "fast"};
 }
@@ -462,8 +463,13 @@ function applyWorkspacePayload(workspace, payload = {}) {
     $("enrich-output").value = payload.output || "";
     $("strength").value = Number.isFinite(Number(payload.strength)) ? payload.strength : 40;
     $("strength-value").value = $("strength").value;
-    $("target-length").value = Number.isFinite(Number(payload.targetLength)) ? payload.targetLength : 500;
-    $("target-length-value").value = $("target-length").value;
+    enrichLengthCustomized = payload.lengthCustomized === true;
+    if (enrichLengthCustomized && Number.isFinite(Number(payload.targetLength))) {
+      $("target-length").value = payload.targetLength;
+      $("target-length-value").value = $("target-length").value;
+    } else {
+      syncEnrichmentLength();
+    }
   } else if (workspace === "vision") {
     visionImageDataUrl = payload.imageDataUrl || "";
     visionImageName = payload.imageName || "";
@@ -682,8 +688,32 @@ document.querySelectorAll(".view-tab").forEach(button => button.addEventListener
 }));
 window.addEventListener("hashchange", () => setView(location.hash.slice(1), false));
 
-$("strength").addEventListener("input", event => $("strength-value").value = event.target.value);
-$("target-length").addEventListener("input", event => $("target-length-value").value = event.target.value);
+function compactPromptLength(value) {
+  return String(value || "").replace(/\s+/g, "").length;
+}
+
+function suggestedEnrichmentLength(input, strength) {
+  const sourceLength = compactPromptLength(input);
+  if (!sourceLength) return 500;
+  const expandedLength = strength === 0 ? sourceLength : Math.ceil(sourceLength * (1 + Number(strength) / 100));
+  return Math.max(100, Math.min(2000, Math.ceil(expandedLength / 100) * 100));
+}
+
+function syncEnrichmentLength() {
+  if (enrichLengthCustomized) return;
+  const suggested = suggestedEnrichmentLength($("enrich-input").value, Number($("strength").value));
+  $("target-length").value = suggested;
+  $("target-length-value").value = suggested;
+}
+
+$("strength").addEventListener("input", event => {
+  $("strength-value").value = event.target.value;
+  syncEnrichmentLength();
+});
+$("target-length").addEventListener("input", event => {
+  enrichLengthCustomized = true;
+  $("target-length-value").value = event.target.value;
+});
 $("use-enriched").addEventListener("click", () => {
   const text = $("enrich-output").value.trim();
   if (!text) return setStatus("enrich-status", t("enterPrompt"), "error");
@@ -725,7 +755,11 @@ $("storyboard-generate").addEventListener("click", async () => {
 });
 
 ["source-input", "h3-output"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("h3")));
-["enrich-input", "enrich-output", "strength", "target-length"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("enrich")));
+$("enrich-input").addEventListener("input", () => {
+  syncEnrichmentLength();
+  scheduleDraftSave("enrich");
+});
+["enrich-output", "strength", "target-length"].forEach(id => $(id).addEventListener("input", () => scheduleDraftSave("enrich")));
 $("vision-instruction").addEventListener("input", () => scheduleDraftSave("vision"));
 $("vision-output").addEventListener("input", () => scheduleDraftSave("vision"));
 $("vision-model").addEventListener("change", () => { scheduleDraftSave("vision"); updateVisionStatus(); });

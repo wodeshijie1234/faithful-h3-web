@@ -4,6 +4,11 @@ All notable changes to liuliu Faithful H3 are documented here.
 
 ## 1.7.0 - 2026-08-15 - Today We Can Have Fun Again!
 
+### Changed
+
+- Prompt enrichment now provides a target-length control. Before it is manually adjusted, the value follows the source prompt length and creative strength; once adjusted, the user's chosen length is retained in drafts, queues, and history.
+- Creative strength `0` preserves the complete source prompt exactly and does not invoke model generation or length correction.
+
 ### Added
 
 - Added a fourth top-level Storyboard workspace with a dedicated source, sortable shot timeline, story inspector, structured JSON output, drafts, queues, and history.
