@@ -27,6 +27,17 @@ GGUF_PATHS = {
     "4b": Path(os.environ.get("FAITHFUL_H3_GGUF_4B_PATH", GGUF_ROOT / MODEL_SPECS["4b"].gguf_filename)),
     "9b": Path(os.environ.get("FAITHFUL_H3_GGUF_9B_PATH", GGUF_ROOT / MODEL_SPECS["9b"].gguf_filename)),
 }
+# Never silently fall back to the 9B Quanto loader when the standalone launcher
+# was started without local-settings.bat: that path can reserve >15 GiB RAM and
+# on Windows commonly fails with paging-file error 1455.
+if not os.environ.get("FAITHFUL_H3_LLAMA_BIN"):
+    bundled_binary = ROOT / "runtime" / "llama-b10375" / "bin" / "llama-server.exe"
+    if bundled_binary.is_file():
+        os.environ["FAITHFUL_H3_LLAMA_BIN"] = str(bundled_binary)
+if not os.environ.get("FAITHFUL_H3_GGUF_9B_PATH"):
+    configured_gguf = Path(r"D:\AI\wan2gp n\Wan2GP\ckpts\Qwen3_5_9B_Abliterated\Qwen3.5-9B-Abliterated-text-Q4_K_M_bis.gguf")
+    if configured_gguf.is_file():
+        GGUF_PATHS["9b"] = configured_gguf
 VISION_ROOT = Path(os.environ.get("FAITHFUL_H3_VISION_ROOT", GGUF_ROOT / "vision"))
 VISION_ROOTS = {
     "fast": VISION_ROOT,
