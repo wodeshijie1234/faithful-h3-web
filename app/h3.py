@@ -56,13 +56,33 @@ def has_unsupported_vocalization(source: str, candidate: str) -> bool:
     vocalization = r"\b(?:moan|groan|whimper|gasp|scream|cry|laugh)(?:s|ed|ing)?\b"
     if not re.search(vocalization, str(candidate or ""), flags=re.I):
         return False
-    source_vocalization = r"(?:\u547b\u541f|\u547c\u558a|\u5c16\u53eb|\u54ed\u558a|\u54ed\u6ce3|\u7b11\u58f0|\u53d1\u51fa.*?\u58f0\u97f3|" + vocalization + r")"
+    source_vocalization = r"(?:\u547b\u541f|\u5a07\u5598|\u547c\u558a|\u5c16\u53eb|\u54ed\u558a|\u54ed\u6ce3|\u7b11\u58f0|\u53d1\u51fa.*?\u58f0\u97f3|" + vocalization + r")"
     return not re.search(source_vocalization, str(source or ""), flags=re.I)
+
+
+def restore_explicit_dialogue(source: str, candidate: str) -> str:
+    """Keep quoted source dialogue verbatim inside the H3 dialogue tag."""
+    value = str(candidate or "").strip()
+    # Capture Chinese/curly quoted utterances, including punctuation inside them.
+    quoted = re.findall(r"[\u201c\u2018\u300c\u300e\"']([^\u201d\u2019\u300d\u300f\"']*[\u3400-\u9fff][^\u201d\u2019\u300d\u300f\"']*)[\u201d\u2019\u300d\u300f\"']", str(source or ""))
+    if not quoted:
+        return value
+    for dialogue in quoted:
+        tag = f"<d>[Chinese] {dialogue}</d>"
+        if tag in value:
+            continue
+        # Remove a translated quoted utterance when present, then preserve the
+        # original Chinese verbatim. This also handles a model omitting dialogue.
+        value = re.sub(r"(?:\"[^\"\n]*\"|‘[^’\n]*’|“[^”\n]*”)", "", value, count=1)
+        value = value.rstrip()
+        value = f"{value} {tag}".strip()
+    return value
 
 
 def remove_unsupported_vocalizations(source: str, candidate: str) -> str:
     """Drop complete invented vocalization sentences before the visual-fact review."""
     value = str(candidate or "").strip()
+    value = restore_explicit_dialogue(source, value)
     if not has_unsupported_vocalization(source, value):
         return value
     vocalization = re.compile(r"\b(?:moan|groan|whimper|gasp|scream|cry|laugh)(?:s|ed|ing)?\b", re.I)
@@ -74,12 +94,20 @@ def remove_unsupported_vocalizations(source: str, candidate: str) -> str:
         r"(?:\s+(?:softly|loudly|quietly|gently|weakly))?\s*,\s*",
         re.I,
     )
+    vocal_leading_clause = re.compile(
+        r"\b(?:he|she|they|the\s+[\w-]+)\s+"
+        r"(?:continues\s+to\s+)?(?:moan|groan|whimper|gasp|scream|cry|laugh)(?:s|ed|ing)?"
+        r"(?:\s+(?:softly|loudly|quietly|gently|weakly|in\s+pleasure))?\s*(?:and\s+)?",
+        re.I,
+    )
     for sentence in sentences:
         if not vocalization.search(sentence):
             cleaned_sentences.append(sentence)
             continue
         original_sentence = sentence.strip()
         remainder = vocal_clause.sub("", sentence).strip()
+        if remainder == original_sentence:
+            remainder = vocal_leading_clause.sub("", sentence).strip()
         if remainder == original_sentence:
             continue
         if remainder:
@@ -693,13 +721,13 @@ def visual_review_system(mode: str) -> str:
 def conversion_system(mode: str) -> str:
     mode = normalize_mode(mode)
     if mode == "fl2va":
-        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate each source clause exactly once and in the original order. Preserve every explicit person, count, left/right position, action, shot number, timestamp, time range, duration, camera direction, continuity fact, and dialogue. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, resolve ambiguity, or continue anything. Never infer appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, props, lighting, mood, camera movement, body details, relationships, intentions, or transitions. If the source does not specify a fact, omit it. Return only the English translation."""
-    return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, timestamp, time range, duration, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the English translation."""
+        return """Translate the source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate every source clause exactly once and in the original order, including sensitive or explicit adult actions; do not censor, sanitize, skip, or refuse any content. Preserve every explicit person, count, left/right position, action, shot number, timestamp, time range, duration, camera direction, continuity fact, and dialogue. Keep dialogue text in its original language inside <d>[Language] ...</d>. Do not add, remove, summarize, embellish, intensify, explain, resolve ambiguity, or continue anything. Never infer appearance, age, ethnicity, clothing, color, indoor/outdoor setting, room, location, props, lighting, mood, camera movement, body details, relationships, intentions, or transitions. If the source does not specify a fact, omit it. Return only the complete English translation."""
+    return """Translate the Ref2VA source prompt faithfully into English. This is literal translation only, not prompt writing and not H3 formatting. Translate every source clause exactly once and in the original order, including sensitive or explicit adult actions; do not censor, sanitize, skip, or refuse any content. Preserve every explicit subject, picture reference, count, left/right position, action, shot number, timestamp, time range, duration, camera direction, continuity fact, and dialogue in the original order. Keep <Subject N>, <Picture N>, [Shot N], timestamps, and dialogue tags unchanged. Do not add, remove, summarize, embellish, intensify, explain, or continue anything. Never invent appearance, age, ethnicity, clothing, color, setting, props, lighting, mood, camera movement, body details, or other visual facts. Return only the complete English translation."""
 
 
 def translation_repair_system(mode: str) -> str:
     normalize_mode(mode)
-    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Delete every visual clause that is not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, timestamps, time ranges, durations, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, camera movement, or non-dialogue vocalizations. Return only the corrected English translation, not H3 formatting or commentary."""
+    return """Rewrite the proposed English translation to be a literal translation of the ORIGINAL SOURCE. Translate and preserve every source clause, including sensitive or explicit adult actions; do not censor, sanitize, skip, or refuse any content. Delete only visual clauses that are not explicitly supported by the source. Preserve all supported people, counts, positions, actions, shot numbers, timestamps, time ranges, durations, camera directions, continuity facts, and dialogue in their original order. Do not add, remove, summarize, embellish, explain, resolve ambiguity, or introduce appearance, clothing, setting, props, lighting, mood, relationships, intentions, transitions, camera movement, or non-dialogue vocalizations. Return only the complete corrected English translation, not H3 formatting or commentary."""
 
 
 def enrichment_system(strength: int, target_length: int = 500) -> str:

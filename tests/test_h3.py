@@ -171,6 +171,15 @@ class H3ContractTests(unittest.TestCase):
 
         self.assertEqual("The person remains still. Eyes unfocused.", cleaned)
 
+    def test_unsupported_vocalization_cleanup_preserves_same_sentence_chinese_dialogue(self):
+        source = '她持续发出娇喘声，并不断用中文说道：“好爽，啊，爸爸，快干死我”。'
+        candidate = 'She continues to moan softly and repeatedly says in Chinese: "So good, ah, Dad, fuck me to death."'
+
+        cleaned = h3.remove_unsupported_vocalizations(source, candidate)
+
+        self.assertIn('<d>[Chinese] 好爽，啊，爸爸，快干死我</d>', cleaned)
+        self.assertIn('moan', cleaned.lower())
+
     def test_audio_parser_only_accepts_two_audio_fields(self):
         soundscape, music = h3.parse_audio_output(
             "overall_soundscape: footsteps and fabric movement\n"
