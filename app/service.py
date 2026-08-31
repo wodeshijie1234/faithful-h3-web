@@ -127,18 +127,26 @@ class PromptService:
             max_new_tokens=8,
         ).strip().upper()
         if not _is_pass_verdict(review):
-            translation = self._timed_generate(
-                stages, "translation_retry",
-                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
-                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05,
-                max_new_tokens=translation_token_limit,
-            )
-            translation = h3.remove_unsupported_vocalizations(source, translation)
-            review = self._timed_generate(
-                stages, "visual_review_retry",
-                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
-                h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
-            ).strip().upper()
+            # Long prompts can need more than one deterministic repair pass: a
+            # first pass may remove an invention while accidentally dropping a
+            # later clause. Keep the guard strict, but give the model two further
+            # opportunities to restore the complete source before failing closed.
+            max_repairs = 2 if len(re.sub(r"\s+", "", source)) >= 300 else 1
+            for attempt in range(1, max_repairs + 1):
+                translation = self._timed_generate(
+                    stages, "translation_retry" if attempt == 1 else f"translation_retry_{attempt}",
+                    f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                    h3.translation_repair_system(mode), temperature=0.01, top_p=0.05,
+                    max_new_tokens=translation_token_limit,
+                )
+                translation = h3.remove_unsupported_vocalizations(source, translation)
+                review = self._timed_generate(
+                    stages, "visual_review_retry" if attempt == 1 else f"visual_review_retry_{attempt}",
+                    f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
+                    h3.visual_review_system(mode), temperature=0.01, top_p=0.1, max_new_tokens=8,
+                ).strip().upper()
+                if _is_pass_verdict(review):
+                    break
             if not _is_pass_verdict(review):
                 raise RuntimeError("The visual translation failed the strict no-invention review after automatic correction; no H3 output was returned.")
         if h3.has_unsupported_vocalization(source, translation):

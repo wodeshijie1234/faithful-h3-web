@@ -464,7 +464,7 @@ class PromptServiceTests(unittest.TestCase):
             "integrated_multimodal_description: [Shot 1] source\noverall_soundscape: N/A\nnon_diegetic_music: N/A",
         ])
 
-        result = PromptService(runtime).convert("source", "fl2va")
+        result = PromptService(runtime).convert("source " * 60, "fl2va")
 
         self.assertIn("A person runs.", result["output"])
         self.assertNotIn("red coat", result["output"])
@@ -473,6 +473,14 @@ class PromptServiceTests(unittest.TestCase):
             ["translate", "visual_review", "translation_retry", "visual_review_retry", "audio", "chinese_preview"],
             [stage["name"] for stage in result["_stages"]],
         )
+
+    def test_conversion_allows_multiple_repairs_for_long_translation(self):
+        runtime = FakeRuntime([
+            "bad", "FAIL", "still bad", "FAIL", "complete", "PASS",
+            "overall_soundscape: N/A\nnon_diegetic_music: N/A", "preview",
+        ])
+        result = PromptService(runtime).convert("source " * 60, "fl2va")
+        self.assertIn("complete", result["output"])
 
     def test_conversion_removes_an_unmentioned_vocalization_before_visual_review(self):
         runtime = FakeRuntime([
