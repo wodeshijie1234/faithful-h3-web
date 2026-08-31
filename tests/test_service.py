@@ -29,6 +29,28 @@ class PromptServiceTests(unittest.TestCase):
         self.assertEqual(source, result["output"])
         self.assertEqual(1, len(runtime.calls))
 
+    def test_complete_chinese_ref2va_input_uses_fieldwise_micro_edit(self):
+        source = (
+            "subject_definitions: <Subject 1> (<Picture 1>) 是男性。\n"
+            "summary: 目标视频以 <Picture 1> 开始。\n"
+            "retention_analysis: N/A\n"
+            "detailed_description: [Shot 1] At 00:00.000, 男人向前走。\n"
+            "overall_soundscape: 脚步声\nnon_diegetic_music: N/A"
+        )
+        translated = (
+            "subject_definitions: <Subject 1> (<Picture 1>) is male.\n"
+            "summary: The target video begins with <Picture 1>.\n"
+            "retention_analysis: N/A\n"
+            "detailed_description: [Shot 1] At 00:00.000, A man walks forward.\n"
+            "overall_soundscape: footsteps\nnon_diegetic_music: N/A"
+        )
+        runtime = FakeRuntime([translated])
+
+        result = PromptService(runtime).convert(source, "ref2va")
+
+        self.assertEqual(translated, result["output"])
+        self.assertEqual(1, len(runtime.calls))
+
     def test_long_conversion_scales_translation_budget(self):
         source = "一个人观察周围环境并缓慢向前走。" * 80
         runtime = FakeRuntime([

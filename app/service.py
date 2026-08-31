@@ -97,6 +97,10 @@ class PromptService:
         # queue/gallery.  Such input is already a complete H3 document; feeding
         # the whole document back through literal translation nests its fields
         # inside detailed_description and can never be faithful.
+        if h3.has_complete_structure(source, mode) and h3.normalize_mode(mode) == "ref2va" and h3.has_untranslated_chinese(source):
+            # A complete Chinese/mixed-language H3 document needs field-wise
+            # translation, not the plain-prompt visual review pipeline.
+            return self.micro_edit(source, mode)
         if h3.has_complete_structure(source, mode) and not h3.has_untranslated_chinese(source):
             output = h3.normalize_output(source, mode)
             check = h3.audit(output, mode)
