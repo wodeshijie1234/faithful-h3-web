@@ -93,6 +93,22 @@ class PromptService:
     def convert(self, text: str, mode: str) -> dict:
         source = h3.canonicalize_picture_references(text)
         stages = []
+        # The direct-convert button is also used with prompts copied from WanGP's
+        # queue/gallery.  Such input is already a complete H3 document; feeding
+        # the whole document back through literal translation nests its fields
+        # inside detailed_description and can never be faithful.
+        if h3.has_complete_structure(source, mode) and not h3.has_untranslated_chinese(source):
+            output = h3.normalize_output(source, mode)
+            check = h3.audit(output, mode)
+            if not check.get("valid"):
+                raise RuntimeError("The supplied H3 prompt has an invalid structure or missing fields.")
+            chinese = self._timed_generate(
+                stages, "chinese_preview", output, h3.chinese_preview_system(mode),
+                temperature=0.01, top_p=0.1, max_new_tokens=900,
+            )
+            if not chinese or "\ufffd" in chinese or chinese.count("?") > 3:
+                chinese = output
+            return {"output": output, "chinese": chinese, "audit": check, "_stages": stages}
         translation_token_limit = _translation_token_limit(source)
         translation = self._timed_generate(stages, "translate",
             source, h3.conversion_system(mode), temperature=0.01, top_p=0.05,
