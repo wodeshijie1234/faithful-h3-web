@@ -28,6 +28,16 @@ def _is_pass_verdict(text: str) -> bool:
     return re.fullmatch(r"PASS[.!:]?", value, flags=re.I) is not None
 
 
+def _translation_token_limit(source: str) -> int:
+    """Reserve enough output for long source prompts without overrunning context."""
+    # Chinese source text is close to one token per character, while the faithful
+    # English translation is usually longer.  Keep the default fast for short
+    # prompts, but scale up for long prompts that previously hit the 700-token cap.
+    source_length = len(re.sub(r"\s+", "", str(source or "")))
+    extra_length = max(0, source_length - 20)
+    return min(1800, max(700, 700 + round(extra_length * 0.45)))
+
+
 class PromptService:
     def __init__(self, runtime):
         self.runtime = runtime
@@ -83,8 +93,10 @@ class PromptService:
     def convert(self, text: str, mode: str) -> dict:
         source = h3.canonicalize_picture_references(text)
         stages = []
+        translation_token_limit = _translation_token_limit(source)
         translation = self._timed_generate(stages, "translate",
-            source, h3.conversion_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700
+            source, h3.conversion_system(mode), temperature=0.01, top_p=0.05,
+            max_new_tokens=translation_token_limit
         )
         translation = h3.remove_unsupported_vocalizations(source, translation)
         review = self._timed_generate(stages, "visual_review",
@@ -98,7 +110,8 @@ class PromptService:
             translation = self._timed_generate(
                 stages, "translation_retry",
                 f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
-                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700,
+                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05,
+                max_new_tokens=translation_token_limit,
             )
             translation = h3.remove_unsupported_vocalizations(source, translation)
             review = self._timed_generate(
@@ -112,7 +125,8 @@ class PromptService:
             translation = self._timed_generate(
                 stages, "vocalization_retry",
                 f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENGLISH TRANSLATION:\n{translation}",
-                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05, max_new_tokens=700,
+                h3.translation_repair_system(mode), temperature=0.01, top_p=0.05,
+                max_new_tokens=translation_token_limit,
             )
             review = self._timed_generate(
                 stages, "visual_review_vocalization_retry",

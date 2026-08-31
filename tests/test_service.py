@@ -14,6 +14,20 @@ class FakeRuntime:
 
 
 class PromptServiceTests(unittest.TestCase):
+    def test_long_conversion_scales_translation_budget(self):
+        source = "一个人观察周围环境并缓慢向前走。" * 80
+        runtime = FakeRuntime([
+            "A person observes the surroundings and slowly walks forward.",
+            "PASS",
+            "overall_soundscape: footsteps\nnon_diegetic_music: N/A",
+            "integrated_multimodal_description: source\noverall_soundscape: footsteps\nnon_diegetic_music: N/A",
+        ])
+
+        PromptService(runtime).convert(source, "fl2va")
+
+        self.assertGreater(runtime.calls[0][2]["max_new_tokens"], 700)
+        self.assertLessEqual(runtime.calls[0][2]["max_new_tokens"], 1800)
+
     def test_enrichment_maps_all_requested_strength_levels(self):
         runtime = FakeRuntime([
             "integrated30", "PASS",
