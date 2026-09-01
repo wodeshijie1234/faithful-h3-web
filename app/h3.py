@@ -224,7 +224,7 @@ def _ref2va_subject_definition_lines(source_text: str) -> list[str]:
     """Build official subject/video/audio definition lines from explicit source facts."""
     source = canonicalize_picture_references(source_text)
     structured = re.findall(
-        r"<(Subject|Video|Audio)\s+(\d+)>\s*(?:is|=)\s*(.+?)(?=(?:\n\s*<(?:Subject|Video|Audio)\s+\d+>|$))",
+        r"<(Subject|Video|Audio)\s+(\d+)>\s*(?:is|=)\s*([^\n]+)",
         source,
         flags=re.I | re.S,
     )
@@ -284,7 +284,7 @@ def _ref2va_retention_lines(source_text: str, subjects: list[tuple[str, str]]) -
     ]
     source = canonicalize_picture_references(source_text)
     for label, number, definition in re.findall(
-        r"<(Video|Audio)\s+(\d+)>\s*(?:is|=)\s*(.+?)(?=(?:\n\s*<(?:Video|Audio|Subject|Picture)\s+\d+>|$))",
+        r"<(Video|Audio)\s+(\d+)>\s*(?:is|=)\s*([^\n]+)",
         source, flags=re.I | re.S,
     ):
         marker = "reference" if label.lower() == "audio" else "weak_reference"
