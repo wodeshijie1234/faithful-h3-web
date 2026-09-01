@@ -19,7 +19,10 @@ class H3ContractTests(unittest.TestCase):
                 description = description.split("\noverall_soundscape:", 1)[0]
                 timestamps = re.findall(r"\[Shot\s+\d+\]\s+At\s+(\d{2}:\d{2}\.\d{3}),", description)
 
-                self.assertEqual(case["timestamps"], timestamps)
+                expected = case["timestamps"]
+                if case["mode"] == "ref2va" and expected and expected[0] == "00:00.000":
+                    expected = expected[1:]
+                self.assertEqual(expected, timestamps)
                 self.assertIsNone(re.search(
                     r"\bAt\s+(?:the\s+)?\d+(?:\.\d+)?(?:\s*-\s*|\s+)(?:seconds?|secs?|s)\b",
                     description,
@@ -51,7 +54,7 @@ class H3ContractTests(unittest.TestCase):
     def test_ref2va_strict_wrap_preserves_source_verbatim(self):
         source = "参考图中的人物站在门边，镜头向前推进。"
         output = h3.strict_wrap(source, "ref2va")
-        self.assertIn("summary: N/A", output)
+        self.assertIn("summary: [reference generation]", output)
         self.assertIn(f"detailed_description: {source}", output)
         self.assertTrue(h3.audit(output, "ref2va")["valid"])
 
@@ -61,7 +64,7 @@ class H3ContractTests(unittest.TestCase):
         output = h3.strict_wrap("<Picture 2> is the starting reference.", "ref2va", source_text=source)
         self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
         self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
-        self.assertIn("summary: The video begins with <Picture 2>.", output)
+        self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
 
     def test_ref2va_timeline_wrap_splits_explicit_camera_cuts(self):
         source = "图1是男生，图2是女生，视频场景开始于图2。"
@@ -77,10 +80,10 @@ class H3ContractTests(unittest.TestCase):
 
         self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
         self.assertIn("retention_analysis: <Subject 1> (appears in [Shot 1]): fully_preserved", output)
-        self.assertIn("[Shot 1] At 00:00.000, The man suddenly appears behind the woman", output)
+        self.assertIn("[Shot 1] The man suddenly appears behind the woman", output)
         self.assertNotIn("[Shot 1] <Picture 1> is a man", output)
         self.assertNotIn("<Picture 2> is a woman. [Shot", output)
-        self.assertIn("[Shot 1] At 00:00.000", output)
+        self.assertIn("[Shot 1]", output)
         self.assertIn("[Shot 2] At 00:02.500, Close-up on him pressing the remote.", output)
         self.assertIn("[Shot 3] At 00:04.500, Cut to medium shot.", output)
         self.assertIn("[Shot 4] At 00:07.500, Cut to an extremely low-angle shot", output)
@@ -130,7 +133,7 @@ class H3ContractTests(unittest.TestCase):
 
         output = h3.ref2va_timeline_wrap(translation, source)
 
-        self.assertIn("[Shot 1] At 00:00.000, The man walks into frame.", output)
+        self.assertIn("[Shot 1] The man walks into frame.", output)
         self.assertIn("[Shot 2] At 00:04.000, He stops.", output)
 
     def test_ref2va_unnumbered_explicit_times_create_standard_timed_shots(self):
@@ -153,7 +156,7 @@ class H3ContractTests(unittest.TestCase):
 
         detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
         self.assertEqual(3, detailed.count("[Shot "))
-        self.assertIn("[Shot 1] At 00:00.000, Suddenly", output)
+        self.assertIn("[Shot 1] Suddenly", output)
         self.assertIn("[Shot 2] At 00:02.000, he presses the remote", output)
         self.assertIn("[Shot 3] At 00:03.000, he moves around her to the front.", output)
         self.assertNotIn("At 2 seconds", output)
@@ -280,6 +283,28 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
         self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
         self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
+
+    def test_ref2va_official_subject_lines_and_shot_one_format(self):
+        source = (
+            "<Subject 1> is the violinist from <Picture 1>, preserving her identity and dark braided hair.\n"
+            "<Video 1> is the reference camera rhythm.\n"
+            "<Audio 1> is the voice reference for <Subject 1> (S1).\n"
+            "The target video uses <Subject 1> with <Picture 1> as a character reference."
+        )
+        translation = (
+            "The target video is a rooftop performance. [Shot 1] <Subject 1> raises the violin. "
+            "[Shot 2] At 00:03.500, the camera follows <Video 1>."
+        )
+        output = h3.ref2va_timeline_wrap(translation, source)
+        self.assertIn("<Subject 1> is the violinist from <Picture 1>, preserving her identity and dark braided hair.", output)
+        self.assertIn("<Video 1> is the reference camera rhythm.", output)
+        self.assertIn("<Audio 1> is the voice reference for <Subject 1> (S1).", output)
+        self.assertIn("summary: [reference generation + audio reference]", output)
+        detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
+        self.assertIn("[Shot 1]", detailed)
+        self.assertNotIn("[Shot 1] At ", detailed)
+        self.assertIn("[Shot 2] At 00:03.500,", detailed)
+        self.assertNotIn("\n\n", output)
 
 
 if __name__ == "__main__":

@@ -117,7 +117,7 @@ def remove_unsupported_vocalizations(source: str, candidate: str) -> str:
 
 def structure_signature(text: str, mode: str) -> list[str]:
     fields = required_fields(mode)
-    pattern = r"(?:" + "|".join(re.escape(field) for field in fields) + r"|<Picture \d+>|<Subject \d+>|\[Shot \d+\]|<d>|</d>|N/A|\b\d{2}:\d{2}\.\d{3}\b)"
+    pattern = r"(?:" + "|".join(re.escape(field) for field in fields) + r"|<Picture \d+>|<Subject \d+>|<Video \d+>|<Audio \d+>|\[Shot \d+\]|<d>|</d>|<scenetrans>|</scenetrans>|<cutoff>|N/A|\b\d{2}:\d{2}\.\d{3}\b)"
     return re.findall(pattern, str(text or ""))
 
 
@@ -150,14 +150,9 @@ def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A
             f"non_diegetic_music: {music}"
         )
     reference_source = canonicalize_picture_references(source_text or text)
-    subjects = []
-    for picture_id, label in re.findall(r"<Picture\s+(\d+)>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)", reference_source):
-        gender = "male" if label.startswith("\u7537") else "female"
-        subjects.append(f"<Subject {picture_id}> (<Picture {picture_id}>) is {gender}.")
-    start_reference = re.search(r"(?:\u5f00\u59cb\u4e8e|\u4ece)\s*<Picture\s+(\d+)>", reference_source)
-    subject_definitions = " ".join(subjects) or "N/A"
-    summary = f"The video begins with <Picture {start_reference.group(1)}> ." if start_reference else "N/A"
-    summary = summary.replace("> .", ">.")
+    subject_definitions = "\n".join(_ref2va_subject_definition_lines(reference_source)) or "N/A"
+    _, start_reference = _ref2va_reference_metadata(reference_source)
+    summary = _ref2va_summary(reference_source, start_reference)
     return (
         f"subject_definitions: {subject_definitions}\n"
         f"summary: {summary}\n"
@@ -169,22 +164,50 @@ def strict_wrap(text: str, mode: str, soundscape: str = "N/A", music: str = "N/A
 
 
 def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]], str | None]:
-    """Extract only explicit identity and starting-reference facts from a Ref source."""
+    """Extract explicit reusable subjects and the concrete starting picture.
+
+    The descriptor is deliberately copied from the source (then lightly normalized)
+    so the wrapper can emit an official ``<Subject N> ... from <Picture N>`` line
+    without inventing appearance details.
+    """
     source = canonicalize_picture_references(source_text)
     subjects: list[tuple[str, str]] = []
     seen_ids = set()
 
-    patterns = (
-        r"<Picture\s+(\d+)>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*(\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)",
-        r"<Picture\s+(\d+)>\s+is\s+(?:a\s+)?(man|male|boy|woman|female|girl)\b",
-    )
-    for pattern in patterns:
-        for picture_id, label in re.findall(pattern, source, flags=re.I):
-            if picture_id in seen_ids:
-                continue
-            gender = "male" if label.lower().startswith(("\u7537", "man", "male", "boy")) else "female"
-            subjects.append((picture_id, gender))
-            seen_ids.add(picture_id)
+    # Already structured Ref2VA input: preserve the declared subject wording and
+    # its picture provenance instead of reducing it to a gender label.
+    for subject_id, definition in re.findall(
+        r"<Subject\s+(\d+)>\s*(?:is|=)\s*(.+?)(?=(?:\n|<Subject\s+\d+>|<Picture\s+\d+>|<Video\s+\d+>|<Audio\s+\d+>|$))",
+        source,
+        flags=re.I | re.S,
+    ):
+        definition = " ".join(definition.split()).strip(" .")
+        if definition and subject_id not in seen_ids:
+            subjects.append((subject_id, definition))
+            seen_ids.add(subject_id)
+
+    def add_picture(picture_id: str, descriptor: str) -> None:
+        if picture_id in seen_ids:
+            return
+        descriptor = " ".join(descriptor.split()).strip(" .，,")
+        descriptor = re.sub(r"(?:参考图|reference\s+(?:image|picture))$", "", descriptor, flags=re.I).strip(" ,")
+        if not descriptor:
+            return
+        # Keep the compact legacy wording for bare gender facts; enrich only
+        # when the source supplies a role/name/other explicit description.
+        gender = re.fullmatch(r"(?:a\s+)?(?:man|male|boy|woman|female|girl)|(?:男生|男人|男性|女生|女人|女性)", descriptor, flags=re.I)
+        subjects.append((picture_id, "male" if gender and descriptor.lower().lstrip("a ").startswith(("man", "male", "boy")) or descriptor.startswith(("男",)) else "female" if gender else descriptor))
+        seen_ids.add(picture_id)
+
+    for picture_id, descriptor in re.findall(
+        r"<Picture\s+(\d+)>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*([^，,。！？.!?\n<]+)",
+        source,
+    ):
+        add_picture(picture_id, descriptor)
+    for picture_id, descriptor in re.findall(
+        r"<Picture\s+(\d+)>\s+is\s+([^,，.!?\n<]+)", source, flags=re.I
+    ):
+        add_picture(picture_id, descriptor)
 
     start_patterns = (
         r"(?:\u5f00\u59cb\u4e8e|\u4ece)\s*<Picture\s+(\d+)>",
@@ -195,6 +218,78 @@ def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]],
         if match:
             return subjects, match.group(1)
     return subjects, None
+
+
+def _ref2va_subject_definition_lines(source_text: str) -> list[str]:
+    """Build official subject/video/audio definition lines from explicit source facts."""
+    source = canonicalize_picture_references(source_text)
+    structured = re.findall(
+        r"<(Subject|Video|Audio)\s+(\d+)>\s*(?:is|=)\s*(.+?)(?=(?:\n\s*<(?:Subject|Video|Audio)\s+\d+>|$))",
+        source,
+        flags=re.I | re.S,
+    )
+    if structured:
+        lines = []
+        for label, number, definition in structured:
+            text = " ".join(definition.split()).strip(" .")
+            if text:
+                lines.append(f"<{label.title()} {number}> is {text}.")
+        if lines:
+            return lines
+    subjects, _ = _ref2va_reference_metadata(source)
+    lines: list[str] = []
+    for subject_index, (picture_id, descriptor) in enumerate(subjects, start=1):
+        if descriptor in {"male", "female"}:
+            lines.append(f"<Subject {subject_index}> (<Picture {picture_id}>) is {descriptor}.")
+        elif re.search(r"<Picture\s+" + re.escape(picture_id) + r">", descriptor, flags=re.I):
+            lines.append(f"<Subject {subject_index}> is {descriptor}.")
+        else:
+            lines.append(f"<Subject {subject_index}> is {descriptor} from <Picture {picture_id}>.")
+    # Structured reference assets may be declared independently of pictures.
+    return lines
+
+
+def _ref2va_summary(source_text: str, start_picture: str | None = None) -> str:
+    """Infer only explicit Ref2VA task roles for the required summary prefix."""
+    source = str(source_text or "")
+    roles: list[str] = []
+    lower = source.lower()
+    if re.search(r"\b(?:edit|edited|editing|modify|修改|编辑)\b", lower):
+        roles.append("video editing")
+    if re.search(r"\b(?:continue|continuation|续接|延续|接续)\b", lower):
+        roles.append("video continuation")
+    if re.search(r"(?:首帧|第一帧|最后一帧|关键帧|first\s+frame|keyframe|last\s+frame)", source, flags=re.I):
+        roles.append("keyframe completion")
+    if re.search(r"\b(?:reuse|reused|copy|copied|复用|复制|原声)\b", lower):
+        roles.append("audio reuse")
+    elif re.search(r"\b(?:audio|voice|timbre|音频|声音|音色|配音)\b", lower):
+        roles.append("audio reference")
+    if not roles and not start_picture and not re.search(r"<Picture\s+\d+>|<Video\s+\d+>|<Audio\s+\d+>|参考图|参考视频|参考音频|reference", source, flags=re.I):
+        return "N/A"
+    if not roles:
+        roles.append("reference generation")
+    elif "reference generation" not in roles and re.search(r"(?:<Picture\s+\d+>|<Video\s+\d+>|参考图|参考视频|reference\s+(?:image|video)|借鉴|参考)", source, flags=re.I):
+        roles.insert(0, "reference generation")
+    prefix = "[" + " + ".join(dict.fromkeys(roles)) + "]"
+    if start_picture:
+        return f"{prefix} The target video begins with <Picture {start_picture}>."
+    return prefix
+
+
+def _ref2va_retention_lines(source_text: str, subjects: list[tuple[str, str]]) -> str:
+    """Emit one concrete retention statement per declared reference label."""
+    lines = [
+        f"<Subject {index}> (appears in [Shot 1]): fully_preserved - the referenced subject from <Picture {picture_id}> is retained."
+        for index, (picture_id, _) in enumerate(subjects, start=1)
+    ]
+    source = canonicalize_picture_references(source_text)
+    for label, number, definition in re.findall(
+        r"<(Video|Audio)\s+(\d+)>\s*(?:is|=)\s*(.+?)(?=(?:\n\s*<(?:Video|Audio|Subject|Picture)\s+\d+>|$))",
+        source, flags=re.I | re.S,
+    ):
+        marker = "reference" if label.lower() == "audio" else "weak_reference"
+        lines.append(f"<{label.title()} {number}>: {marker} - the declared reference role is retained.")
+    return " ".join(lines) or "N/A"
 
 
 _ENGLISH_TIME_WORDS = (
@@ -254,6 +349,7 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
     """Split only explicit cuts and camera cues; all other action clauses stay together."""
     value = canonicalize_picture_references(translation).strip()
     value = re.sub(r"(?im)(?<!\[)\bshot\s+\d+\s*:\s*", "", value)
+    value = re.sub(r"\bAt\s+\d{1,3}:\d{2}(?:\.\d{1,3})?\s*,?\s*", "", value, flags=re.I)
     value = re.sub(
         r"<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\s*[,.;]?\s*",
         "",
@@ -448,19 +544,9 @@ def ref2va_timeline_wrap(
         raise ValueError("Source prompt cannot be empty.")
 
     subjects, start_picture = _ref2va_reference_metadata(source_text or translation)
-    subject_definitions = " ".join(
-        f"<Subject {picture_id}> (<Picture {picture_id}>) is {gender}."
-        for picture_id, gender in subjects
-    ) or "N/A"
-    summary = (
-        f"[reference generation] The target video begins with <Picture {start_picture}>."
-        if start_picture else "[reference generation]"
-    )
-    retention_analysis = " ".join(
-        f"<Subject {picture_id}> (appears in [Shot 1]): fully_preserved - "
-        f"the {gender} subject from <Picture {picture_id}> is retained."
-        for picture_id, gender in subjects
-    ) or "N/A"
+    subject_definitions = "\n".join(_ref2va_subject_definition_lines(source_text or translation)) or "N/A"
+    summary = _ref2va_summary(source_text or translation, start_picture)
+    retention_analysis = _ref2va_retention_lines(source_text or translation, subjects)
 
     shot_actions = _numbered_shot_actions(value) or _ref2va_action_sentences(value)
     durations = _timeline_durations(shot_actions, source_text, translation)
@@ -618,6 +704,11 @@ def build_h3(modules: dict, mode: str, preserve_timing: bool = False) -> str:
     for index, shot in enumerate(modules["shots"], start=1):
         content = " ".join(value for value in (shot["action"], shot["camera"]) if value).strip()
         if not content:
+            elapsed += shot["duration_seconds"]
+            continue
+        if mode == "ref2va" and index == 1:
+            marker = "[Shot 1]"
+            shot_parts.append(f"{marker} {content}")
             elapsed += shot["duration_seconds"]
             continue
         marker = f"[Shot {index}] At {format_timestamp(elapsed)},"
