@@ -1,4 +1,5 @@
 import ctypes
+import hashlib
 import os
 import subprocess
 import threading
@@ -34,10 +35,6 @@ if not os.environ.get("FAITHFUL_H3_LLAMA_BIN"):
     bundled_binary = ROOT / "runtime" / "llama-b10375" / "bin" / "llama-server.exe"
     if bundled_binary.is_file():
         os.environ["FAITHFUL_H3_LLAMA_BIN"] = str(bundled_binary)
-if not os.environ.get("FAITHFUL_H3_GGUF_9B_PATH"):
-    configured_gguf = Path(r"D:\AI\wan2gp n\Wan2GP\ckpts\Qwen3_5_9B_Abliterated\Qwen3.5-9B-Abliterated-text-Q4_K_M_bis.gguf")
-    if configured_gguf.is_file():
-        GGUF_PATHS["9b"] = configured_gguf
 VISION_ROOT = Path(os.environ.get("FAITHFUL_H3_VISION_ROOT", GGUF_ROOT / "vision"))
 VISION_ROOTS = {
     "fast": VISION_ROOT,
@@ -66,6 +63,26 @@ vision_download_state = vision_download_states["fast"]
 resource_monitor = ResourceMonitor()
 
 app = FastAPI(title="liuliu Faithful H3", version="1.7.0")
+
+
+def _source_fingerprint() -> str:
+    """Identify the exact conversion rules loaded by this server process."""
+    digest = hashlib.sha256()
+    for relative_path in (
+        Path("app/main.py"),
+        Path("app/h3.py"),
+        Path("app/service.py"),
+        Path("docs/REF2VA_RULES.md"),
+    ):
+        path = ROOT / relative_path
+        digest.update(relative_path.as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+SOURCE_FINGERPRINT = _source_fingerprint()
 
 
 @app.middleware("http")
@@ -236,6 +253,9 @@ def status():
         ],
         "vision_models": [_vision_model_status(model_id) for model_id in VISION_MODELS],
         "version": app.version,
+        "workspace_root": str(ROOT.resolve()),
+        "server_pid": os.getpid(),
+        "source_fingerprint": SOURCE_FINGERPRINT,
     }
 
 

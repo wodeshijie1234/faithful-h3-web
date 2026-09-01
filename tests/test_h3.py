@@ -62,8 +62,8 @@ class H3ContractTests(unittest.TestCase):
         source = "\\u56fe1\\u662f\\u7537\\u751f\\uff0c\\u56fe2\\u662f\\u5973\\u751f\\uff0c\\u89c6\\u9891\\u4ece\\u56fe2\\u5f00\\u59cb\u3002"
         source = "图1是男生，图2是女生，视频从图2开始。"
         output = h3.strict_wrap("<Picture 2> is the starting reference.", "ref2va", source_text=source)
-        self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
-        self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
+        self.assertIn("<Subject 1> is the male subject from <Picture 1>", output)
+        self.assertIn("<Subject 2> is the female subject from <Picture 2>", output)
         self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
 
     def test_ref2va_timeline_wrap_splits_explicit_camera_cuts(self):
@@ -280,8 +280,8 @@ class H3ContractTests(unittest.TestCase):
     def test_ref2va_supports_chinese_numeral_picture_identity_and_start(self):
         source = "图一为男生参考图，图二为女生参考图，视频场景开始于图二。女生站在房间里。"
         output = h3.ref2va_timeline_wrap("The girl stands in the room.", source)
-        self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
-        self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
+        self.assertIn("<Subject 1> is the male subject from <Picture 1>", output)
+        self.assertIn("<Subject 2> is the female subject from <Picture 2>", output)
         self.assertIn("summary: [reference generation] The target video begins with <Picture 2>.", output)
 
     def test_ref2va_official_subject_lines_and_shot_one_format(self):
@@ -315,8 +315,8 @@ class H3ContractTests(unittest.TestCase):
             "女生不断用中文说道：“啊，爸爸”"
         )
         output = h3.ref2va_timeline_wrap(source, source)
-        self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
-        self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
+        self.assertIn("<Subject 1> is the male subject from <Picture 1>", output)
+        self.assertIn("<Subject 2> is the female subject from <Picture 2>", output)
         self.assertIn("<Picture 2> is the first frame of [Shot 1]", output)
         self.assertIn("summary: [reference generation + keyframe completion]", output)
         detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
@@ -325,7 +325,49 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("[Shot 2] At 00:03.000,", detailed)
         self.assertIn("[Shot 3] At 00:05.000,", detailed)
         self.assertNotIn("[镜头", detailed)
+        self.assertNotIn("reference image. reference image.", detailed.lower())
+        self.assertNotRegex(detailed, r"\[Shot 1\][^\[]*\b0 seconds\b")
+        self.assertNotRegex(detailed, r"\[Shot 2\][^\[]*\b3 seconds\b")
+        self.assertNotRegex(detailed, r"\[Shot 3\][^\[]*\b5 seconds\b")
         self.assertIn("<d>[Chinese] 啊，爸爸</d>", output)
+
+    def test_ref2va_model_numbered_shots_remove_scaffolding_and_duplicate_times(self):
+        source = "图片1是男生参考图。图片2是女生参考图。[镜头1]:0秒开始。[镜头2]：3秒切换。"
+        translation = (
+            "[Shot 1] At 00:00.000, reference image. reference image. 0 seconds, real-life filming. "
+            "[Shot 2] At 00:03.000, 3 seconds, camera cuts to the female."
+        )
+
+        output = h3.ref2va_timeline_wrap(translation, source)
+        detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
+
+        self.assertIn("[Shot 1] real-life filming.", detailed)
+        self.assertIn("[Shot 2] At 00:03.000, camera cuts to the female.", detailed)
+        self.assertNotIn("reference image. reference image.", detailed.lower())
+        self.assertNotIn("0 seconds", detailed)
+        self.assertNotIn("3 seconds", detailed)
+
+    def test_ref2va_final_output_cleanup_is_limited_to_shot_body_prefixes(self):
+        output = (
+            "subject_definitions: <Subject 1> is sourced from a reference image.\n"
+            "summary: [reference generation]\n"
+            "retention_analysis: N/A\n"
+            "detailed_description: <Picture 1> is the first frame of [Shot 1]. "
+            "[Shot 1] reference image. reference image. 0 seconds, real-life filming. "
+            "[Shot 2] At 00:03.000, 3 seconds, camera cuts.\n"
+            "overall_soundscape: N/A\n"
+            "non_diegetic_music: N/A"
+        )
+
+        cleaned = h3._clean_built_ref2va_shot_prefixes(output)
+
+        self.assertIn("<Subject 1> is sourced from a reference image.", cleaned)
+        self.assertIn("<Picture 1> is the first frame of [Shot 1]. [Shot 1] real-life filming.", cleaned)
+        self.assertIn("[Shot 1] real-life filming.", cleaned)
+        self.assertIn("[Shot 2] At 00:03.000, camera cuts.", cleaned)
+        self.assertNotIn("reference image. reference image.", cleaned)
+        self.assertNotIn("0 seconds", cleaned)
+        self.assertNotIn("3 seconds", cleaned)
 
 
 if __name__ == "__main__":

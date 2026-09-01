@@ -193,8 +193,8 @@ def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]],
         descriptor = re.sub(r"(?:参考图|reference\s+(?:image|picture))$", "", descriptor, flags=re.I).strip(" ,")
         if not descriptor:
             return
-        # Keep the compact legacy wording for bare gender facts; enrich only
-        # when the source supplies a role/name/other explicit description.
+        # Normalize bare gender facts; the final Subject definition still uses
+        # the official source-reference sentence instead of a bare label.
         gender = re.fullmatch(r"(?:a\s+)?(?:man|male|boy|woman|female|girl)|(?:男生|男人|男性|女生|女人|女性)", descriptor, flags=re.I)
         subjects.append((picture_id, "male" if gender and descriptor.lower().lstrip("a ").startswith(("man", "male", "boy")) or descriptor.startswith(("男",)) else "female" if gender else descriptor))
         seen_ids.add(picture_id)
@@ -244,7 +244,10 @@ def _ref2va_subject_definition_lines(source_text: str) -> list[str]:
     lines: list[str] = []
     for subject_index, (picture_id, descriptor) in enumerate(subjects, start=1):
         if descriptor in {"male", "female"}:
-            lines.append(f"<Subject {subject_index}> (<Picture {picture_id}>) is {descriptor}.")
+            lines.append(
+                f"<Subject {subject_index}> is the {descriptor} subject from <Picture {picture_id}>, "
+                "preserving the identity and visible appearance shown in the reference image."
+            )
         elif re.search(r"<Picture\s+" + re.escape(picture_id) + r">", descriptor, flags=re.I):
             lines.append(f"<Subject {subject_index}> is {descriptor}.")
         else:
@@ -349,12 +352,28 @@ def _unnumbered_timing_hints(text: str) -> dict[int, dict[str, float]]:
     return hints
 
 
+def _clean_ref2va_action_prefix(text: str) -> str:
+    """Remove translation scaffolding and duplicate time cues from a shot body."""
+    value = str(text or "").strip()
+    prefix_patterns = (
+        r"^\s*At\s+\d{1,3}:\d{2}(?:\.\d{1,3})?\s*,?\s*",
+        r"^\s*(?:(?:reference|source)\s+(?:image|picture)\s*[.;,]?\s*)+",
+        r"^\s*\d+(?:\.\d+)?\s*秒\s*[，,：:]?\s*",
+        r"^\s*(?:At\s+(?:the\s+)?)?\d+(?:\.\d+)?\s*(?:seconds?|secs?|s)(?:\s+mark)?\s*[，,：:.-]?\s*",
+    )
+    while True:
+        previous = value
+        for pattern in prefix_patterns:
+            value = re.sub(pattern, "", value, flags=re.I)
+        if value == previous:
+            return value.strip()
+
+
 def _ref2va_action_sentences(translation: str) -> list[str]:
     """Split only explicit cuts and camera cues; all other action clauses stay together."""
     value = canonicalize_picture_references(translation).strip()
     value = re.sub(r"(?im)(?<!\[)\bshot\s+\d+\s*:\s*", "", value)
-    value = re.sub(r"\bAt\s+\d{1,3}:\d{2}(?:\.\d{1,3})?\s*,?\s*", "", value, flags=re.I)
-    value = re.sub(r"^\s*\d+(?:\.\d+)?\s*秒\s*[，,：:]?\s*", "", value)
+    value = _clean_ref2va_action_prefix(value)
     value = re.sub(
         r"<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\s*[,.;]?\s*",
         "",
@@ -446,6 +465,34 @@ def _numbered_shot_actions(translation: str) -> list[str]:
         if cleaned:
             actions.append(cleaned)
     return actions
+
+
+def _clean_built_ref2va_shot_prefixes(output: str) -> str:
+    """Apply the Shot-body prefix contract to the final detailed_description."""
+    start_marker = "detailed_description:"
+    end_marker = "\noverall_soundscape:"
+    start = output.find(start_marker)
+    end = output.find(end_marker, start + len(start_marker))
+    if start < 0 or end < 0:
+        return output
+
+    body_start = start + len(start_marker)
+    detailed = output[body_start:end]
+    shot_marker = re.compile(
+        r"\[Shot\s+\d+\](?!\.)(?:\s+At\s+\d{1,3}:\d{2}(?:\.\d{1,3})?\s*,)?",
+        re.I,
+    )
+    matches = list(shot_marker.finditer(detailed))
+    if not matches:
+        return output
+
+    pieces = [detailed[:matches[0].start()]]
+    for index, match in enumerate(matches):
+        segment_end = matches[index + 1].start() if index + 1 < len(matches) else len(detailed)
+        action = _clean_ref2va_action_prefix(detailed[match.end():segment_end])
+        pieces.append(f"{match.group(0)}{' ' + action if action else ''}")
+    normalized = " " + " ".join(piece.strip() for piece in pieces if piece.strip())
+    return output[:body_start] + normalized + output[end:]
 
 
 def _ref2va_semantic_duration(action: str) -> float:
@@ -584,7 +631,9 @@ def ref2va_timeline_wrap(
         "overall_soundscape": str(soundscape or "N/A").strip() or "N/A",
         "non_diegetic_music": str(music or "N/A").strip() or "N/A",
     }
-    return build_h3(modules, "ref2va", preserve_timing=True)
+    return _clean_built_ref2va_shot_prefixes(
+        build_h3(modules, "ref2va", preserve_timing=True)
+    )
 
 
 def _fl2va_header(picture_id: str | None) -> str:

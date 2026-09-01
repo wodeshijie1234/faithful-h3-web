@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+import os
 from pathlib import Path
 from unittest.mock import PropertyMock, patch
 
@@ -21,6 +22,9 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn(payload["backend"], {"quanto", "gguf"})
         self.assertIsInstance(payload["ready"], bool)
         self.assertIsInstance(payload["missing"], list)
+        self.assertEqual(str(main.ROOT.resolve()), payload["workspace_root"])
+        self.assertEqual(os.getpid(), payload["server_pid"])
+        self.assertRegex(payload["source_fingerprint"], r"^[0-9a-f]{64}$")
         if payload["ready"]:
             self.assertEqual([], payload["missing"])
         else:
