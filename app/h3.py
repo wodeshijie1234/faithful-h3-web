@@ -285,18 +285,52 @@ def _ref2va_summary(source_text: str, start_picture: str | None = None) -> str:
 
 def _ref2va_retention_lines(source_text: str, subjects: list[tuple[str, str]]) -> str:
     """Emit one concrete retention statement per declared reference label."""
-    lines = [
-        f"<Subject {index}> (appears in [Shot 1]): fully_preserved - the referenced subject from <Picture {picture_id}> is retained."
-        for index, (picture_id, _) in enumerate(subjects, start=1)
-    ]
     source = canonicalize_picture_references(source_text)
+    shot_marker = re.compile(
+        r"(?:\[Shot\s*(\d+)\]|\[镜头\s*(\d+)\]|(?:Shot|镜头)\s*(\d+))\s*[:：]?",
+        re.I,
+    )
+    matches = list(shot_marker.finditer(source))
+    numbered_shots: list[tuple[int, str]] = []
+    for position, match in enumerate(matches):
+        end = matches[position + 1].start() if position + 1 < len(matches) else len(source)
+        numbered_shots.append((
+            int(match.group(1) or match.group(2) or match.group(3)),
+            source[match.end():end],
+        ))
+
+    lines = []
+    for index, (picture_id, descriptor) in enumerate(subjects, start=1):
+        if descriptor == "male":
+            subject_pattern = re.compile(r"(?:男生|男人|男性|男子|\b(?:man|male|boy)\b)", re.I)
+        elif descriptor == "female":
+            subject_pattern = re.compile(r"(?:女生|女人|女性|女子|\b(?:woman|female|girl)\b)", re.I)
+        else:
+            subject_pattern = None
+        appearances = [
+            number for number, body in numbered_shots
+            if re.search(rf"<Picture\s+{re.escape(picture_id)}>", body, flags=re.I)
+            or (subject_pattern is not None and subject_pattern.search(body))
+        ]
+        appearances = list(dict.fromkeys(appearances)) or [1]
+        labels = [f"[Shot {number}]" for number in appearances]
+        if len(labels) == 1:
+            appearance_text = labels[0]
+        elif len(labels) == 2:
+            appearance_text = " and ".join(labels)
+        else:
+            appearance_text = ", ".join(labels[:-1]) + f", and {labels[-1]}"
+        lines.append(
+            f"<Subject {index}> (appears in {appearance_text}): fully_preserved - "
+            f"the referenced subject from <Picture {picture_id}> is retained."
+        )
     for label, number, definition in re.findall(
         r"<(Video|Audio)\s+(\d+)>\s*(?:is|=)\s*([^\n]+)",
         source, flags=re.I | re.S,
     ):
         marker = "reference" if label.lower() == "audio" else "weak_reference"
         lines.append(f"<{label.title()} {number}>: {marker} - the declared reference role is retained.")
-    return " ".join(lines) or "N/A"
+    return "\n".join(lines) or "N/A"
 
 
 _ENGLISH_TIME_WORDS = (

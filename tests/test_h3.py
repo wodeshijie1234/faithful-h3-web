@@ -330,6 +330,13 @@ class H3ContractTests(unittest.TestCase):
         self.assertNotRegex(detailed, r"\[Shot 2\][^\[]*\b3 seconds\b")
         self.assertNotRegex(detailed, r"\[Shot 3\][^\[]*\b5 seconds\b")
         self.assertIn("<d>[Chinese] 啊，爸爸</d>", output)
+        self.assertIn("<Subject 1> (appears in [Shot 3]): fully_preserved", output)
+        self.assertIn(
+            "<Subject 2> (appears in [Shot 1], [Shot 2], and [Shot 3]): fully_preserved",
+            output,
+        )
+        retention = output.split("retention_analysis:", 1)[1].split("\ndetailed_description:", 1)[0]
+        self.assertEqual(2, len([line for line in retention.splitlines() if line.strip()]))
 
     def test_ref2va_model_numbered_shots_remove_scaffolding_and_duplicate_times(self):
         source = "图片1是男生参考图。图片2是女生参考图。[镜头1]:0秒开始。[镜头2]：3秒切换。"
