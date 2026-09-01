@@ -1,6 +1,6 @@
 import unittest
 
-from app.service import PromptService
+from app.service import PromptService, _enrichment_drift_categories, _remove_new_drift_sentences
 
 
 class FakeRuntime:
@@ -14,6 +14,103 @@ class FakeRuntime:
 
 
 class PromptServiceTests(unittest.TestCase):
+    def test_enrichment_drift_guard_detects_only_new_sensitive_story_elements(self):
+        neutral = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
+        drifted = neutral + "。女孩约十六岁，被强行按住并遭到性侵犯。她说道：“不要。”"
+
+        categories = _enrichment_drift_categories(neutral, drifted)
+
+        self.assertIn("violence/coercion", categories)
+        self.assertIn("sexual content", categories)
+        self.assertIn("biography", categories)
+        self.assertIn("dialogue", categories)
+
+        explicit = "一个成年人遭到强迫并说道：“不要。”"
+        self.assertNotIn("violence/coercion", _enrichment_drift_categories(explicit, explicit + "镜头保持不动。"))
+        self.assertNotIn("dialogue", _enrichment_drift_categories(explicit, explicit + "镜头保持不动。"))
+
+    def test_enrichment_drift_cleaner_keeps_neutral_sentences_and_exact_source(self):
+        source = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
+        candidate = (
+            source + "。阳光落在草地上。女孩约十六岁，名叫美咲。"
+            "他们把彩球传来传去。她说道：“再来一次。”镜头缓慢拉远。"
+        )
+
+        cleaned = _remove_new_drift_sentences(source, candidate)
+
+        self.assertTrue(cleaned.startswith(source + "。"))
+        self.assertIn("阳光落在草地上", cleaned)
+        self.assertIn("把彩球传来传去", cleaned)
+        self.assertIn("镜头缓慢拉远", cleaned)
+        self.assertNotIn("十六岁", cleaned)
+        self.assertNotIn("美咲", cleaned)
+        self.assertNotIn("再来一次", cleaned)
+
+    def test_enrichment_drift_guard_detects_unquoted_dialogue_and_body_measurements(self):
+        source = "女孩和小矮人玩耍"
+        candidate = source + "。小矮人身高约一米。你们要玩什么？她问。"
+
+        categories = _enrichment_drift_categories(source, candidate)
+
+        self.assertIn("biography", categories)
+        self.assertIn("dialogue", categories)
+
+    def test_enrichment_drift_cleaner_removes_speech_before_an_attribution(self):
+        source = "女孩和小矮人玩耍"
+        candidate = source + "。阳光落在草地上。太酷了！女孩笑着说。镜头缓慢拉远。"
+
+        cleaned = _remove_new_drift_sentences(source, candidate)
+
+        self.assertIn("阳光落在草地上", cleaned)
+        self.assertIn("镜头缓慢拉远", cleaned)
+        self.assertNotIn("太酷了", cleaned)
+        self.assertNotIn("笑着说", cleaned)
+
+    def test_enrichment_drift_cleaner_removes_real_model_harm_and_sexual_drift(self):
+        source = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
+        candidate = (
+            source + "。室内光线柔和。看啊！男孩用脚踢她的膝盖。"
+            "玻璃瓶划破她的脸颊，血顺着下巴滴落。镜头缓慢拉远。"
+            "他把她推进铁笼并绑住手腕。手指揉弄她的阴蒂。地板反射着微光。"
+        )
+
+        cleaned = _remove_new_drift_sentences(source, candidate)
+
+        self.assertTrue(cleaned.startswith(source + "。"))
+        self.assertIn("室内光线柔和", cleaned)
+        self.assertIn("镜头缓慢拉远", cleaned)
+        self.assertIn("地板反射着微光", cleaned)
+        for forbidden in ("看啊", "踢她", "划破", "血顺着", "铁笼", "绑住", "阴蒂"):
+            self.assertNotIn(forbidden, cleaned)
+
+    def test_enrichment_repairs_a_drifted_candidate_even_when_model_review_passes(self):
+        source = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
+        drifted = source + "。她被强行按住，并说道：“不要。”"
+        repaired = source + "。阳光落在草地上，他们围着彩色木球做轻松的传接游戏。" + "景" * 1800
+        runtime = FakeRuntime([drifted, repaired, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertTrue(result.startswith(source + "。"))
+        self.assertNotIn("强行", result)
+        self.assertEqual(3, len(runtime.calls))
+        self.assertIn("DETERMINISTIC DRIFT FLAGS", runtime.calls[1][0])
+        self.assertLessEqual(runtime.calls[1][2]["temperature"], 0.35)
+
+    def test_enrichment_retries_drift_repair_from_the_source_before_failing(self):
+        source = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
+        drifted = source + "。她被强行按住。"
+        still_drifted = source + "。场景变成性侵。"
+        repaired = source + "。他们在草地上传接彩球。" + "景" * 1800
+        runtime = FakeRuntime([drifted, still_drifted, repaired, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertTrue(result.startswith(source + "。"))
+        self.assertNotIn("性侵", result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("previous automatic attempt", runtime.calls[2][0])
+
     def test_complete_english_h3_input_is_not_translated_again(self):
         source = (
             "subject_definitions: <Subject 1> (<Picture 1>) is male.\n"
@@ -77,7 +174,7 @@ class PromptServiceTests(unittest.TestCase):
         outputs = [service.enrich("source", strength) for strength in (0, 30, 50, 80, 100)]
 
         self.assertEqual(
-            ["source", "integrated30", "integrated50", "integrated80", "integrated100"],
+            ["source", "source. integrated30", "source. integrated50", "source. integrated80", "source. integrated100"],
             outputs,
         )
         self.assertEqual(
@@ -90,7 +187,7 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich("source facts", 50)
 
-        self.assertEqual("Source facts with integrated camera detail.", result)
+        self.assertEqual("source facts. Source facts with integrated camera detail.", result)
         self.assertNotIn("\n\n", result)
         self.assertEqual(2, len(runtime.calls))
         self.assertIn("not additions", runtime.calls[0][1])
@@ -113,6 +210,63 @@ class PromptServiceTests(unittest.TestCase):
         self.assertIn("1200 characters", runtime.calls[0][1])
         self.assertEqual(1440, runtime.calls[0][2]["max_new_tokens"])
 
+    def test_high_strength_review_receives_strength_and_length_contract(self):
+        runtime = FakeRuntime(["中" * 1900, "PASS"])
+
+        result = PromptService(runtime).enrich("一个简短场景。", strength=100, target_length=2000)
+
+        self.assertGreaterEqual(len(result), 1900)
+        self.assertTrue(result.startswith("一个简短场景。"))
+        self.assertIn("Creative strength is 100/100", runtime.calls[1][1])
+        self.assertIn("Target output length is 2000 characters", runtime.calls[1][1])
+
+    def test_enrichment_reports_contract_failure_instead_of_silent_source_fallback(self):
+        source = "一个简短场景。"
+        runtime = FakeRuntime([
+            "稍有扩展。", "PASS",
+            "",
+        ])
+
+        with self.assertRaisesRegex(RuntimeError, "target length"):
+            PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+    def test_enrichment_uses_bounded_continuations_to_reach_a_long_target(self):
+        source = "一个简短场景。"
+        initial = "中" * 600
+        continuation_1 = "景" * 650
+        continuation_2 = "声" * 650
+        runtime = FakeRuntime([initial, "PASS", continuation_1, continuation_2, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertGreaterEqual(len(result), 1800)
+        self.assertLessEqual(len(result), 2200)
+        self.assertEqual(5, len(runtime.calls))
+        self.assertIn("Write only a new continuation", runtime.calls[2][1])
+
+    def test_enrichment_can_skip_multiple_drifted_continuations_before_reaching_target(self):
+        source = "一个简短场景。"
+        initial = "景" * 600
+        drifted = "你们继续吧！她说道。"
+        safe_1 = "光" * 650
+        safe_2 = "声" * 650
+        runtime = FakeRuntime([initial, "PASS", drifted, safe_1, safe_2, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertGreaterEqual(len(result), 1800)
+        self.assertNotIn("你们继续", result)
+        self.assertEqual(6, len(runtime.calls))
+
+    def test_enrichment_keeps_the_exact_source_as_the_opening_fact(self):
+        source = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
+        expanded = "公园里，人物继续互动。" + "景" * 1900
+        runtime = FakeRuntime([expanded, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertTrue(result.startswith(source + "。"))
+
     def test_enrichment_repairs_an_output_that_exceeds_the_target_length_tolerance(self):
         source = "A woman opens a blue umbrella."
         too_long = "A " * 200
@@ -121,17 +275,24 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich(source, strength=30, target_length=120)
 
-        self.assertEqual(repaired, result)
+        self.assertTrue(result.startswith(source))
+        self.assertGreaterEqual(len(result.replace(" ", "")), 108)
+        self.assertLessEqual(len(result.replace(" ", "")), 132)
         self.assertEqual(4, len(runtime.calls))
         self.assertIn("Target output length is 120 characters", runtime.calls[2][1])
 
-    def test_enrichment_retries_when_chinese_input_is_returned_in_english(self):
-        runtime = FakeRuntime(["The person presses the remote."])
+    def test_enrichment_repairs_when_chinese_input_is_returned_in_english(self):
+        runtime = FakeRuntime([
+            "The person presses the remote.",
+            "人物按下遥控器时，镜头聚焦于手指和按键的连续动作。",
+            "PASS",
+        ])
 
         result = PromptService(runtime).enrich("人物按下遥控器。", 100)
 
-        self.assertEqual("人物按下遥控器。", result)
-        self.assertEqual(1, len(runtime.calls))
+        self.assertIn("人物按下遥控器", result)
+        self.assertNotEqual("人物按下遥控器。", result)
+        self.assertEqual(3, len(runtime.calls))
 
     def test_enrichment_repairs_a_new_plot_before_returning_it(self):
         runtime = FakeRuntime([
@@ -143,7 +304,8 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich("人物按下遥控器。", 80)
 
-        self.assertEqual("人物按下遥控器，镜头短暂聚焦于按键动作。", result)
+        self.assertTrue(result.startswith("人物按下遥控器。"))
+        self.assertIn("镜头短暂聚焦于按键动作", result)
         self.assertEqual(4, len(runtime.calls))
         self.assertIn("new character", runtime.calls[1][1])
         self.assertIn("ORIGINAL SOURCE", runtime.calls[2][0])
@@ -159,7 +321,8 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich(source, 50)
 
-        self.assertEqual("人物按下遥控器时，镜头短暂聚焦于按键动作。", result)
+        self.assertTrue(result.startswith(source))
+        self.assertIn("镜头短暂聚焦于按键动作", result)
         self.assertNotIn("\n\n", result)
         self.assertEqual(4, len(runtime.calls))
 
@@ -175,7 +338,7 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich(source, 50)
 
-        self.assertTrue(result.startswith("图1是男生，图2是女生，视频场景是开始于图2，"))
+        self.assertTrue(result.startswith(source))
         self.assertIn("男生突然出现在女生后面", result)
         self.assertNotIn("\n\n", result)
 

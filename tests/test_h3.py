@@ -271,6 +271,26 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("do not add", h3.conversion_system("fl2va").lower())
         self.assertIn("Do not add, remove", h3.micro_edit_system("ref2va"))
 
+    def test_high_strength_enrichment_allows_supporting_creative_development(self):
+        prompt = h3.enrichment_system(100, 2000)
+        review = h3.enrichment_review_system(100, 2000)
+
+        self.assertIn("1800", prompt)
+        self.assertIn("2200", prompt)
+        self.assertIn("may introduce", prompt.lower())
+        self.assertIn("setting", prompt.lower())
+        self.assertIn("minor events", prompt.lower())
+        self.assertIn("do not change the nature", prompt.lower())
+        self.assertIn("violence", prompt.lower())
+        self.assertIn("biography", prompt.lower())
+        self.assertIn("creative additions are expected", review.lower())
+        self.assertIn("genre or emotional tone", review.lower())
+        self.assertIn("100/100", review)
+
+        continuation = h3.enrichment_continuation_system(100, 700).lower()
+        self.assertIn("write no direct speech", continuation)
+        self.assertIn("visible staging", continuation)
+
     def test_decompose_uses_explicit_or_semantic_shot_count_without_padding(self):
         prompt = h3.decompose_system("fl2va").lower()
         self.assertIn("exactly that many", prompt)
