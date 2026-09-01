@@ -306,6 +306,27 @@ class H3ContractTests(unittest.TestCase):
         self.assertIn("[Shot 2] At 00:03.500,", detailed)
         self.assertNotIn("\n\n", output)
 
+    def test_ref2va_chinese_bracketed_shots_keep_picture_start_and_dialogue(self):
+        source = (
+            "图片1是男生参考图。图片2是女生参考图。[镜头1]:0秒实景拍摄、逼真写实、正常速度(无慢动作亦无静止状态)。"
+            "视频第一帧画面由女生的所在图2场景开始，镜头由女生脸部特写后推画面缩小，慢慢展现出她全身。"
+            "[镜头2]：3秒，镜头切换，女生坐着双腿张开高高抬起，脸部不遮挡，五官清晰可见。"
+            "[镜头3]：5秒，镜头切换，男生从画面侧边走进画面内，双腿张开跪下在女生的正前方，他一下子用手掐住女生的脖子，力气很大，女生呼吸困难翻白眼。"
+            "女生不断用中文说道：“啊，爸爸”"
+        )
+        output = h3.ref2va_timeline_wrap(source, source)
+        self.assertIn("<Subject 1> (<Picture 1>) is male.", output)
+        self.assertIn("<Subject 2> (<Picture 2>) is female.", output)
+        self.assertIn("<Picture 2> is the first frame of [Shot 1]", output)
+        self.assertIn("summary: [reference generation + keyframe completion]", output)
+        detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
+        self.assertIn("[Shot 1]", detailed)
+        self.assertNotIn("[Shot 1] At ", detailed)
+        self.assertIn("[Shot 2] At 00:03.000,", detailed)
+        self.assertIn("[Shot 3] At 00:05.000,", detailed)
+        self.assertNotIn("[镜头", detailed)
+        self.assertIn("<d>[Chinese] 啊，爸爸</d>", output)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -211,12 +211,16 @@ def _ref2va_reference_metadata(source_text: str) -> tuple[list[tuple[str, str]],
 
     start_patterns = (
         r"(?:\u5f00\u59cb\u4e8e|\u4ece)\s*<Picture\s+(\d+)>",
+        r"(?:\u7b2c\s*一\s*帧|\u9996\u5e27|\u7b2c\s*1\s*\u5e27)[^。.!?\n]{0,40}?<Picture\s+(\d+)>|(?:\u7b2c\s*一\s*帧|\u9996\u5e27)[^图\n]{0,20}?图\s*(\d+)",
         r"(?:the\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+<Picture\s+(\d+)>",
+        r"(?:first\s+frame|opening\s+frame)[^\n.]{0,60}?<Picture\s+(\d+)>",
     )
     for pattern in start_patterns:
         match = re.search(pattern, source, flags=re.I)
         if match:
-            return subjects, match.group(1)
+            groups = [value for value in match.groups() if value]
+            if groups:
+                return subjects, groups[-1]
     return subjects, None
 
 
@@ -301,7 +305,7 @@ _EXPLICIT_TIME_PREFIX = re.compile(
     r"^(?:"
     r"At\s+(?:the\s+)?(?P<english>\d+(?:\.\d+)?)\s*(?:-\s*)?(?:seconds?|secs?|s)(?:\s+mark)?|"
     r"(?P<english_later>\d+(?:\.\d+)?|(?:" + _ENGLISH_TIME_WORDS + r"))\s*(?:seconds?|secs?|s)\s+later|"
-    r"(?:\u7b2c\s*)?(?P<chinese>\d+(?:\.\d+)?)\s*\u79d2(?:\u4e4b?后|\u4ee5后|\u7684\u65f6\u5019|\u65f6|\u5904)?)"
+    r"(?:\u7b2c\s*)?(?P<chinese>\d+(?:\.\d+)?)\s*\u79d2(?:\u4e4b?后|\u4ee5后|\u7684\u65f6\u5019|\u65f6|\u5904|(?=\s*[，,：:]))?)"
     r"\s*[，,：: -]?\s*",
     re.I,
 )
@@ -350,6 +354,7 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
     value = canonicalize_picture_references(translation).strip()
     value = re.sub(r"(?im)(?<!\[)\bshot\s+\d+\s*:\s*", "", value)
     value = re.sub(r"\bAt\s+\d{1,3}:\d{2}(?:\.\d{1,3})?\s*,?\s*", "", value, flags=re.I)
+    value = re.sub(r"^\s*\d+(?:\.\d+)?\s*秒\s*[，,：:]?\s*", "", value)
     value = re.sub(
         r"<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\s*[,.;]?\s*",
         "",
@@ -358,10 +363,11 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
     )
     value = re.sub(
         r"<Picture\s+\d+>\s*(?:\u662f|\u4e3a)\s*(?:\u4e00\u540d|\u4e00\u4e2a)?\s*"
-        r"(?:\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)\s*[,\uff0c\u3002]?\s*",
+        r"(?:\u7537\u751f|\u7537\u4eba|\u7537\u6027|\u5973\u751f|\u5973\u4eba|\u5973\u6027)(?:\u53c2\u8003\u56fe)?\s*[,\uff0c\u3002.]?\s*",
         "",
         value,
     )
+    value = re.sub(r"<Picture\s+\d+>\s*(?:\u662f|\u4e3a)[^\n,.!?，。！？]*?\u53c2\u8003\u56fe\s*[,.!?，。！？]?\s*", "", value)
     value = re.sub(
         r"\bThe\s+(?:man|woman|male|female)\s+is\s+(?:a\s+)?"
         r"(?:man|woman|male|female)\s*[,.;]?\s*",
@@ -385,6 +391,8 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
         r"^<Picture\s+\d+>\s+is\s+(?:a\s+)?(?:man|male|boy|woman|female|girl)\.?$",
         r"^(?:The\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+<Picture\s+\d+>\.?$",
         r"^(?:The\s+)?(?:target\s+)?video(?:\s+scene)?\s+(?:begins|starts)\s+(?:with|from)\s+(?:the\s+)?(?:man|woman|male|female)\.?$",
+        r"^(?:the\s+)?(?:target\s+)?video(?:\s+)?(?:first\s+frame|opening\s+frame).*$",
+        r"^(?:\u89c6\u9891)?(?:\u7b2c\s*一\s*帧|\u9996\u5e27).*$",
     )
     boundary = re.compile(
         r"^(?:\[Shot\s+\d+\]\s*)?(?:"
@@ -422,7 +430,7 @@ def _ref2va_action_sentences(translation: str) -> list[str]:
 def _numbered_shot_actions(translation: str) -> list[str]:
     """Preserve explicit Shot N boundaries before semantic camera splitting."""
     value = canonicalize_picture_references(translation).strip()
-    marker = re.compile(r"(?:\[Shot\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))\s*[:\uff1a]?", re.I)
+    marker = re.compile(r"(?:\[Shot\s*(\d+)\]|\[\u955c\u5934\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))\s*[:\uff1a]?", re.I)
     matches = list(marker.finditer(value))
     if not matches:
         return []
@@ -462,13 +470,13 @@ def _ref2va_semantic_duration(action: str) -> float:
 def _shot_timing_hints(text: str) -> dict[int, dict[str, float]]:
     """Extract explicit per-shot starts and durations from common Chinese or English notation."""
     value = str(text or "")
-    marker = re.compile(r"(?:\[Shot\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))", re.I)
+    marker = re.compile(r"(?:\[Shot\s*(\d+)\]|\[\u955c\u5934\s*(\d+)\]|(?:Shot|\u955c\u5934)\s*(\d+))", re.I)
     matches = list(marker.finditer(value))
     if not matches:
         return _unnumbered_timing_hints(value)
     hints: dict[int, dict[str, float]] = {}
     for index, match in enumerate(matches):
-        shot_number = int(match.group(1) or match.group(2))
+        shot_number = int(match.group(1) or match.group(2) or match.group(3))
         end = matches[index + 1].start() if index + 1 < len(matches) else len(value)
         header = value[match.end():min(end, match.end() + 80)]
         hint: dict[str, float] = {}
@@ -503,6 +511,9 @@ def _shot_timing_hints(text: str) -> dict[int, dict[str, float]]:
         )
         if start_second and "start" not in hint:
             hint["start"] = float(start_second.group(1))
+        plain_second = re.match(r"\s*[：:，,]?\s*(\d+(?:\.\d+)?)\s*\u79d2", header)
+        if plain_second and "start" not in hint:
+            hint["start"] = float(plain_second.group(1))
         if hint:
             hints[shot_number] = hint
     return hints
@@ -549,12 +560,23 @@ def ref2va_timeline_wrap(
     retention_analysis = _ref2va_retention_lines(source_text or translation, subjects)
 
     shot_actions = _numbered_shot_actions(value) or _ref2va_action_sentences(value)
+    # Preserve exact Chinese dialogue in the translated H3 body.
+    value_with_dialogue = restore_explicit_dialogue(source_text or translation, value)
+    if shot_actions and value_with_dialogue != value:
+        tags = re.findall(r"<d>\[Chinese\].*?</d>", value_with_dialogue, flags=re.I | re.S)
+        if tags and all(tag not in shot_actions[-1] for tag in tags):
+            shot_actions[-1] = f"{shot_actions[-1]} {' '.join(tags)}"
     durations = _timeline_durations(shot_actions, source_text, translation)
     modules = {
         "subject_definitions": subject_definitions,
         "summary": summary,
         "retention_analysis": retention_analysis,
-        "scene": f"The target video begins with <Picture {start_picture}>." if start_picture else "",
+        "scene": (
+            f"<Picture {start_picture}> is the first frame of [Shot 1]."
+            if start_picture and re.search(r"(?:首帧|第一帧|first\s+frame|opening\s+frame)", source_text or translation, flags=re.I)
+            else f"The target video begins with <Picture {start_picture}>."
+            if start_picture else ""
+        ),
         "shots": [
             {"duration_seconds": duration, "action": action, "camera": ""}
             for action, duration in zip(shot_actions, durations)

@@ -19,4 +19,6 @@ non_diegetic_music:
 
 `summary` 必须以实际任务类型开头，例如 `[reference generation]`、`[reference generation + audio reference]`、`[video editing + audio reuse]` 或 `[video continuation]`；仅提供参考视频/音频不自动等于编辑、续接或复制音频。
 
+中文镜头标记如 `[镜头1]`、`[镜头2]：3秒`、`镜头3: 5秒` 必须归一化为 `[Shot 1]`、`[Shot 2] At 00:03.000, ...`、`[Shot 3] At 00:05.000, ...`，成品中不得残留中文镜头标签或相对秒数短语。
+
 `retention_analysis` 每个引用标签一行：视觉使用 `fully_preserved`、`partially_preserved`、`attribute_transfer`、`weak_reference`；音频使用 `fully_copy`、`partially_copy`、`reference`、`weak_reference`。对白只写在 `<d>[Language] ...</d>` 中；跨镜头对白使用 `<scenetrans>`，仅在视频结尾截断时使用 `<cutoff>`。
