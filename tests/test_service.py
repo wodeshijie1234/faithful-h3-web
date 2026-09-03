@@ -1,6 +1,15 @@
 import unittest
 
-from app.service import PromptService, _enrichment_drift_categories, _remove_new_drift_sentences
+from app.service import (
+    _build_deterministic_integrated_enrichment,
+    PromptService,
+    _clean_extra_utterance_clauses,
+    _enrichment_drift_categories,
+    _has_utterance_contract_violation,
+    _remove_new_drift_sentences,
+    _truncate_after_terminal_utterance,
+    _enrichment_action_segments,
+)
 
 
 class FakeRuntime:
@@ -174,11 +183,11 @@ class PromptServiceTests(unittest.TestCase):
         outputs = [service.enrich("source", strength) for strength in (0, 30, 50, 80, 100)]
 
         self.assertEqual(
-            ["source", "source. integrated30", "source. integrated50", "source. integrated80", "source. integrated100"],
+            ["source", "integrated30", "integrated50", "integrated80", "integrated100"],
             outputs,
         )
         self.assertEqual(
-            [(0.375, 0.53), (0.525, 0.65), (0.75, 0.83), (0.9, 0.95)],
+            [(0.27, 0.5), (0.35, 0.6), (0.47, 0.75), (0.55, 0.85)],
             [(call[2]["temperature"], call[2]["top_p"]) for call in runtime.calls[::2]],
         )
 
@@ -187,11 +196,197 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich("source facts", 50)
 
-        self.assertEqual("source facts. Source facts with integrated camera detail.", result)
+        self.assertEqual("Source facts with integrated camera detail.", result)
         self.assertNotIn("\n\n", result)
         self.assertEqual(2, len(runtime.calls))
         self.assertIn("not additions", runtime.calls[0][1])
         self.assertIn("Return exactly PASS", runtime.calls[1][1])
+
+    def test_enrichment_integrates_the_full_ref_prompt_without_prepending_the_source(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景出发，女生保持第一帧动作不变，"
+            "男生从侧边进入画面，他举起手不断摇摆向女生打招呼，她看着男生不断打招呼感到滑稽"
+            "用手捂住嘴巴偷笑，女生用中文不断发出“啊，啊”的声音，最后女生高高抬起一条腿，"
+            "另一条腿站立，旋转身体一脚踢到男生脸上，男生应声倒地。女生用中文说：“你发神经，该打”"
+        )
+        integrated = (
+            "图1是男生参考图，图2是女生参考图，视频从女生所在场景展开；女生保持第一帧姿态稳定，"
+            "镜头以中景记录男生从画面侧边进入，他举起手连续左右摇摆向她打招呼；她注视男生反复"
+            "挥手的滑稽动作，抬手捂住嘴偷笑，同时持续用中文发出“啊，啊”的声音。动作推进到结尾，"
+            "女生以另一条腿稳稳支撑，高高抬起一条腿并旋转身体，一脚踢中男生脸部，男生随即倒地；"
+            "她最后用中文说：“你发神经，该打”。"
+        )
+        runtime = FakeRuntime([integrated, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=80)
+
+        self.assertEqual(integrated, result)
+        self.assertNotIn(source, result)
+        self.assertEqual(1, result.count("男生从画面侧边进入"))
+        self.assertEqual(1, result.count("你发神经，该打"))
+
+    def test_enrichment_repairs_a_repeated_full_source_even_when_review_passes(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景出发，女生保持第一帧动作不变，"
+            "男生从侧边进入画面，他举起手不断摇摆向女生打招呼，她用手捂住嘴巴偷笑，"
+            "最后女生旋转身体一脚踢到男生脸上，男生应声倒地。"
+        )
+        repeated = source + source
+        integrated = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景展开，女生保持第一帧动作不变；"
+            "男生从侧边进入画面，镜头跟随他举起并不断摇摆的手，她看着这滑稽动作，用手捂住嘴巴偷笑；"
+            "最后女生以单腿支撑旋转身体，一脚踢到男生脸上，男生应声倒地。"
+        )
+        runtime = FakeRuntime([repeated, "PASS", integrated, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=80)
+
+        self.assertEqual(integrated, result)
+        self.assertEqual(1, result.count("图1是男生参考图"))
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("repeated", runtime.calls[2][0].lower())
+
+    def test_enrichment_repairs_story_continued_after_the_source_ending_even_when_review_passes(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景出发，女生保持第一帧动作不变，"
+            "男生从侧边进入画面，他举起手不断摇摆向女生打招呼，她看着男生不断打招呼感到滑稽"
+            "用手捂住嘴巴偷笑，女生用中文不断发出“啊，啊”的声音，最后女生高高抬起一条腿，"
+            "另一条腿站立，旋转身体一脚踢到男生脸上，男生应声倒地。女生用中文说：“你发神经，该打”"
+        )
+        continued_story = (
+            source
+            + "。男生躺在地上揉着脸，女生走到门口，她又说：“再敢来就不只是脸了。”"
+            + "两人随后走进电梯，前往一场灯火辉煌的宴会。"
+        )
+        integrated = (
+            "图1是男生参考图，图2是女生参考图。镜头从女生所在场景平稳展开，女生保持第一帧动作不变；"
+            "男生从侧边进入画面，他举起手连续摇摆向她打招呼，她看着这组滑稽动作，抬手捂住嘴巴偷笑，"
+            "同时不断用中文发出“啊，啊”的声音。最后，女生以一条腿稳稳站立，高高抬起另一条腿，"
+            "旋转身体一脚踢到男生脸上，男生应声倒地；女生用中文说：“你发神经，该打”。"
+        )
+        runtime = FakeRuntime([continued_story, "PASS", integrated, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100)
+
+        self.assertEqual(integrated, result)
+        self.assertNotIn("电梯", result)
+        self.assertNotIn("再敢来", result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("post-terminal", runtime.calls[2][0])
+
+    def test_enrichment_retries_a_post_terminal_story_repair_before_failing(self):
+        source = "人物挥手，最后用中文说：“到此为止”"
+        continued_story = source + "。随后人物走进电梯。"
+        still_continued = source + "。接着人物前往宴会厅。"
+        integrated = "人物在柔和侧光下连续挥手，最后面向镜头用中文说：“到此为止”。"
+        runtime = FakeRuntime([
+            continued_story, "PASS",
+            still_continued,
+            integrated, "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, strength=100)
+
+        self.assertEqual(integrated, result)
+        self.assertEqual(5, len(runtime.calls))
+        self.assertIn("previous automatic attempt", runtime.calls[3][0])
+
+    def test_utterance_contract_rejects_missing_source_speech_and_invented_speech(self):
+        source = "女生不断发出“啊，啊”的声音，最后说：“你发神经，该打”"
+
+        self.assertTrue(_has_utterance_contract_violation(source, "女生说：“干嘛？”然后离开。"))
+        self.assertTrue(_has_utterance_contract_violation(source, "女生发出“啊，啊”的声音。"))
+        self.assertTrue(
+            _has_utterance_contract_violation(
+                source,
+                "女生发出“啊，啊”的声音，最后说：“你发神经，该打”，又说：“再见”。",
+            )
+        )
+        self.assertFalse(
+            _has_utterance_contract_violation(
+                source,
+                "女生持续发出“啊，啊”的声音，最后清晰地说：“你发神经，该打”。",
+            )
+        )
+
+    def test_utterance_contract_ignores_quoted_non_vocal_sound_effects(self):
+        source = "女生说：“到此为止”"
+        candidate = "碰撞时发出沉闷的“砰”声，女生最后说：“到此为止”。"
+
+        self.assertFalse(_has_utterance_contract_violation(source, candidate))
+
+    def test_enrichment_truncates_only_the_story_after_an_explicit_terminal_utterance(self):
+        source = "人物挥手，最后说：“到此为止”"
+        candidate = "人物在侧光下连续挥手，最后清晰地说：“到此为止”。说完后走进电梯。"
+
+        result = _truncate_after_terminal_utterance(source, candidate)
+
+        self.assertEqual("人物在侧光下连续挥手，最后清晰地说：“到此为止”。", result)
+        self.assertNotIn("电梯", result)
+
+    def test_terminal_utterance_in_the_middle_is_not_used_to_truncate_source_actions(self):
+        source = "人物抬腿踢击并倒地，最后说：“到此为止”"
+        candidate = "人物先说：“到此为止”，随后抬腿踢击并倒地。"
+
+        self.assertEqual(candidate, _truncate_after_terminal_utterance(source, candidate))
+
+    def test_enrichment_removes_only_extra_utterance_clauses_and_keeps_source_actions(self):
+        source = "男生进入并挥手，女生发出“啊，啊”的声音，最后说：“到此为止”"
+        candidate = (
+            "男生从侧边进入并连续挥手，嘴里喊着“喂喂喂”；女生捂嘴偷笑并发出“啊，啊”的声音，"
+            "碰撞发出“砰”声，男生发出“哎哟”的痛呼，最后女生说：“到此为止”。"
+        )
+
+        cleaned = _clean_extra_utterance_clauses(source, candidate)
+
+        self.assertIn("男生从侧边进入并连续挥手", cleaned)
+        self.assertIn("“啊，啊”", cleaned)
+        self.assertIn("“砰”声", cleaned)
+        self.assertIn("“到此为止”", cleaned)
+        self.assertNotIn("喂喂喂", cleaned)
+        self.assertNotIn("哎哟", cleaned)
+
+    def test_enrichment_repairs_utterance_contract_even_when_model_review_passes(self):
+        source = "人物挥手并不断发出“啊，啊”的声音，最后说：“到此为止”"
+        wrong = "人物挥手后说：“喂，你看我。”随后走进电梯。"
+        integrated = "人物在侧光下连续挥手，同时不断发出“啊，啊”的声音，最后清晰地说：“到此为止”。"
+        runtime = FakeRuntime([wrong, "PASS", integrated, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100)
+
+        self.assertEqual(integrated, result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("utterance contract violation", runtime.calls[2][0])
+
+    def test_enrichment_passes_explicit_verbatim_utterance_anchors_to_the_model(self):
+        source = "人物不断发出“啊，啊”的声音，最后说：“到此为止”"
+        integrated = "人物在稳定镜头中不断发出“啊，啊”的声音，最后清晰地说：“到此为止”。"
+        runtime = FakeRuntime([integrated, "PASS"])
+
+        PromptService(runtime).enrich(source, strength=100)
+
+        self.assertIn("MANDATORY VERBATIM UTTERANCES", runtime.calls[0][0])
+        self.assertIn("- 啊，啊", runtime.calls[0][0])
+        self.assertIn("- 到此为止", runtime.calls[0][0])
+
+    def test_enrichment_discards_a_structurally_invalid_story_before_repair(self):
+        source = "人物挥手，最后说：“到此为止”"
+        drifted = source + "。随后走进电梯参加宴会。"
+        repaired = "人物在侧光下连续挥手，最后清晰地说：“到此为止”。"
+        runtime = FakeRuntime([drifted, "PASS", repaired, "PASS"])
+
+        PromptService(runtime).enrich(source, strength=100)
+
+        self.assertNotIn("电梯参加宴会", runtime.calls[2][0])
+        self.assertIn("regenerate from ORIGINAL SOURCE only", runtime.calls[2][0])
+
+    def test_enrichment_sampling_remains_instruction_controlled_at_max_strength(self):
+        runtime = FakeRuntime(["完整融合提示词。", "PASS"])
+
+        PromptService(runtime).enrich("原始提示词。", strength=100)
+
+        self.assertLessEqual(runtime.calls[0][2]["temperature"], 0.55)
+        self.assertLessEqual(runtime.calls[0][2]["top_p"], 0.85)
 
     def test_zero_strength_enrichment_returns_the_source_without_inventing_details_or_length_rewrite(self):
         runtime = FakeRuntime([])
@@ -216,7 +411,6 @@ class PromptServiceTests(unittest.TestCase):
         result = PromptService(runtime).enrich("一个简短场景。", strength=100, target_length=2000)
 
         self.assertGreaterEqual(len(result), 1900)
-        self.assertTrue(result.startswith("一个简短场景。"))
         self.assertIn("Creative strength is 100/100", runtime.calls[1][1])
         self.assertIn("Target output length is 2000 characters", runtime.calls[1][1])
 
@@ -224,48 +418,176 @@ class PromptServiceTests(unittest.TestCase):
         source = "一个简短场景。"
         runtime = FakeRuntime([
             "稍有扩展。", "PASS",
-            "",
+            "", "", "", "", "", "",
         ])
 
         with self.assertRaisesRegex(RuntimeError, "target length"):
             PromptService(runtime).enrich(source, strength=100, target_length=2000)
 
-    def test_enrichment_uses_bounded_continuations_to_reach_a_long_target(self):
+    def test_enrichment_uses_a_full_integrated_rewrite_to_reach_a_long_target(self):
         source = "一个简短场景。"
         initial = "中" * 600
-        continuation_1 = "景" * 650
-        continuation_2 = "声" * 650
-        runtime = FakeRuntime([initial, "PASS", continuation_1, continuation_2, "PASS"])
+        rewritten = "景" * 1900
+        runtime = FakeRuntime([initial, "PASS", rewritten, "PASS"])
 
         result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
 
         self.assertGreaterEqual(len(result), 1800)
         self.assertLessEqual(len(result), 2200)
-        self.assertEqual(5, len(runtime.calls))
-        self.assertIn("Write only a new continuation", runtime.calls[2][1])
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("Rewrite the entire", runtime.calls[2][1])
 
-    def test_enrichment_can_skip_multiple_drifted_continuations_before_reaching_target(self):
+    def test_enrichment_rewrites_the_whole_short_draft_instead_of_appending_after_terminal_dialogue(self):
+        source = "人物挥手，最后说：“到此为止”"
+        short = "人物在侧光下挥手，最后说：“到此为止”。"
+        expanded = "人物在柔和侧光与稳定中景里连续挥手，镜头记录手臂运动细节。" + "光" * 1800 + "最后说：“到此为止”。"
+        runtime = FakeRuntime([short, "PASS", expanded, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertEqual(expanded, result)
+        self.assertEqual(4, len(runtime.calls))
+        self.assertIn("Rewrite the entire", runtime.calls[2][1])
+        self.assertNotIn(short + expanded, result)
+
+    def test_enrichment_falls_back_to_ordered_in_place_action_segments_for_a_long_source(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景开始，女生保持姿势，"
+            "男生从侧边进入并挥手，女生捂嘴偷笑并发出“啊，啊”的声音，"
+            "最后女生抬腿旋转踢中男生，男生倒地，女生说：“到此为止”"
+        )
+        short = "图1和图2作为参考，动作依次发生，女生发出“啊，啊”，最后说：“到此为止”。"
+        segment_outputs = [
+            "参考图与起始构图中，女生保持姿势，男生进入并挥手。" + "甲" * 610,
+            "女生捂嘴偷笑并发出“啊，啊”的声音。" + "乙" * 610,
+            "女生抬腿旋转踢中男生，男生倒地。" + "丙" * 600 + "最后说：“到此为止”。",
+        ]
+        runtime = FakeRuntime([short, "PASS", "", "", "", *segment_outputs, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertGreaterEqual(len(result.replace(" ", "")), 1800)
+        self.assertLessEqual(len(result.replace(" ", "")), 2200)
+        self.assertEqual(1, result.count("啊，啊"))
+        self.assertEqual(1, result.count("到此为止"))
+        self.assertLess(result.index("男生进入并挥手"), result.index("女生捂嘴偷笑"))
+        self.assertIn("Enrich only SOURCE ACTION SEGMENT", runtime.calls[5][1])
+
+    def test_enrichment_action_segments_do_not_isolate_reference_setup_or_terminal_dialogue(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景出发，女生保持第一帧动作不变，"
+            "男生从侧边进入画面，他举手不断摇摆打招呼，女生捂住嘴巴偷笑并发出“啊，啊”的声音，"
+            "最后女生抬腿旋转踢中男生，男生倒地。女生说：“到此为止”"
+        )
+
+        segments = _enrichment_action_segments(source)
+
+        self.assertGreaterEqual(len(segments), 3)
+        self.assertIn("男生从侧边进入", segments[0])
+        self.assertTrue(any("捂住嘴巴偷笑" in segment and "啊，啊" in segment for segment in segments))
+        self.assertIn("抬腿旋转", segments[-1])
+        self.assertIn("到此为止", segments[-1])
+
+    def test_segment_fallback_retries_a_drifted_action_segment(self):
+        source = "人物进入画面并挥手，最后说：“到此为止”"
+        short = "人物进入并挥手，最后说：“到此为止”。"
+        bad_segment = "人物进入画面并说：“跟我走。”"
+        good_first = "人物进入画面并连续挥手。" + "甲" * 920
+        good_final = "人物保持动作连续。" + "乙" * 880 + "最后说：“到此为止”。"
+        runtime = FakeRuntime([
+            short, "PASS", "", "", "",
+            bad_segment, good_first, good_final, "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertNotIn("跟我走", result)
+        self.assertEqual(1, result.count("到此为止"))
+        self.assertNotIn("FULL SOURCE CONTEXT", runtime.calls[5][0])
+        self.assertNotIn("到此为止", runtime.calls[5][0])
+        self.assertIn("retry this segment", runtime.calls[6][0])
+
+    def test_segment_fallback_adds_non_repeating_details_inside_each_short_action_segment(self):
+        source = (
+            "图1是男生参考图，视频从女生场景开始，男生进入并挥手，"
+            "女生捂嘴偷笑并发出“啊，啊”的声音，"
+            "最后女生旋转踢中男生，女生说：“到此为止”"
+        )
+        short = "男生进入挥手，女生发出“啊，啊”，最后说：“到此为止”。"
+        bases = [
+            "图1作为参考，视频从女生场景开始，男生进入并挥手。" + "甲" * 150,
+            "女生捂嘴偷笑并发出“啊，啊”的声音。" + "乙" * 150,
+            "最后女生旋转踢中男生。" + "丙" * 150 + "女生说：“到此为止”。",
+        ]
+        details = ["镜" * 450, "光" * 450, "声" * 450]
+        runtime = FakeRuntime([
+            short, "PASS", "", "", "",
+            bases[0], details[0], bases[1], details[1], bases[2], details[2], "PASS",
+        ])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertGreaterEqual(len(result.replace(" ", "")), 1800)
+        self.assertEqual(1, result.count("男生进入并挥手"))
+        self.assertEqual(1, result.count("啊，啊"))
+        self.assertEqual(1, result.count("到此为止"))
+        self.assertIn("supplemental", runtime.calls[6][1])
+
+    def test_deterministic_integrated_fallback_meets_length_without_repeating_actions_or_dialogue(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景开始，男生进入并挥手，"
+            "女生捂嘴偷笑并发出“啊，啊”的声音，"
+            "最后女生旋转踢中男生，男生倒地，女生说：“到此为止”"
+        )
+
+        result = _build_deterministic_integrated_enrichment(source, 2000)
+
+        compact = "".join(result.split())
+        self.assertGreaterEqual(len(compact), 1800)
+        self.assertLessEqual(len(compact), 2200)
+        self.assertEqual(1, result.count("男生进入并挥手"))
+        self.assertEqual(1, result.count("女生捂嘴偷笑"))
+        self.assertEqual(1, result.count("女生旋转踢中男生"))
+        self.assertEqual(1, result.count("啊，啊"))
+        self.assertEqual(1, result.count("到此为止"))
+        self.assertTrue(result.rstrip().endswith("“到此为止”"))
+
+    def test_enrichment_retries_a_drifted_full_length_rewrite(self):
         source = "一个简短场景。"
         initial = "景" * 600
         drifted = "你们继续吧！她说道。"
-        safe_1 = "光" * 650
-        safe_2 = "声" * 650
-        runtime = FakeRuntime([initial, "PASS", drifted, safe_1, safe_2, "PASS"])
+        safe = "光" * 1900
+        runtime = FakeRuntime([initial, "PASS", drifted, safe, "PASS"])
 
         result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
 
         self.assertGreaterEqual(len(result), 1800)
         self.assertNotIn("你们继续", result)
-        self.assertEqual(6, len(runtime.calls))
+        self.assertEqual(5, len(runtime.calls))
 
-    def test_enrichment_keeps_the_exact_source_as_the_opening_fact(self):
+    def test_enrichment_retries_a_repeated_full_length_rewrite(self):
+        source = "一个人物走入画面。"
+        initial = "人物走入画面，镜头跟随脚步。" + "景" * 580
+        repeated = "人物走入画面，镜头跟随脚步。" * 100
+        safe = "人物走入画面，镜头跟随脚步。" + "光" * 1850
+        runtime = FakeRuntime([initial, "PASS", repeated, safe, "PASS"])
+
+        result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
+
+        self.assertGreaterEqual(len(result), 1800)
+        self.assertEqual(1, result.count("人物走入画面，镜头跟随脚步"))
+        self.assertIn("光" * 100, result)
+        self.assertEqual(5, len(runtime.calls))
+
+    def test_enrichment_does_not_prepend_the_source_to_a_long_integrated_result(self):
         source = "一群小矮人和一个瘦弱日本女孩玩耍的场景"
-        expanded = "公园里，人物继续互动。" + "景" * 1900
+        expanded = "公园里，一群小矮人围绕瘦弱日本女孩继续玩耍。" + "景" * 1900
         runtime = FakeRuntime([expanded, "PASS"])
 
         result = PromptService(runtime).enrich(source, strength=100, target_length=2000)
 
-        self.assertTrue(result.startswith(source + "。"))
+        self.assertEqual(expanded, result)
+        self.assertNotIn(source, result)
 
     def test_enrichment_repairs_an_output_that_exceeds_the_target_length_tolerance(self):
         source = "A woman opens a blue umbrella."
@@ -275,7 +597,7 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich(source, strength=30, target_length=120)
 
-        self.assertTrue(result.startswith(source))
+        self.assertEqual(repaired, result)
         self.assertGreaterEqual(len(result.replace(" ", "")), 108)
         self.assertLessEqual(len(result.replace(" ", "")), 132)
         self.assertEqual(4, len(runtime.calls))
@@ -304,7 +626,7 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich("人物按下遥控器。", 80)
 
-        self.assertTrue(result.startswith("人物按下遥控器。"))
+        self.assertEqual("人物按下遥控器，镜头短暂聚焦于按键动作。", result)
         self.assertIn("镜头短暂聚焦于按键动作", result)
         self.assertEqual(4, len(runtime.calls))
         self.assertIn("new character", runtime.calls[1][1])
@@ -321,7 +643,7 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich(source, 50)
 
-        self.assertTrue(result.startswith(source))
+        self.assertEqual("人物按下遥控器时，镜头短暂聚焦于按键动作。", result)
         self.assertIn("镜头短暂聚焦于按键动作", result)
         self.assertNotIn("\n\n", result)
         self.assertEqual(4, len(runtime.calls))
@@ -338,8 +660,9 @@ class PromptServiceTests(unittest.TestCase):
 
         result = PromptService(runtime).enrich(source, 50)
 
-        self.assertTrue(result.startswith(source))
+        self.assertTrue(result.startswith("图1是男生，图2是女生，视频场景是开始于图2，"))
         self.assertIn("男生突然出现在女生后面", result)
+        self.assertNotIn(source, result)
         self.assertNotIn("\n\n", result)
 
     def test_enrichment_restores_image_spelled_identity_and_start_scene_anchor(self):

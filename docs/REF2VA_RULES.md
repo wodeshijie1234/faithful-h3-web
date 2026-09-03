@@ -11,7 +11,7 @@ overall_soundscape:
 non_diegetic_music:
 ```
 
-同一个 sliding window 内六段之间不得插入空行；空行只用于分隔下一个窗口。`[Shot 1]` 不带时间戳，后续镜头使用严格递增的 `[Shot N] At MM:SS.mmm, ...`。
+同一个 sliding window 内六段之间不得插入空行；空行只用于分隔下一个窗口。`[Shot 1]` 不带时间戳，后续镜头使用严格递增的 `[Shot N] At MM:SS.mmm, ...`。原文没有手工镜头号或秒数时，仍应按明确的阶段推进词（如“最后 / finally”）、镜头切换和显著动作阶段拆分后续镜头，不能把整条长动作链全部塞入 `[Shot 1]` 而导致时间轴缺失。
 
 每个可复用标签都要有明确的定义行。若 Picture 只用于角色、场景、服装、风格或动作参考，应写在 `<Subject N>` 定义中，不得自动变成时间轴首帧；只有原文明确指定首帧、尾帧、关键帧或构图锚点时，才单独写 Picture 时间轴角色。
 
@@ -26,3 +26,7 @@ non_diegetic_music:
 时间只允许出现在标准 Shot 标签中：`[Shot 1]` 后不得重复 `0 seconds`，后续 Shot 标签已经含有绝对时间戳时，正文不得再次保留 `3 seconds`、`5 seconds` 等源时间前缀。模型译文开头出现的 `reference image.`、`source picture.` 等元描述也必须删除，尤其不得产生 `reference image. reference image.`。
 
 `retention_analysis` 每个引用标签一行：视觉使用 `fully_preserved`、`partially_preserved`、`attribute_transfer`、`weak_reference`；音频使用 `fully_copy`、`partially_copy`、`reference`、`weak_reference`。对白只写在 `<d>[Language] ...</d>` 中；跨镜头对白使用 `<scenetrans>`，仅在视频结尾截断时使用 `<cutoff>`。
+
+提示词丰富必须把新增的环境、镜头、动作连续性和声音细节就地编织进原动作链，每项原始动作、发声和对白只出现一次；禁止“完整原文 + 扩写正文”、扩写后再次从开头复述、或在分段续写中循环已有动作。创作强度只控制既有动作内部的细节密度，不授权新增后续事件、目的地、消息、关系、任务、相遇、事后发展或额外对白；最后一个源动作、发声或对白完成后必须立即结束。
+
+长目标不能通过在成品尾部追加续篇来补足。模型整篇融合不足时，应按参考与起始动作、人物进入/反应、最终动作与终止对白等语义阶段拆分，在各自阶段内部补充不复述动作的镜头、构图、焦点、光线、运动连续性、材质和现场声，再按原顺序合并；参考图声明不得孤立扩写，终止对白必须和最终动作保持同段并位于成品末尾。

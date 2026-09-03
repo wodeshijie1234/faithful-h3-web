@@ -1,5 +1,6 @@
 import re
 import time
+from collections import Counter
 
 from . import h3
 
@@ -23,6 +24,290 @@ def _is_within_enrichment_target(source: str, candidate: str, target_length: int
 
 def _compact_length(value: str) -> int:
     return len(re.sub(r"\s+", "", str(value or "")))
+
+
+def _has_repeated_enrichment_content(source: str, candidate: str) -> bool:
+    """Reject a model result that loops the complete source or its own full body."""
+    compact_source = re.sub(r"\s+", "", str(source or ""))
+    compact_candidate = re.sub(r"\s+", "", str(candidate or ""))
+    if compact_source and compact_candidate.count(compact_source) > 1:
+        return True
+    length = len(compact_candidate)
+    if length >= 80 and len(set(compact_candidate)) >= 8:
+        midpoint = length // 2
+        left = compact_candidate[:midpoint]
+        right = compact_candidate[midpoint:]
+        if left == right or (length % 2 and left == right[:-1]):
+            return True
+    return False
+
+
+def _quoted_fragments(value: str) -> list[str]:
+    """Extract explicit quoted utterances without treating ordinary punctuation as speech."""
+    text = str(value or "")
+    pattern = re.compile(r"[“「『]([^”」』]{1,200})[”」』]|\"([^\"\r\n]{1,200})\"")
+    sound_effect = re.compile(r"^(?:砰|嘭|啪|咚|轰|咔嚓|咔哒|吱呀|叮|嗡|噼啪|扑通|哐|当|唰|沙沙|滋滋)[—~～….!！?？]*$")
+    fragments: list[str] = []
+    for match in pattern.finditer(text):
+        fragment = next(part for part in match.groups() if part).strip()
+        if sound_effect.fullmatch(fragment):
+            continue
+        fragments.append(fragment)
+    return fragments
+
+
+def _has_utterance_contract_violation(source: str, candidate: str) -> bool:
+    """Require every explicit quoted utterance verbatim once and reject extras."""
+    normalize = lambda value: re.sub(r"\s+", "", str(value or ""))
+    source_utterances = Counter(normalize(item) for item in _quoted_fragments(source))
+    candidate_utterances = Counter(normalize(item) for item in _quoted_fragments(candidate))
+    return source_utterances != candidate_utterances
+
+
+def _clean_extra_utterance_clauses(source: str, candidate: str) -> str:
+    """Remove the smallest clause containing a generated utterance, preserving source speech and SFX."""
+    allowed = Counter(re.sub(r"\s+", "", item) for item in _quoted_fragments(source))
+    used: Counter[str] = Counter()
+    clauses = re.findall(r".*?(?:[，,；;。！？!?]|$)", str(candidate or ""), flags=re.S)
+    kept: list[str] = []
+    for clause in clauses:
+        fragments = _quoted_fragments(clause)
+        extra = False
+        for fragment in fragments:
+            normalized = re.sub(r"\s+", "", fragment)
+            used[normalized] += 1
+            if used[normalized] > allowed[normalized]:
+                extra = True
+        if not extra:
+            kept.append(clause)
+    return "".join(kept).strip()
+
+
+def _enrichment_source_payload(source: str) -> str:
+    """Make exact utterance preservation salient without changing source facts."""
+    utterances = _quoted_fragments(source)
+    if not utterances:
+        return source
+    anchors = "\n".join(f"- {utterance}" for utterance in utterances)
+    return f"{source}\n\nMANDATORY VERBATIM UTTERANCES (each exactly once, no others):\n{anchors}"
+
+
+def _enrichment_action_segments(source: str, maximum: int = 5) -> list[str]:
+    """Split a long Chinese action chain on top-level punctuation, never inside quotes."""
+    text = str(source or "").strip()
+    if not text:
+        return []
+    clauses: list[str] = []
+    start = 0
+    closing = ""
+    pairs = {"“": "”", "「": "」", "『": "』", '"': '"'}
+    for index, character in enumerate(text):
+        if closing:
+            if character == closing:
+                closing = ""
+            continue
+        if character in pairs:
+            closing = pairs[character]
+            continue
+        if character in "，,；;。！？!?":
+            clause = text[start:index + 1].strip()
+            if clause:
+                clauses.append(clause)
+            start = index + 1
+    tail = text[start:].strip()
+    if tail:
+        clauses.append(tail)
+    if len(clauses) <= 1:
+        return clauses
+
+    final_index = next(
+        (index for index, clause in enumerate(clauses) if re.search(r"(?:最后|最终|finally|at last)", clause, flags=re.I)),
+        len(clauses),
+    )
+    prefix = clauses[:final_index]
+    final_group = "".join(clauses[final_index:]).strip() if final_index < len(clauses) else ""
+
+    setup_pattern = re.compile(
+        r"(?:参考图|reference (?:image|picture)|视频从|视频以|场景出发|场景开始|第一帧|"
+        r"保持(?:第一帧|姿势|动作|不变)|^\s*(?:图|图片|picture)\s*\d+\s*(?:是|为|is))",
+        flags=re.I,
+    )
+    first_action_end = 0
+    while first_action_end < len(prefix) and setup_pattern.search(prefix[first_action_end]):
+        first_action_end += 1
+    if first_action_end < len(prefix):
+        first_action_end += 1
+
+    groups: list[str] = []
+    if first_action_end:
+        groups.append("".join(prefix[:first_action_end]).strip())
+    for clause in prefix[first_action_end:]:
+        value = clause.strip()
+        if (groups and re.match(
+                r"^(?:同时|并且|并|随后)?\s*(?:用[^，,；;。]*?(?:发出|说道|说：|说:)|"
+                r"(?:声音|叫声|笑声|vocalization|sound)\b)", value, flags=re.I)):
+            groups[-1] += value
+        else:
+            groups.append(value)
+    if final_group:
+        groups.append(final_group)
+
+    while len(groups) > maximum:
+        merge_index = min(range(len(groups) - 1), key=lambda index: _compact_length(groups[index]) + _compact_length(groups[index + 1]))
+        groups[merge_index:merge_index + 2] = [groups[merge_index] + groups[merge_index + 1]]
+    return [group for group in groups if group]
+
+
+def _has_post_terminal_continuation(source: str, candidate: str) -> bool:
+    """Reject a new story appended after the source's explicit final utterance.
+
+    Quoted dialogue is a stable terminal anchor because enrichment must preserve
+    its exact text. Camera or staging detail belongs before that anchor, beside
+    the action it develops; prose after it is an appended continuation.
+    """
+    source_quotes = _quoted_fragments(source)
+    if not source_quotes:
+        return False
+    terminal = re.sub(r"\s+", "", source_quotes[-1])
+    compact_candidate = re.sub(r"\s+", "", str(candidate or ""))
+    end = compact_candidate.rfind(terminal)
+    if end < 0:
+        return False
+    tail = compact_candidate[end + len(terminal):]
+    tail = re.sub(r"^[”」』\"'。，、；：！？,.!?;:—…·（）()\[\]【】]+", "", tail)
+    return bool(tail)
+
+
+def _truncate_after_terminal_utterance(source: str, candidate: str) -> str:
+    """Cut deterministic aftermath after a source-ending quoted utterance."""
+    source = str(source or "").strip()
+    candidate = str(candidate or "").strip()
+    source_matches = list(re.finditer(r"[“「『]([^”」』]{1,200})[”」』]|\"([^\"\r\n]{1,200})\"", source))
+    if not source_matches:
+        return candidate
+    source_tail = source[source_matches[-1].end():]
+    if re.sub(r"[\s。！？.!?；;：:，,—…]+", "", source_tail):
+        return candidate
+    terminal = next(part for part in source_matches[-1].groups() if part).strip()
+    candidate_matches = list(re.finditer(r"[“「『]([^”」』]{1,200})[”」』]|\"([^\"\r\n]{1,200})\"", candidate))
+    matching = [
+        match for match in candidate_matches
+        if next(part for part in match.groups() if part).strip() == terminal
+    ]
+    if not matching:
+        return candidate
+    if matching[-1].start() < round(len(candidate) * 0.5):
+        return candidate
+    end = matching[-1].end()
+    punctuation = re.match(r"[。！？.!?；;：:，,—…]+", candidate[end:])
+    if punctuation:
+        end += punctuation.end()
+    return candidate[:end].rstrip()
+
+
+def _truncate_integrated_terminal_aftermath(source: str, candidate: str) -> str:
+    """Use terminal truncation only when meaningful enrichment precedes it."""
+    truncated = _truncate_after_terminal_utterance(source, candidate)
+    if truncated == str(candidate or "").strip():
+        return truncated
+    if _compact_length(truncated) <= _compact_length(source) + 20:
+        return str(candidate or "").strip()
+    return truncated
+
+
+def _insert_before_terminal_utterance(source_segment: str, enriched_segment: str, detail: str) -> str:
+    """Insert supplemental detail before a source-ending utterance, otherwise append in-segment."""
+    detail = str(detail or "").strip()
+    value = str(enriched_segment or "").strip()
+    source_quotes = _quoted_fragments(source_segment)
+    if not detail:
+        return value
+    if not source_quotes:
+        return f"{value}{detail}" if _contains_cjk(value) else f"{value} {detail}"
+    terminal = source_quotes[-1]
+    matches = [match for match in re.finditer(re.escape(terminal), value)]
+    if not matches:
+        return value
+    quote_start = matches[-1].start()
+    sentence_start = max(value.rfind("。", 0, quote_start), value.rfind("！", 0, quote_start), value.rfind("？", 0, quote_start)) + 1
+    return f"{value[:sentence_start]}{detail}{value[sentence_start:]}"
+
+
+_CHINESE_FILMABLE_DETAIL_BANK = (
+    "镜头以稳定中景建立人物之间的空间关系，画面轴线保持一致，避免方位无故跳变。",
+    "构图在动作方向预留充足空间，主体始终落在安全画幅内，面部与手部不被遮挡。",
+    "焦点随当前动作的重心平滑转移，景深连续变化，不出现突兀虚焦或无意义抖动。",
+    "柔和主光勾勒人物轮廓，辅光保留眼神、表情与关键肢体部位的清晰层次。",
+    "摄影机的起步、跟随与停稳均保留自然缓冲，动作全程以正常速度连贯完成。",
+    "背景只承担空间参照，纹理、反射和阴影随人物位置变化，不抢夺主体注意力。",
+    "动作按准备、发力、经过与收势连续呈现，身体重心和关节变化符合真实惯性。",
+    "衣料摩擦、脚步与室内混响保持逐帧同步，不加入任何额外人声或新台词。",
+    "关键手势处景别适度收紧但不切断肢体，随后平稳恢复到能看清完整关系的范围。",
+    "色彩与曝光前后一致，高光不过曝、暗部保留纹理，参考身份特征不发生漂移。",
+    "人物视线、站位距离与左右关系持续稳定，不因镜头运动产生无理由的位置变化。",
+    "所有细微反应都限定在当前原动作持续期间，不提前触发下一阶段或新的结果。",
+    "自然运动模糊只强化速度方向，主体轮廓与关键动作瞬间仍保持明确可辨。",
+    "镜头节奏完全由当前动作驱动，不插入无关转场，停顿只用于交代动作过程。",
+    "现场声的远近变化与人物距离一致，音量不过度夸张，也不覆盖既有中文发声。",
+    "服装、发型、姿态起点与画面内物件位置保持连续，不出现凭空增减的元素。",
+    "摄影方向服务于原始动作链，新增内容仅描述同一时刻可见的制作细节。",
+    "画面严格停留在本段既有动作范围内，不追加离场、交谈或事后叙事。",
+    "镜头高度贴合人物重心，透视关系自然，近景与中景之间的变化有明确动机。",
+    "主体边缘与背景形成清楚分离，光影过渡柔和，快速动作中也不丢失五官信息。",
+    "相机沿既定轴线小幅调整，让动作方向清晰，同时保持空间比例和人物尺度稳定。",
+    "画面中的空气感与环境反射维持统一，细节丰富但不改变原场景的核心性质。",
+    "每次姿态变化都有可见的重心传递，脚下支撑与上身转动保持同步和连贯。",
+    "镜头不使用慢动作、定格或突然加速，时间流速从动作开始到完成保持一致。",
+    "声音层次以动作现场为主，保留轻微呼吸和环境底噪，但绝不新增发声内容。",
+    "取景持续照顾动作完整性，既能看清表情反应，也能确认手脚位置与相互距离。",
+    "对焦与曝光变化采用平滑过渡，避免亮度闪烁、边缘重影和不必要的视觉跳切。",
+    "动作方向、速度与力度在相邻画面中连续，接点清楚，不以新动作替代原动作。",
+    "环境细节保持克制，只补充材质、光泽与空间纵深，不赋予人物新的经历或目的。",
+    "本段完成点与源文本完全一致，镜头在既有动作结束处收束，不向后续故事延伸。",
+)
+
+
+def _deterministic_segment_detail(index: int, total: int, needed: int) -> str:
+    """Supply unique neutral production detail when the local model cannot obey a segment."""
+    needed = max(0, int(needed))
+    if needed <= 0:
+        return ""
+    bank = _CHINESE_FILMABLE_DETAIL_BANK
+    phase_prefixes = (
+        "在当前空间关系建立时，",
+        "在当前动作开始衔接时，",
+        "在当前动作稳定推进时，",
+        "在当前姿态持续变化时，",
+        "在当前动作接近收束时，",
+    )
+    prefix = phase_prefixes[index % len(phase_prefixes)]
+    stride = max(1, len(bank) // max(1, total))
+    start = (index * stride) % len(bank)
+    ordered = [bank[(start + offset) % len(bank)] for offset in range(len(bank))]
+    chunks: list[str] = []
+    for sentence in ordered:
+        if sentence in chunks:
+            continue
+        chunks.append(prefix + sentence)
+        if _compact_length("".join(chunks)) >= needed:
+            break
+    return "".join(chunks)
+
+
+def _build_deterministic_integrated_enrichment(source: str, target_length: int) -> str:
+    """Build a faithful long prompt when the local model cannot obey length/structure together."""
+    segments = _enrichment_action_segments(source)
+    if not segments:
+        return str(source or "").strip()
+    lower_bound = round(max(100, min(2000, int(target_length))) * 0.9)
+    per_segment = max(0, -(-lower_bound // len(segments)))
+    enriched: list[str] = []
+    for index, segment in enumerate(segments):
+        needed = max(0, per_segment - _compact_length(segment))
+        detail = _deterministic_segment_detail(index, len(segments), needed)
+        enriched.append(_insert_before_terminal_utterance(segment, segment, detail))
+    result = "".join(enriched) if _contains_cjk(source) else " ".join(enriched)
+    return _fit_enrichment_upper_bound(source, result, target_length)
 
 
 def _enrichment_length_status(source: str, candidate: str, target_length: int | None) -> int:
@@ -81,16 +366,13 @@ def _ensure_source_opening(source: str, candidate: str) -> str:
 
 
 def _fit_enrichment_upper_bound(source: str, candidate: str, target_length: int | None) -> str:
-    """Keep the exact source anchor while fitting a model result to the requested ceiling."""
+    """Fit an integrated model result to the requested ceiling without prepending source."""
     if target_length is None:
         return candidate
     upper_bound = round(target_length * 1.1)
     if _compact_length(source) > upper_bound or _compact_length(candidate) <= upper_bound:
         return candidate
-    sentence_end = "。" if _contains_cjk(source) else "."
-    anchored_source = source if re.search(r"[。！？.!?]$", source) else source + sentence_end
-    remainder = candidate[len(anchored_source):].lstrip() if candidate.startswith(anchored_source) else candidate
-    return _append_with_compact_limit(anchored_source, remainder, upper_bound)
+    return _append_with_compact_limit("", candidate, upper_bound)
 
 
 _ENRICHMENT_DRIFT_PATTERNS = {
@@ -153,11 +435,8 @@ def _enrichment_drift_categories(source: str, candidate: str) -> list[str]:
 def _remove_new_drift_sentences(source: str, candidate: str) -> str:
     """Drop only generated sentences that introduce a prohibited new category."""
     source = str(source or "").strip()
-    candidate = _ensure_source_opening(source, candidate)
-    sentence_end = "。" if _contains_cjk(source) else "."
-    anchored_source = source if re.search(r"[。！？.!?]$", source) else source + sentence_end
-    remainder = candidate[len(anchored_source):].lstrip() if candidate.startswith(anchored_source) else candidate
-    sentences = re.findall(r".*?(?:[。！？.!?](?=\s|$)|[。！？]|$)", remainder, flags=re.S)
+    candidate = str(candidate or "").strip()
+    sentences = re.findall(r".*?(?:[。！？.!?](?=\s|$)|[。！？]|$)", candidate, flags=re.S)
     kept: list[str] = []
     for sentence in sentences:
         value = sentence.strip().lstrip("”’」』\"").strip()
@@ -170,16 +449,13 @@ def _remove_new_drift_sentences(source: str, candidate: str) -> str:
             continue
         kept.append(value)
     separator = "" if _contains_cjk(source) else " "
-    return anchored_source if not kept else anchored_source + separator + separator.join(kept)
+    return separator.join(kept)
 
 
 def _clean_enrichment_addition(source: str, addition: str) -> str:
     """Clean one new continuation without re-segmenting previously accepted prose."""
     source = str(source or "").strip()
-    sentence_end = "。" if _contains_cjk(source) else "."
-    anchored_source = source if re.search(r"[。！？.!?]$", source) else source + sentence_end
-    cleaned = _remove_new_drift_sentences(source, addition)
-    return cleaned[len(anchored_source):].lstrip() if cleaned.startswith(anchored_source) else cleaned
+    return _remove_new_drift_sentences(source, addition)
 
 
 def _is_pass_verdict(text: str) -> bool:
@@ -211,10 +487,11 @@ class PromptService:
         if strength == 0:
             # Zero is the conservative preset: retain every supplied fact exactly.
             return source
-        temperature = round(0.15 + 0.75 * strength / 100, 3)
-        top_p = round(0.35 + 0.60 * strength / 100, 3)
+        temperature = round(0.15 + 0.40 * strength / 100, 3)
+        top_p = round(0.35 + 0.50 * strength / 100, 3)
+        source_payload = _enrichment_source_payload(source)
         enriched = self.runtime.generate(
-            source,
+            source_payload,
             h3.enrichment_system(strength, target_length),
             temperature=temperature,
             top_p=top_p,
@@ -224,9 +501,16 @@ class PromptService:
         candidate = ""
         candidate_reviewed = False
         deterministic_drift: list[str] = []
+        repeated_content = False
+        post_terminal_continuation = False
+        utterance_contract_violation = False
         if enriched_valid:
             enriched = h3.restore_enrichment_protected_facts(source, enriched)
-            enriched = _ensure_source_opening(source, enriched)
+            enriched = _clean_extra_utterance_clauses(source, enriched)
+            enriched = _truncate_integrated_terminal_aftermath(source, enriched)
+            repeated_content = _has_repeated_enrichment_content(source, enriched)
+            post_terminal_continuation = _has_post_terminal_continuation(source, enriched)
+            utterance_contract_violation = _has_utterance_contract_violation(source, enriched)
             deterministic_drift = _enrichment_drift_categories(source, enriched)
             if deterministic_drift:
                 enriched = _remove_new_drift_sentences(source, enriched)
@@ -236,7 +520,8 @@ class PromptService:
                     h3.enrichment_review_system(strength, target_length), temperature=0.01, top_p=0.1, max_new_tokens=8,
                 ).strip().upper()
                 needs_integration = enriched.startswith(source) and "\n\n" in enriched
-                if _is_pass_verdict(review) and not needs_integration:
+                if (_is_pass_verdict(review) and not needs_integration and not repeated_content
+                        and not post_terminal_continuation and not utterance_contract_violation):
                     candidate = enriched
                     candidate_reviewed = True
                     if _is_within_enrichment_target(source, candidate, requested_target_length):
@@ -244,19 +529,31 @@ class PromptService:
 
         if not candidate_reviewed or _enrichment_length_status(source, candidate, requested_target_length) > 0:
             drift_note = ", ".join(deterministic_drift) if deterministic_drift else "none"
+            structure_flags = []
+            if repeated_content:
+                structure_flags.append("repeated full source/body")
+            if post_terminal_continuation:
+                structure_flags.append("post-terminal story continuation")
+            if utterance_contract_violation:
+                structure_flags.append("utterance contract violation")
+            structure_note = ", ".join(structure_flags) or "none"
+            deterministic_structure_failure = (
+                repeated_content or post_terminal_continuation or utterance_contract_violation
+            )
             proposed_enrichment = (
-                "[discarded because it introduced new story categories; regenerate from ORIGINAL SOURCE only]"
-                if deterministic_drift
+                "[discarded because it violated content or structure; regenerate from ORIGINAL SOURCE only]"
+                if deterministic_drift or deterministic_structure_failure
                 else enriched if enriched_valid else "[invalid or empty output]"
             )
-            repair_attempts = 3 if deterministic_drift else 1
-            repair_temperature = min(temperature, 0.35) if deterministic_drift else temperature
-            repair_top_p = min(top_p, 0.6) if deterministic_drift else top_p
+            repair_attempts = 3 if deterministic_drift or deterministic_structure_failure else 1
+            repair_temperature = min(temperature, 0.35) if deterministic_drift or deterministic_structure_failure else temperature
+            repair_top_p = min(top_p, 0.6) if deterministic_drift or deterministic_structure_failure else top_p
             repair_succeeded = False
             for attempt in range(repair_attempts):
                 retry_note = "\nThe previous automatic attempt still drifted; regenerate again from ORIGINAL SOURCE only." if attempt else ""
                 repaired = self.runtime.generate(
-                    f"ORIGINAL SOURCE:\n{source}\n\nDETERMINISTIC DRIFT FLAGS: {drift_note}{retry_note}\n\n"
+                    f"ORIGINAL SOURCE:\n{source_payload}\n\nDETERMINISTIC DRIFT FLAGS: {drift_note}\n"
+                    f"STRUCTURE FLAGS: {structure_note}{retry_note}\n\n"
                     f"PROPOSED ENRICHMENT:\n{proposed_enrichment}",
                     h3.enrichment_repair_system(strength, target_length),
                     temperature=repair_temperature,
@@ -266,14 +563,28 @@ class PromptService:
                 if not repaired or (_contains_cjk(source) and not _contains_cjk(repaired)):
                     continue
                 candidate = h3.restore_enrichment_protected_facts(source, repaired)
-                candidate = _ensure_source_opening(source, candidate)
+                candidate = _clean_extra_utterance_clauses(source, candidate)
+                candidate = _truncate_integrated_terminal_aftermath(source, candidate)
                 raw_repaired_drift = _enrichment_drift_categories(source, candidate)
-                candidate = _remove_new_drift_sentences(source, candidate)
+                if raw_repaired_drift:
+                    candidate = _remove_new_drift_sentences(source, candidate)
                 candidate = _fit_enrichment_upper_bound(source, candidate, requested_target_length)
                 repaired_drift = _enrichment_drift_categories(source, candidate)
-                if repaired_drift:
+                repaired_repetition = _has_repeated_enrichment_content(source, candidate)
+                repaired_post_terminal = _has_post_terminal_continuation(source, candidate)
+                repaired_utterance_violation = _has_utterance_contract_violation(source, candidate)
+                if (repaired_drift or repaired_repetition or repaired_post_terminal
+                        or repaired_utterance_violation):
                     drift_note = ", ".join(repaired_drift)
-                    proposed_enrichment = "[discarded because it introduced new story categories; regenerate from ORIGINAL SOURCE only]"
+                    structure_flags = []
+                    if repaired_repetition:
+                        structure_flags.append("repeated full source/body")
+                    if repaired_post_terminal:
+                        structure_flags.append("post-terminal story continuation")
+                    if repaired_utterance_violation:
+                        structure_flags.append("utterance contract violation")
+                    structure_note = ", ".join(structure_flags) or "none"
+                    proposed_enrichment = "[discarded because it violated content or structure; regenerate from ORIGINAL SOURCE only]"
                     continue
                 if raw_repaired_drift and _compact_length(candidate) <= _compact_length(source) + 40:
                     drift_note = ", ".join(raw_repaired_drift)
@@ -290,42 +601,144 @@ class PromptService:
                 raise RuntimeError("Prompt enrichment could not satisfy the requested creative-strength contract after automatic correction.")
 
         if _enrichment_length_status(source, candidate, requested_target_length) < 0:
-            lower_bound = round(target_length * 0.9)
-            upper_bound = round(target_length * 1.1)
-            for _ in range(16):
-                remaining = max(100, min(700, target_length - _compact_length(candidate)))
-                context_tail = candidate[-800:]
-                addition = self.runtime.generate(
-                    f"ORIGINAL SOURCE:\n{source}\n\nEND OF EXISTING ENRICHED PROMPT:\n{context_tail}",
-                    h3.enrichment_continuation_system(strength, remaining),
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_new_tokens=min(900, max(256, round(remaining * 1.5))),
+            short_draft = candidate
+            length_repair_succeeded = False
+            for attempt in range(3):
+                retry_note = "\nThe previous full rewrite still failed the contract; rewrite from the ORIGINAL SOURCE again." if attempt else ""
+                rewritten = self.runtime.generate(
+                    f"ORIGINAL SOURCE:\n{source_payload}\n\nSHORT ENRICHED DRAFT:\n{short_draft}{retry_note}",
+                    h3.enrichment_length_repair_system(strength, target_length),
+                    temperature=min(temperature, 0.45),
+                    top_p=min(top_p, 0.7),
+                    max_new_tokens=h3.enrichment_token_limit(strength, target_length),
                 ).strip()
-                if not addition or (_contains_cjk(source) and not _contains_cjk(addition)):
-                    break
-                compact_addition = re.sub(r"\s+", "", addition)
-                if not compact_addition or compact_addition in re.sub(r"\s+", "", candidate):
-                    break
-                safe_addition = _clean_enrichment_addition(source, addition)
-                if not safe_addition:
+                if not rewritten or (_contains_cjk(source) and not _contains_cjk(rewritten)):
                     continue
-                proposed_candidate = _append_with_compact_limit(candidate, safe_addition, upper_bound)
+                proposed_candidate = h3.restore_enrichment_protected_facts(source, rewritten)
+                proposed_candidate = _clean_extra_utterance_clauses(source, proposed_candidate)
+                proposed_candidate = _truncate_integrated_terminal_aftermath(source, proposed_candidate)
+                proposed_candidate = _fit_enrichment_upper_bound(source, proposed_candidate, requested_target_length)
+                if (not _is_within_enrichment_target(source, proposed_candidate, requested_target_length)
+                        or _enrichment_drift_categories(source, proposed_candidate)
+                        or _has_repeated_enrichment_content(source, proposed_candidate)
+                        or _has_post_terminal_continuation(source, proposed_candidate)
+                        or _has_utterance_contract_violation(source, proposed_candidate)):
+                    short_draft = proposed_candidate
+                    continue
+                final_review = self.runtime.generate(
+                    f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{proposed_candidate}",
+                    h3.enrichment_review_system(strength, target_length),
+                    temperature=0.01,
+                    top_p=0.1,
+                    max_new_tokens=8,
+                ).strip().upper()
+                if not _is_pass_verdict(final_review):
+                    short_draft = proposed_candidate
+                    continue
                 candidate = proposed_candidate
-                if _compact_length(candidate) >= lower_bound:
-                    break
-
-            if not _is_within_enrichment_target(source, candidate, requested_target_length):
-                raise RuntimeError("Prompt enrichment could not meet the requested target length after bounded continuation.")
-            final_review = self.runtime.generate(
-                f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{candidate}",
-                h3.enrichment_review_system(strength, target_length), temperature=0.01, top_p=0.1, max_new_tokens=8,
-            ).strip().upper()
-            if not _is_pass_verdict(final_review) or _enrichment_drift_categories(source, candidate):
-                raise RuntimeError("Prompt enrichment continuations violated the requested creative-strength contract.")
+                length_repair_succeeded = True
+                break
+            if not length_repair_succeeded:
+                source_segments = _enrichment_action_segments(source)
+                enriched_segments: list[str] = []
+                segment_target = max(160, min(600, round(target_length / max(1, len(source_segments)))))
+                segment_minimum = max(120, -(-round(target_length * 0.9) // max(1, len(source_segments))))
+                for segment_index, segment in enumerate(source_segments):
+                    segment_payload = _enrichment_source_payload(segment)
+                    accepted_segment = ""
+                    for segment_attempt in range(3):
+                        retry_note = (
+                            "\nThe previous attempt violated this segment; retry this segment from its source only."
+                            if segment_attempt else ""
+                        )
+                        expanded_segment = self.runtime.generate(
+                            f"SOURCE ACTION SEGMENT:\n{segment_payload}{retry_note}",
+                            h3.enrichment_segment_system(strength, segment_target),
+                            temperature=min(temperature, 0.35),
+                            top_p=min(top_p, 0.6),
+                            max_new_tokens=max(320, round(segment_target * 1.8)),
+                        ).strip()
+                        expanded_segment = _clean_extra_utterance_clauses(segment, expanded_segment)
+                        if (not expanded_segment or (_contains_cjk(segment) and not _contains_cjk(expanded_segment))
+                                or _has_utterance_contract_violation(segment, expanded_segment)
+                                or _enrichment_drift_categories(source, expanded_segment)
+                                or _has_repeated_enrichment_content(segment, expanded_segment)):
+                            continue
+                        accepted_segment = expanded_segment
+                        break
+                    accepted_from_model = bool(accepted_segment)
+                    if not accepted_segment:
+                        accepted_segment = segment
+                    facets = (
+                        "camera, framing, spatial depth, and focus transitions",
+                        "physical motion continuity, timing, balance, and gesture",
+                        "lighting, material texture, environmental response, and supported non-vocal sound",
+                    )
+                    for facet in facets[:1] if accepted_from_model else ():
+                        if _compact_length(accepted_segment) >= segment_minimum:
+                            break
+                        missing = segment_minimum - _compact_length(accepted_segment)
+                        detail = self.runtime.generate(
+                            f"SOURCE ACTION SEGMENT:\n{segment}\n\n"
+                            f"CURRENT ENRICHED ACTION SEGMENT:\n{accepted_segment}",
+                            h3.enrichment_segment_detail_system(facet, min(500, max(100, missing))),
+                            temperature=min(temperature, 0.35),
+                            top_p=min(top_p, 0.6),
+                            max_new_tokens=max(220, round(min(500, max(100, missing)) * 1.8)),
+                        ).strip()
+                        detail = _clean_extra_utterance_clauses("", detail)
+                        if (not detail or (_contains_cjk(segment) and not _contains_cjk(detail))
+                                or _enrichment_drift_categories(source, detail)
+                                or _has_repeated_enrichment_content(segment, detail)):
+                            continue
+                        accepted_segment = _insert_before_terminal_utterance(
+                            segment, accepted_segment, detail
+                        )
+                    if _compact_length(accepted_segment) < segment_minimum:
+                        deterministic_detail = _deterministic_segment_detail(
+                            segment_index,
+                            len(source_segments),
+                            segment_minimum - _compact_length(accepted_segment),
+                        )
+                        accepted_segment = _insert_before_terminal_utterance(
+                            segment, accepted_segment, deterministic_detail
+                        )
+                    enriched_segments.append(accepted_segment)
+                if enriched_segments:
+                    assembled = "".join(enriched_segments) if _contains_cjk(source) else " ".join(enriched_segments)
+                    assembled = h3.restore_enrichment_protected_facts(source, assembled)
+                    assembled = _truncate_integrated_terminal_aftermath(source, assembled)
+                    assembled = _fit_enrichment_upper_bound(source, assembled, requested_target_length)
+                    if (_is_within_enrichment_target(source, assembled, requested_target_length)
+                            and not _enrichment_drift_categories(source, assembled)
+                            and not _has_repeated_enrichment_content(source, assembled)
+                            and not _has_post_terminal_continuation(source, assembled)
+                            and not _has_utterance_contract_violation(source, assembled)):
+                        segment_review = self.runtime.generate(
+                            f"ORIGINAL SOURCE:\n{source}\n\nPROPOSED ENRICHED PROMPT:\n{assembled}",
+                            h3.enrichment_review_system(strength, target_length),
+                            temperature=0.01,
+                            top_p=0.1,
+                            max_new_tokens=8,
+                        ).strip().upper()
+                        if _is_pass_verdict(segment_review):
+                            candidate = assembled
+                            length_repair_succeeded = True
+                if not length_repair_succeeded:
+                    deterministic_candidate = _build_deterministic_integrated_enrichment(source, target_length)
+                    if (_is_within_enrichment_target(source, deterministic_candidate, requested_target_length)
+                            and not _has_repeated_enrichment_content(source, deterministic_candidate)
+                            and not _has_post_terminal_continuation(source, deterministic_candidate)
+                            and not _has_utterance_contract_violation(source, deterministic_candidate)):
+                        candidate = deterministic_candidate
+                        length_repair_succeeded = True
+                if not length_repair_succeeded:
+                    raise RuntimeError("Prompt enrichment could not meet the requested target length as one integrated rewrite.")
 
         if not _is_within_enrichment_target(source, candidate, requested_target_length):
             raise RuntimeError("Prompt enrichment could not meet the requested target length after automatic correction.")
+        if _has_utterance_contract_violation(source, candidate):
+            raise RuntimeError("Prompt enrichment violated the source utterance contract after automatic correction.")
         return candidate
 
     def convert(self, text: str, mode: str) -> dict:

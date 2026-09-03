@@ -162,6 +162,33 @@ class H3ContractTests(unittest.TestCase):
         self.assertNotIn("At 2 seconds", output)
         self.assertNotIn("At 3 seconds", output)
 
+    def test_ref2va_unnumbered_action_sequence_infers_a_timed_final_shot(self):
+        source = (
+            "图1是男生参考图，图2是女生参考图。视频从女生场景出发，女生保持第一帧动作不变，"
+            "男生从侧边进入画面，他举起手不断摇摆向女生打招呼，她看着男生不断打招呼感到滑稽"
+            "用手捂住嘴巴偷笑，女生用中文不断发出“啊，啊”的声音，最后女生高高抬起一条腿，"
+            "另一条腿站立，旋转身体一脚踢到男生脸上，男生应声倒地。女生用中文说：“你发神经，该打”"
+        )
+        translation = (
+            "<Picture 1> is the male reference image. <Picture 2> is the female reference image. "
+            "The video begins from the woman's scene. The woman keeps the first-frame pose unchanged. "
+            "The man enters from the side and continuously waves his raised hand to greet her. "
+            "She finds the greeting comical, covers her mouth, and giggles. "
+            "The woman continuously vocalizes <d>[Chinese] 啊，啊</d>. "
+            "Finally, she raises one leg high while standing on the other, rotates, and kicks the man in the face, "
+            "causing him to fall. She says <d>[Chinese] 你发神经，该打</d>."
+        )
+
+        output = h3.ref2va_timeline_wrap(translation, source)
+        detailed = output.split("detailed_description:", 1)[1].split("\noverall_soundscape:", 1)[0]
+
+        self.assertIn("[Shot 1]", detailed)
+        self.assertNotIn("[Shot 1] At ", detailed)
+        self.assertRegex(detailed, r"\[Shot 2\] At \d{2}:\d{2}\.\d{3}, Finally")
+        self.assertNotIn("reference image. [Shot", detailed.lower())
+        self.assertIn("<d>[Chinese] 啊，啊</d>", detailed)
+        self.assertIn("<d>[Chinese] 你发神经，该打</d>", detailed)
+
     def test_unmentioned_vocalizations_are_detected(self):
         self.assertTrue(h3.has_unsupported_vocalization("A person remains still.", "The person moans."))
         self.assertFalse(h3.has_unsupported_vocalization("The person moans.", "The person moans."))
@@ -277,13 +304,15 @@ class H3ContractTests(unittest.TestCase):
 
         self.assertIn("1800", prompt)
         self.assertIn("2200", prompt)
-        self.assertIn("may introduce", prompt.lower())
+        self.assertIn("may richly develop", prompt.lower())
         self.assertIn("setting", prompt.lower())
-        self.assertIn("minor events", prompt.lower())
+        self.assertIn("do not add any new event", prompt.lower())
+        self.assertIn("stop immediately", prompt.lower())
         self.assertIn("do not change the nature", prompt.lower())
         self.assertIn("violence", prompt.lower())
         self.assertIn("biography", prompt.lower())
         self.assertIn("creative additions are expected", review.lower())
+        self.assertIn("story continuation", review.lower())
         self.assertIn("genre or emotional tone", review.lower())
         self.assertIn("100/100", review)
 
